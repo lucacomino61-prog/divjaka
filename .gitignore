@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.astro/
+data/*.db*
+data/uploads/
+.env
+.env.*
+!.env.example
+raw/
+*.log
+.DS_Store
