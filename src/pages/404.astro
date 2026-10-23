@@ -1,0 +1,9 @@
+---
+/** 404 — bilingual; the language comes from the requested path (/en/… → English). */
+import NotFound from '../views/NotFound.astro';
+import { langFromPath } from '../i18n/routes';
+
+const lang = langFromPath(Astro.url.pathname);
+Astro.response.status = 404;
+---
+<NotFound lang={lang} />

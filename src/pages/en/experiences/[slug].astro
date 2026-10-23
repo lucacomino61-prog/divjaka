@@ -1,0 +1,10 @@
+---
+import Experience from '../../../views/Experience.astro';
+import NotFound from '../../../views/NotFound.astro';
+import { load } from '../../../views/experience.load';
+
+const params = { slug: Astro.params.slug ?? '' };
+const data = await load(params, 'en');
+if (!data) Astro.response.status = 404;
+---
+{data ? <Experience lang="en" params={params} data={data} /> : <NotFound lang="en" />}

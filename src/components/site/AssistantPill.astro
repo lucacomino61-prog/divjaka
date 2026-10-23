@@ -1,0 +1,18 @@
+---
+/**
+ * AssistantPill — the fixed "Pyet · 24/7" pill (shell). Clicking dispatches the cancelable
+ * window event 'dv:assistant-open' (chrome.ts). T7's assistant panel listens and calls
+ * preventDefault() to open itself; with no panel on the page the pill is a plain link to the
+ * contact page, so nothing breaks. Hidden while the menu or cart drawer is open.
+ */
+import { t } from '../../i18n/ui';
+import { path, type Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+---
+<a class="assistant-pill pill pill--primary" href={path('contact', lang)} data-assistant-open="pill" aria-label={t(lang, 'assistant.aria')}>
+  <span class="live-dot" aria-hidden="true"></span>
+  <span class="assistant-pill__label">{t(lang, 'assistant.pill')}</span>
+  <span class="assistant-pill__hours mono" aria-hidden="true">· {t(lang, 'assistant.hours')}</span>
+</a>

@@ -1,0 +1,141 @@
+/* type.css — three self-hosted OFL faces (DESIGN §2). Files: public/fonts (latin + latin-ext
+   subsets from google/fonts; licences in public/fonts/LICENSES). Albanian ë Ë ç Ç are in the
+   latin subset. The giant wordmark is outlined SVG (src/assets/wordmark.ts) and needs no font. */
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/fonts/bricolage-grotesque-var-latin.woff2") format("woff2-variations"), url("/fonts/bricolage-grotesque-var-latin.woff2") format("woff2");
+  font-weight: 200 800; font-stretch: 75% 100%; font-style: normal; font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+2000-206F, U+20AC, U+2122, U+2190-2199, U+2212, U+2215, U+2248, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/fonts/bricolage-grotesque-var-latin-ext.woff2") format("woff2-variations"), url("/fonts/bricolage-grotesque-var-latin-ext.woff2") format("woff2");
+  font-weight: 200 800; font-stretch: 75% 100%; font-style: normal; font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("/fonts/instrument-serif-italic-latin.woff2") format("woff2");
+  font-weight: 400; font-style: italic; font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+2000-206F, U+20AC, U+2122, U+2190-2199, U+2212, U+2215, U+2248, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("/fonts/instrument-serif-italic-latin-ext.woff2") format("woff2");
+  font-weight: 400; font-style: italic; font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("/fonts/instrument-serif-regular-latin.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+2000-206F, U+20AC, U+2122, U+2190-2199, U+2212, U+2215, U+2248, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("/fonts/instrument-serif-regular-latin-ext.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/geist-mono-var-latin.woff2") format("woff2-variations"), url("/fonts/geist-mono-var-latin.woff2") format("woff2");
+  font-weight: 100 900; font-style: normal; font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+2000-206F, U+20AC, U+2122, U+2190-2199, U+2212, U+2215, U+2248, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/geist-mono-var-latin-ext.woff2") format("woff2-variations"), url("/fonts/geist-mono-var-latin-ext.woff2") format("woff2");
+  font-weight: 100 900; font-style: normal; font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* metric-matched fallbacks (measured with fontTools against Arial / Georgia / Consolas) */
+@font-face { font-family: "Bricolage Fallback"; src: local("Arial"), local("Helvetica Neue"), local("Roboto"); size-adjust: 104.5%; ascent-override: 89%; descent-override: 25.8%; line-gap-override: 0%; }
+@font-face { font-family: "Instrument Fallback"; src: local("Georgia Italic"), local("Georgia-Italic"), local("Times New Roman Italic"); size-adjust: 78.8%; ascent-override: 125.6%; descent-override: 39.3%; line-gap-override: 0%; }
+/* Poster fallbacks: Arial Bold scaled so its uppercase advances stay within Bricolage's at the
+   poster setting (opsz 96 · wdth 75 · wght 800). The ratio differs per word (0.56–0.64), so one
+   size-adjust cannot match every poster: SectionHead picks, per poster, the largest bucket whose
+   lines are no wider than the real face's (posterLayout in src/assets/poster-metrics.ts) and
+   prints each line nowrap — the late swap to the real face changes neither line count nor
+   height. Ascent/descent give the real face's 0.93 / 0.27 em after the size adjustment.
+   "Bricolage Poster Fallback" (60 %) is the default for poster type outside SectionHead. */
+@font-face { font-family: "Bricolage Poster Fallback"; src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Neue Bold"), local("Roboto Bold"); font-weight: 100 900; size-adjust: 60.3%; ascent-override: 154.2%; descent-override: 44.8%; line-gap-override: 0%; }
+@font-face { font-family: "Poster Fallback 50"; src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Neue Bold"), local("Roboto Bold"); font-weight: 100 900; size-adjust: 50%; ascent-override: 186.0%; descent-override: 54.0%; line-gap-override: 0%; }
+@font-face { font-family: "Poster Fallback 52"; src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Neue Bold"), local("Roboto Bold"); font-weight: 100 900; size-adjust: 52%; ascent-override: 178.8%; descent-override: 51.9%; line-gap-override: 0%; }
+@font-face { font-family: "Poster Fallback 54"; src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Neue Bold"), local("Roboto Bold"); font-weight: 100 900; size-adjust: 54%; ascent-override: 172.2%; descent-override: 50.0%; line-gap-override: 0%; }
+@font-face { font-family: "Poster Fallback 56"; src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Neue Bold"), local("Roboto Bold"); font-weight: 100 900; size-adjust: 56%; ascent-override: 166.1%; descent-override: 48.2%; line-gap-override: 0%; }
+@font-face { font-family: "Poster Fallback 58"; src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Neue Bold"), local("Roboto Bold"); font-weight: 100 900; size-adjust: 58%; ascent-override: 160.3%; descent-override: 46.6%; line-gap-override: 0%; }
+@font-face { font-family: "Poster Fallback 60"; src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Neue Bold"), local("Roboto Bold"); font-weight: 100 900; size-adjust: 60%; ascent-override: 155.0%; descent-override: 45.0%; line-gap-override: 0%; }
+@font-face { font-family: "Poster Fallback 62"; src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Neue Bold"), local("Roboto Bold"); font-weight: 100 900; size-adjust: 62%; ascent-override: 150.0%; descent-override: 43.5%; line-gap-override: 0%; }
+@font-face { font-family: "Poster Fallback 64"; src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Neue Bold"), local("Roboto Bold"); font-weight: 100 900; size-adjust: 64%; ascent-override: 145.3%; descent-override: 42.2%; line-gap-override: 0%; }
+@font-face { font-family: "Poster Fallback 66"; src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Neue Bold"), local("Roboto Bold"); font-weight: 100 900; size-adjust: 66%; ascent-override: 140.9%; descent-override: 40.9%; line-gap-override: 0%; }
+@font-face { font-family: "Poster Fallback 68"; src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Neue Bold"), local("Roboto Bold"); font-weight: 100 900; size-adjust: 68%; ascent-override: 136.8%; descent-override: 39.7%; line-gap-override: 0%; }
+@font-face { font-family: "Poster Fallback 70"; src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Neue Bold"), local("Roboto Bold"); font-weight: 100 900; size-adjust: 70%; ascent-override: 132.9%; descent-override: 38.6%; line-gap-override: 0%; }
+@font-face { font-family: "Geist Mono Fallback"; src: local("Consolas"), local("Menlo"), local("DejaVu Sans Mono"); size-adjust: 109.1%; ascent-override: 92.1%; descent-override: 27%; line-gap-override: 0%; }
+
+/* ---------- document type ---------- */
+html { font-family: var(--font-sans); font-optical-sizing: auto; }
+body {
+  font-size: var(--step-0);
+  line-height: 1.5;
+  font-variation-settings: "opsz" 14;
+  font-weight: 400;
+  font-stretch: 100%;
+  font-kerning: normal;
+}
+:where(h1, h2, h3, h4) {
+  font-weight: 700; font-stretch: 85%;
+  font-variation-settings: "opsz" 72;
+  line-height: 1.02; letter-spacing: -0.02em;
+  overflow-wrap: anywhere; hyphens: manual;
+}
+/* reading measure for running text only (component <p>s with a class keep their own width) */
+:where(main) :where(p:not([class]), li:not([class])) { max-inline-size: var(--measure); }
+:where(a) { color: inherit; text-decoration-line: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+:where(strong, b) { font-weight: 650; }
+::selection { background: var(--ink); color: var(--salt); }
+.on-ink ::selection { background: var(--salt); color: var(--ink); }
+
+/* Poster type: uppercase display at poster size, fitted to its container. Set --fit-em on the
+   element = the width of its longest word in em (SectionHead computes it on the server from
+   src/assets/poster-metrics.ts, the font's own advances); the wrapper is a size container. */
+.poster {
+  font-family: "Bricolage Grotesque", var(--poster-fb, "Bricolage Poster Fallback"), "Arial Narrow", sans-serif;
+  font-weight: 800; font-stretch: 75%;
+  font-variation-settings: "opsz" 96;
+  text-transform: uppercase;
+  letter-spacing: -0.025em; /* tighter fuses I stems at wght 800; the outlined wordmark uses the same + an optical floor */
+  line-height: 0.82;
+  font-size: min(var(--poster-max), calc(var(--fit-width, 100cqi) / var(--fit-em, 4)));
+  overflow-wrap: anywhere; hyphens: manual;
+  text-wrap: balance;
+  padding-block-start: 0.06em; /* room for Ë diaeresis above the cap line */
+}
+/* server-composed lines (SectionHead): fixed line count whatever face is showing */
+.poster__line { display: block; white-space: nowrap; }
+.poster-wrap { container-type: inline-size; }
+
+.heading { font-size: var(--step-4); font-weight: 700; font-stretch: 85%; font-variation-settings: "opsz" 72; line-height: 1; letter-spacing: -0.025em; }
+.title { font-size: var(--step-3); font-weight: 700; font-stretch: 85%; font-variation-settings: "opsz" 48; line-height: 1.02; letter-spacing: -0.02em; }
+.lede { font-size: var(--step-2); font-weight: 500; font-stretch: 90%; font-variation-settings: "opsz" 32; line-height: 1.18; letter-spacing: -0.01em; max-inline-size: 30ch; }
+
+/* water lettering + annotations */
+.water, .serif-i { font-family: var(--font-serif); font-style: italic; font-weight: 400; letter-spacing: 0; font-variation-settings: normal; }
+.water { font-size: var(--step-2); line-height: 1.1; }
+
+/* readings + labels */
+.mono, .reading, .label {
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  font-weight: 450;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+  font-variation-settings: normal; font-stretch: normal;
+}
+.label { font-size: var(--step--2); }
+.mono-lc { text-transform: none; }
+.muted { color: var(--muted); }
+.signal { color: var(--signal-text); }

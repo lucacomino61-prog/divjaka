@@ -1,0 +1,88 @@
+---
+/**
+ * Preloader — the tower's spotting scope (DESIGN §5, Kode row). Home only (Base `loader` prop),
+ * shown only when the head script set html.loader-on (motion on, first page of the session).
+ * JS-off visitors never see it. It is the first thing in <body>, so the first Tab reaches Skip.
+ * The plate is the hero's own photo with the hero's own <picture> sources and sizes="100vw":
+ * the browser makes ONE request for both. Focus = the sharp plate fading in over the LQIP
+ * (opacity only — no full-screen filter re-rasterised per frame); nothing spins.
+ * The inline script is the safety net: Skip works from 0 ms, Esc skips, a hard 1.8 s cap, the
+ * once-per-session flag, removal from the DOM. scripts/loader.ts adds the real progress and
+ * finishes the moment it reaches 100 % (no hold).
+ */
+import { findPhoto } from './site-data';
+import { t } from '../../i18n/ui';
+import type { Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang; hotel: { lat: number; lon: number } }
+const { lang, hotel } = Astro.props;
+// same photo as the Home hero (views/Home.astro uses the same keywords)
+const plate = findPhoto(['karavasta', 'lagoon', 'lagun', 'pelican', 'pelikan', 'divjak']);
+const set = (fmt: 'avif' | 'webp' | 'jpg') =>
+  plate ? plate.widths.map((w) => { const s = plate.srcFor(w, fmt); return s ? `${s} ${w}w` : null; }).filter(Boolean).join(', ') : '';
+const avif = set('avif'), webp = set('webp'), jpg = set('jpg');
+const mid = plate ? (plate.widths.find((w) => w >= 960) ?? plate.widths.at(-1)) : undefined;
+const fallbackSrc = plate && mid ? (plate.srcFor(mid, 'jpg') ?? plate.srcFor(mid, 'webp') ?? plate.srcFor(mid, 'avif')) : null;
+const lqip = plate?.lqip?.startsWith('data:') ? `background-image:url("${plate.lqip}")` : plate?.lqip ? `background-color:${plate.lqip}` : '';
+---
+<div id="dv-loader" class="loader" data-lat={hotel.lat} data-lon={hotel.lon} aria-hidden="true">
+  <div class="loader__plate" style={lqip || undefined}>
+    {fallbackSrc ? (
+      <picture>
+        {avif && <source type="image/avif" srcset={avif} sizes="100vw" />}
+        {webp && <source type="image/webp" srcset={webp} sizes="100vw" />}
+        <img src={fallbackSrc} srcset={jpg || undefined} sizes={jpg ? '100vw' : undefined} alt="" width={plate!.width} height={plate!.height} decoding="async" fetchpriority="high" style={plate!.focal ? `object-position:${plate!.focal}` : undefined} />
+      </picture>
+    ) : (
+      <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        {[38, 42, 46, 50, 54, 58, 62].map((y) => <path d={`M0 ${y} C 30 ${y - 1.5}, 60 ${y + 1.5}, 100 ${y}`} fill="none" stroke="currentColor" stroke-width="0.25" />)}
+      </svg>
+    )}
+  </div>
+  <div class="loader__scope">
+    <svg class="loader__ring" viewBox="0 0 260 260" aria-hidden="true">
+      <circle cx="130" cy="130" r="121" fill="none" stroke="currentColor" stroke-width="1.5" />
+      {Array.from({ length: 36 }, (_, i) => {
+        const a = (i * 10 * Math.PI) / 180, r1 = 124, r2 = i % 9 === 0 ? 136 : 130;
+        return <path d={`M${130 + r1 * Math.sin(a)} ${130 - r1 * Math.cos(a)}L${130 + r2 * Math.sin(a)} ${130 - r2 * Math.cos(a)}`} stroke="currentColor" stroke-width="1" />;
+      })}
+    </svg>
+  </div>
+  <p class="loader__coords mono" data-loader-coords>0°00′N 0°00′E</p>
+  <p class="loader__name mono"><span translate="no">Hotel Pelikan</span> · {t(lang, 'site.place')}</p>
+</div>
+<button type="button" class="loader__skip pill pill--outline pill--s" data-loader-skip>{t(lang, 'loader.skip')}</button>
+<script is:inline>
+(function () {
+  var h = document.documentElement, el = document.getElementById('dv-loader'), skip = document.querySelector('[data-loader-skip]');
+  if (!el) return;
+  if (!h.classList.contains('loader-on')) { el.remove(); if (skip) skip.remove(); return; }
+  // once per session, counted from the moment it shows: a visitor who clicks on within the
+  // first second does not get the scope again on the next page
+  try { sessionStorage.setItem('dv-seen', '1'); } catch (e) {}
+  var done = false;
+  // while the scope covers the page, Tab stays on Skip: the page behind is hidden, so focus must
+  // not land on a link nobody can see (WCAG 2.4.11); the loader is gone in at most 1.8 s
+  function onKey(e) {
+    if (e.key === 'Escape') { finish(); return; }
+    if (e.key === 'Tab' && skip && skip.isConnected) { e.preventDefault(); skip.focus(); }
+  }
+  function finish() {
+    if (done) return; done = true;
+    document.removeEventListener('keydown', onKey);
+    var refocus = skip && document.activeElement === skip;
+    h.classList.add('loader-out');
+    if (skip) skip.remove();
+    if (refocus) { var m = document.getElementById('main'); if (m) m.focus({ preventScroll: true }); }
+    setTimeout(function () {
+      h.classList.remove('loader-on', 'loader-out');
+      el.remove();
+      window.dispatchEvent(new Event('dv:loaded'));
+    }, 340);
+  }
+  window.__dvLoaderFinish = finish;
+  if (skip) skip.addEventListener('click', finish);
+  document.addEventListener('keydown', onKey);
+  setTimeout(finish, 1800);
+})();
+</script>

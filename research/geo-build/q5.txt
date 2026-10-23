@@ -1,0 +1,6 @@
+[out:json][timeout:60];
+(
+  nwr["landuse"="forest"](40.80,19.34,41.06,19.58);
+  nwr["natural"="wood"](40.80,19.34,41.06,19.58);
+);
+out geom;

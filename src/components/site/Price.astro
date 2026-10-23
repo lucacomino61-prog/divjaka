@@ -1,0 +1,53 @@
+---
+/**
+ * Price — whole-lek amount formatted from src/i18n/format.ts. The server prints BOTH figures:
+ * lek ([data-cur-all]) and, when an EUR rate is set, "≈ 65 €" with the lek amount small beside
+ * it ([data-cur-eur]). CSS shows one of them from html[data-cur], which the head script sets
+ * from prefs before first paint — no text is rewritten after load, so no layout shift.
+ * compare = strike-through "was" price (follows the same currency).
+ *   <Price lek={6500} lang={lang} per="night" from />
+ * Client-built prices (cards from /api/*) can print the same markup, or a bare
+ * <span data-price-lek="6500"><span data-price-main></span><span data-price-alt hidden></span></span>
+ * which chrome.ts fills (no data-price-ssr attribute = painted on the client).
+ */
+import { money } from '../../i18n/format';
+import { t } from '../../i18n/ui';
+import { eurRate } from './site-data';
+import type { Lang } from '../../i18n/routes';
+
+interface Props {
+  lek: number;
+  lang: Lang;
+  compare?: number | null;
+  per?: 'night' | 'person' | 'each' | null;
+  from?: boolean;
+  size?: 'display' | 'title' | 'mono';
+  class?: string;
+}
+const { lek, lang, compare, per = null, from = false, size = 'mono', class: cls } = Astro.props;
+const rate = await eurRate();
+const eur = (v: number) => money(v, lang, { currency: 'EUR', rate });
+const both = rate > 0;
+const perLabel = per === 'night' ? t(lang, 'price.perNight') : per === 'person' ? t(lang, 'price.perPerson') : per === 'each' ? t(lang, 'price.each') : '';
+const fromWord = from ? t(lang, 'price.from', { price: '' }).trim() : '';
+const hasWas = !!compare && compare > lek;
+---
+<span class:list={['price', `price--${size}`, cls]} data-price-lek={lek} data-price-ssr>
+  {fromWord && <span class="price__from mono">{fromWord}</span>}
+  {hasWas && (
+    <s class="price__was mono">
+      <span class="visually-hidden">{t(lang, 'price.was', { price: '' })}</span>
+      {both ? <><span data-cur-all>{money(compare!, lang)}</span><span data-cur-eur>{eur(compare!)}</span></> : money(compare!, lang)}
+    </s>
+  )}
+  {both ? (
+    <>
+      <span class="price__main" data-cur-all>{money(lek, lang)}</span>
+      <span class="price__main" data-cur-eur>{eur(lek)}</span>
+      <span class="price__alt mono" data-cur-eur>{money(lek, lang)}</span>
+    </>
+  ) : (
+    <span class="price__main">{money(lek, lang)}</span>
+  )}
+  {perLabel && <span class="price__per mono">/ {perLabel}</span>}
+</span>

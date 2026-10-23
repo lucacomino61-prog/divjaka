@@ -1,0 +1,25 @@
+---
+/**
+ * Ticker — the logbook strip above the header (DESIGN §3). Server prints the Divjakë clock
+ * (real); ticker.ts adds live readings from /api/live when fresh and moves the line from the
+ * GSAP ticker. Always 32 px tall (no layout shift whether or not live data arrives).
+ */
+import { t } from '../../i18n/ui';
+import { tirane } from '../../i18n/format';
+import type { Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const now = tirane();
+---
+<div class="ticker on-ink" data-ticker role="region" aria-label={t(lang, 'live.ticker')}>
+  <div class="ticker__viewport" data-lenis-prevent>
+    <div class="ticker__track" data-ticker-track>
+      <p class="ticker__line mono" data-ticker-line>
+        <span class="ticker__item" data-ticker-clock>{t(lang, 'live.clock', { time: now.time })}</span>
+        <span class="ticker__item">{t(lang, 'site.hotel')} · {t(lang, 'site.place')}</span>
+      </p>
+    </div>
+  </div>
+  <span class="ticker__dot" aria-hidden="true"></span>
+</div>

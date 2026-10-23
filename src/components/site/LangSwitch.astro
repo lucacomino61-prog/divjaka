@@ -1,0 +1,27 @@
+---
+/**
+ * LangSwitch — goes to the twin URL in the other language (never to the home), keeping the
+ * query string. The twin comes from src/i18n/routes.ts; `href` overrides it (e.g. 404 pages).
+ * The link's name starts with its visible text ("EN · Read this page in English"), so a speech
+ * user saying "click EN" finds it (WCAG 2.5.3).
+ */
+import { path, twin, type Lang, type RouteKey } from '../../i18n/routes';
+import { t } from '../../i18n/ui';
+
+interface Props { lang: Lang; routeKey?: string; params?: Record<string, string>; href?: string; class?: string; full?: boolean }
+const { lang, routeKey, params = {}, href, class: cls, full = false } = Astro.props;
+const other: Lang = lang === 'sq' ? 'en' : 'sq';
+let target = href;
+if (!target) {
+  try { target = routeKey ? path(routeKey as RouteKey, other, params) : twin(Astro.url.pathname).other; }
+  catch { target = path('home', other); }
+}
+target += Astro.url.search;
+---
+<div class:list={["lang-switch", cls]} role="group" aria-label={t(lang, "lang.label")}>
+  <span class="lang-switch__cur mono" aria-current="true" lang={lang}>{t(lang, 'lang.code')}</span>
+  <span class="lang-switch__sep mono" aria-hidden="true">/</span>
+  <a class="lang-switch__other mono" href={target} hreflang={other} lang={other}>
+    {full ? t(lang, 'lang.other.name') : t(lang, 'lang.other.code')}<span class="visually-hidden"> · {t(lang, 'lang.other.aria')}</span>
+  </a>
+</div>

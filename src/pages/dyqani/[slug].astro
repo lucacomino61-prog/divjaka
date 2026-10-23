@@ -1,0 +1,10 @@
+---
+import Product from '../../views/Product.astro';
+import NotFound from '../../views/NotFound.astro';
+import { load } from '../../views/product.load';
+
+const params = { slug: Astro.params.slug ?? '' };
+const data = await load(params, 'sq');
+if (!data) Astro.response.status = 404;
+---
+{data ? <Product lang="sq" params={params} data={data} /> : <NotFound lang="sq" />}

@@ -1,0 +1,32 @@
+---
+/**
+ * MotionSwitch — the Stop-animations button. Any number on a page; chrome.ts calls setMotion()
+ * from scripts/motion.ts. It names the ACTION, not a state: "Ndalo animacionet" while things
+ * move, "Rinis animacionet" once stopped (no aria-pressed, so the label never contradicts it).
+ * Both labels are in the HTML and CSS shows the right one from html[data-motion], so it is
+ * right before JS runs. Hidden without JS (it needs the script) and under
+ * prefers-reduced-motion (the system setting already stops everything and wins over it).
+ * compact = icon (+ the short mono word from 1024 px; the accessible name is the full label,
+ * which starts with it) for the header; default = icon + full mono label (menu, footer).
+ */
+import { t } from '../../i18n/ui';
+import type { Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang; compact?: boolean; class?: string }
+const { lang, compact = false, class: cls } = Astro.props;
+---
+<button type="button" class:list={['motion-switch', compact && 'motion-switch--compact', cls]} data-motion-switch>
+  <svg class="motion-switch__icon" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
+    <circle cx="10" cy="10" r="8.25" fill="none" stroke="currentColor" stroke-width="1.5" />
+    <g class="motion-switch__pause"><path d="M8 6.5v7M12 6.5v7" stroke="currentColor" stroke-width="1.5" /></g>
+    <path class="motion-switch__play" d="M8.25 6.25l5.5 3.75-5.5 3.75z" fill="currentColor" />
+  </svg>
+  <span class="motion-switch__when-on">
+    <span class:list={['motion-switch__label', compact ? 'visually-hidden' : 'mono']}>{t(lang, 'motion.stop')}</span>
+    {compact && <span class="motion-switch__short mono" aria-hidden="true">{t(lang, 'motion.stop.short')}</span>}
+  </span>
+  <span class="motion-switch__when-off">
+    <span class:list={['motion-switch__label', compact ? 'visually-hidden' : 'mono']}>{t(lang, 'motion.play')}</span>
+    {compact && <span class="motion-switch__short mono" aria-hidden="true">{t(lang, 'motion.play.short')}</span>}
+  </span>
+</button>

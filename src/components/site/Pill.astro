@@ -1,0 +1,33 @@
+---
+/**
+ * Pill — the button/link shape (DESIGN §3 Buttons). primary = ink pill with salt text,
+ * outline = 1 px ink outline, quiet = text-weight pill for toolbars. 48 px tall (44 px min touch).
+ * Renders <a> when href is set, else <button type="button">. Extra attributes pass through.
+ *   <Pill href={path('stay', lang)} sub="Nga 6 500 L">Rezervo qëndrimin</Pill>
+ */
+import type { HTMLAttributes } from 'astro/types';
+
+type Common = {
+  variant?: 'primary' | 'outline' | 'quiet' | 'signal';
+  size?: 'm' | 's';
+  sub?: string;
+  arrow?: boolean;
+  class?: string;
+  block?: boolean;
+};
+type Props = Common & (HTMLAttributes<'a'> | HTMLAttributes<'button'>) & { href?: string; type?: 'button' | 'submit' | 'reset' };
+
+const { variant = 'primary', size = 'm', sub, arrow = false, class: cls, block = false, href, type = 'button', ...rest } = Astro.props as Props;
+const classes = ['pill', `pill--${variant}`, size === 's' && 'pill--s', block && 'pill--block', sub && 'pill--sub', cls];
+---
+{href ? (
+  <a href={href} class:list={classes} {...(rest as HTMLAttributes<'a'>)}>
+    <span class="pill__main"><slot />{arrow && <svg class="pill__arrow" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>}</span>
+    {sub && <span class="pill__sub mono">{sub}</span>}
+  </a>
+) : (
+  <button type={type} class:list={classes} {...(rest as HTMLAttributes<'button'>)}>
+    <span class="pill__main"><slot />{arrow && <svg class="pill__arrow" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>}</span>
+    {sub && <span class="pill__sub mono">{sub}</span>}
+  </button>
+)}

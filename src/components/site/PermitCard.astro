@@ -1,0 +1,20 @@
+---
+/**
+ * PermitCard — style shell for the booking/order card (DESIGN §3): salt card, 1 px ink border,
+ * 4 px offset print shadow, a perforated edge between body and stub. T4/T5 fill it.
+ * Slots: default = body (title, calendar, options); "stub" = dates, guests, total, Book.
+ *   <PermitCard label="Leje qëndrimi · nr. 014"> … <Fragment slot="stub">…</Fragment></PermitCard>
+ */
+interface Props { label?: string; as?: 'div' | 'section' | 'aside' | 'form'; class?: string; floating?: boolean; [k: string]: unknown }
+const { label, as: Tag = 'div', class: cls, floating = false, ...rest } = Astro.props;
+---
+<Tag class:list={['permit', floating && 'permit--floating', cls]} {...rest}>
+  {label && <p class="permit__label mono">{label}</p>}
+  <div class="permit__body"><slot /></div>
+  {Astro.slots.has('stub') && (
+    <>
+      <div class="permit__perf" aria-hidden="true"></div>
+      <div class="permit__stub"><slot name="stub" /></div>
+    </>
+  )}
+</Tag>

@@ -1,0 +1,61 @@
+---
+/**
+ * Menu — full-screen ink sheet (<dialog id="menu">) that rises with the tide line (DESIGN §3).
+ * Left: numbered legend 01–09 in display type with mono sub-lines; right (≥ 1024 px): the mini
+ * chart, where hovering/focusing an entry drops its pin. Bottom row: language, currency, Stop
+ * animations, live reading, Divjakë clock, contact. Phone: legend only, chart as a strip.
+ * Behaviour in scripts/menu.ts (focus trap via showModal, Esc, swipe-down, focus return).
+ */
+import MiniChart from './MiniChart.astro';
+import LangSwitch from './LangSwitch.astro';
+import MotionSwitch from './MotionSwitch.astro';
+import CurrencySwitch from './CurrencySwitch.astro';
+import { LEGEND, ariaCurrent } from './nav';
+import { t } from '../../i18n/ui';
+import { path, type Lang } from '../../i18n/routes';
+import { tirane } from '../../i18n/format';
+
+interface Props { lang: Lang; routeKey: string; params?: Record<string, string>; hotel: { lat: number; lon: number }; langHref?: string }
+const { lang, routeKey, params = {}, hotel, langHref } = Astro.props;
+---
+<dialog id="menu" class="menu on-ink" aria-label={t(lang, 'menu.dialog')}>
+  <div class="menu__inner" data-scroll data-lenis-prevent>
+    <div class="menu__top wrap">
+      <p id="menu-title" class="mono menu__title">{t(lang, 'menu.title')} · <span translate="no">Divjaka</span></p>
+      <button type="button" class="pill pill--outline pill--s menu__close" commandfor="menu" command="close" data-close="menu" autofocus>
+        <span>{t(lang, 'menu.close')}</span>
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.5" fill="none" /></svg>
+      </button>
+    </div>
+    <div class="menu__body wrap">
+      <nav class="menu__legend" aria-label={t(lang, 'menu.label')}>
+        <ol>
+          {LEGEND.map((n, i) => (
+            <li>
+              <a href={path(n.key, lang)} data-poi={n.poi} aria-current={ariaCurrent(routeKey, n.key)}>
+                <span class="menu__num mono" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+                <span class="menu__name">{t(lang, n.label)}</span>
+                {n.sub && <span class="menu__sub mono">{t(lang, n.sub)}</span>}
+              </a>
+            </li>
+          ))}
+        </ol>
+      </nav>
+      <div class="menu__chart">
+        <MiniChart lang={lang} hotel={hotel} />
+      </div>
+    </div>
+    <div class="menu__foot wrap">
+      <div class="menu__settings" role="group" aria-label={t(lang, 'menu.settings')}>
+        <LangSwitch lang={lang} routeKey={routeKey} params={params} href={langHref} full />
+        <CurrencySwitch lang={lang} />
+        <MotionSwitch lang={lang} />
+      </div>
+      <div class="menu__live mono">
+        <p>{t(lang, 'live.clock', { time: '' })}<time data-clock>{tirane().time}</time></p>
+        <div data-live-reading hidden></div>
+      </div>
+      <a class="menu__contact mono" href={path('contact', lang)}>{t(lang, 'footer.write')} →</a>
+    </div>
+  </div>
+</dialog>

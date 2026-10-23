@@ -1,0 +1,2329 @@
+{
+ "generated": "2026-10-23",
+ "method": "Wikimedia Commons API (action=query, prop=imageinfo, iiprop=extmetadata) over the categories Divjakë-Karavasta National Park, Divjaka-Karavasta National Park, Karavasta Lagoon, Divjaka, Divjaka Beach, Animals of Divjakë-Karavasta National Park, Pelican Xhimi, Karavasta Divjaka, Adriatik Divjakë, Shën Thanasit Karavasta, Ardenica Monastery, Apollonia (Albania) plus file searches (Divjaka, Divjakë, Karavasta, Pelecanus crispus Albania, Divjaka beach ...). 924 files listed, ~170 viewed on contact sheets, 32 chosen. Licence, author and description come from each file page's extmetadata; Flickr-sourced files carry a FlickreviewR licence review.",
+ "other_sources_checked": {
+  "unsplash": "search 'karavasta' returned 0 photos (https://unsplash.com/s/photos/karavasta); 'divjaka'/'divjake' pages did not render (bot check) - nothing usable found",
+  "pexels": "searches 'karavasta' and 'divjaka' returned only unrelated photos (other countries); none of Albania",
+  "flickr": "not needed: the Flickr photos used (Julien Seguinot, Nicolas Vollmer, Marmontel) were taken via their licence-reviewed Commons copies"
+ },
+ "web_variants": {
+  "widths": [
+   640,
+   1280,
+   1920,
+   2560
+  ],
+  "2560_only_for": [
+   "lagoon-sunset",
+   "lagoon-view-from-above",
+   "lagoon-fishermen-house"
+  ],
+  "avif_quality": 45,
+  "webp_quality": 70,
+  "public_photos_total_mb": 23.68
+ },
+ "subjects": [
+  "lagoon",
+  "pelicans",
+  "forest",
+  "beach",
+  "tower",
+  "visitor-centre",
+  "birds",
+  "culture",
+  "local-life"
+ ],
+ "photos": [
+  {
+   "slug": "lagoon-sunset",
+   "subject": "lagoon",
+   "caption_en": "Sunset over the Karavasta Lagoon, Divjakë",
+   "caption_sq": "Perëndim dielli mbi Lagunën e Karavastasë, Divjakë",
+   "location_verified": true,
+   "real_location": "Karavasta Lagoon, Divjakë-Karavasta National Park (file categorised Divjaka Beach and Sunsets at beaches of Albania)",
+   "author": "AMcreative1",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Sunset_in_Divjaka_Karavasta_lagoon.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/6/62/Sunset_in_Divjaka_Karavasta_lagoon.jpg",
+   "width": 5568,
+   "height": 3712,
+   "raw_file": "raw/photos/lagoon-sunset.jpg",
+   "raw_width": 3840,
+   "raw_height": 2560,
+   "date_taken": "2023-05-28 18:49:00",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/lagoon-sunset-640.avif",
+      "width": 640,
+      "height": 427,
+      "bytes": 15047
+     },
+     {
+      "path": "/photos/lagoon-sunset-1280.avif",
+      "width": 1280,
+      "height": 853,
+      "bytes": 48387
+     },
+     {
+      "path": "/photos/lagoon-sunset-1920.avif",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 98869
+     },
+     {
+      "path": "/photos/lagoon-sunset-2560.avif",
+      "width": 2560,
+      "height": 1707,
+      "bytes": 169170
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/lagoon-sunset-640.webp",
+      "width": 640,
+      "height": 427,
+      "bytes": 31736
+     },
+     {
+      "path": "/photos/lagoon-sunset-1280.webp",
+      "width": 1280,
+      "height": 853,
+      "bytes": 119486
+     },
+     {
+      "path": "/photos/lagoon-sunset-1920.webp",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 252890
+     },
+     {
+      "path": "/photos/lagoon-sunset-2560.webp",
+      "width": 2560,
+      "height": 1707,
+      "bytes": 424192
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRmIAAABXRUJQVlA4IFYAAADQAwCdASoYABAAPu1iqU2ppaQiMAgBMB2JaACdACHXFaSs7GaEbAAA/tNMageG3wdPmh0awlNjFlAOF+ynFuwIEGXdIIk+n2B05RYBR2YF7WchR4IAAA==",
+   "dominant": "#917f7a",
+   "focal": "50% 55%",
+   "hero_rating": 5,
+   "notes": "Hero suitability 5/5. Sun on the horizon with a long reflection, silhouetted fishing hut; sharp, level horizon, warm light. Best hero candidate.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP. Conflict kept: the uploader's description says 'sunset in Divjaka Karavasta lagoon', while the Commons categories are 'Divjaka Beach' and 'Sunsets at beaches of Albania'. Caption follows the uploader's description."
+  },
+  {
+   "slug": "lagoon-fishermen-house",
+   "subject": "lagoon",
+   "caption_en": "A fishermen's house and fish traps on the Karavasta Lagoon",
+   "caption_sq": "Një shtëpi peshkatarësh dhe kurthe peshku në Lagunën e Karavastasë",
+   "location_verified": true,
+   "real_location": "Karavasta Lagoon, Divjakë-Karavasta National Park",
+   "author": "Julien Seguinot",
+   "license": "CC BY-SA 2.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:A_fishermen_house_in_Karavasta_Lagoon_(Divjak%C3%AB-Karavasta_National_Park).jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/4/42/A_fishermen_house_in_Karavasta_Lagoon_%28Divjak%C3%AB-Karavasta_National_Park%29.jpg",
+   "width": 5160,
+   "height": 3440,
+   "raw_file": "raw/photos/lagoon-fishermen-house.jpg",
+   "raw_width": 3840,
+   "raw_height": 2560,
+   "date_taken": "2020-09-13 17:58:21",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/lagoon-fishermen-house-640.avif",
+      "width": 640,
+      "height": 427,
+      "bytes": 18346
+     },
+     {
+      "path": "/photos/lagoon-fishermen-house-1280.avif",
+      "width": 1280,
+      "height": 853,
+      "bytes": 95468
+     },
+     {
+      "path": "/photos/lagoon-fishermen-house-1920.avif",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 244370
+     },
+     {
+      "path": "/photos/lagoon-fishermen-house-2560.avif",
+      "width": 2560,
+      "height": 1707,
+      "bytes": 449246
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/lagoon-fishermen-house-640.webp",
+      "width": 640,
+      "height": 427,
+      "bytes": 39916
+     },
+     {
+      "path": "/photos/lagoon-fishermen-house-1280.webp",
+      "width": 1280,
+      "height": 853,
+      "bytes": 211480
+     },
+     {
+      "path": "/photos/lagoon-fishermen-house-1920.webp",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 537498
+     },
+     {
+      "path": "/photos/lagoon-fishermen-house-2560.webp",
+      "width": 2560,
+      "height": 1707,
+      "bytes": 971508
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRpQAAABXRUJQVlA4IIgAAADwAwCdASoYABAAPu1mqk4ppaOiMAgBMB2JYwC06CHYKasFmk5HjjYAAP7tjNjEB5sEVJxXeIAxnK0vXfbxiwpSfpE4HSvu1Yw3WdrucWEaQWZIqjiMFevbrjh6s1Op6BLuF5x/aTNAnxHV7bWMYWr+HZLxh+TsIjiKVxMviFnvSCymWvPqAAAA",
+   "dominant": "#464633",
+   "focal": "60% 45%",
+   "hero_rating": 5,
+   "notes": "Hero suitability 5/5. Golden light, wooden walkways zig-zagging to a stilt house, very sharp (Flickr, 5160 px). Strong hero candidate.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP. Flickr licence confirmed by FlickreviewR 2 on 18 Sep 2020."
+  },
+  {
+   "slug": "lagoon-sunset-footbridge",
+   "subject": "lagoon",
+   "caption_en": "Sunset from a wooden footbridge at Divjakë",
+   "caption_sq": "Perëndim dielli nga një urë druri në Divjakë",
+   "location_verified": true,
+   "real_location": "Divjakë (title 'Perendimi i diellit ne Divjake'; Wiki Loves Earth natural-heritage upload; categories Wooden bridges / Sunsets at beaches of Albania). The page does not say lagoon or sea.",
+   "author": "Android4smarts",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Perendimi_i_diellit_ne_Divjake.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Perendimi_i_diellit_ne_Divjake.jpg",
+   "width": 4032,
+   "height": 3024,
+   "raw_file": "raw/photos/lagoon-sunset-footbridge.jpg",
+   "raw_width": 3840,
+   "raw_height": 2880,
+   "date_taken": "2018-06-02 20:05:41",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/lagoon-sunset-footbridge-640.avif",
+      "width": 640,
+      "height": 480,
+      "bytes": 10272
+     },
+     {
+      "path": "/photos/lagoon-sunset-footbridge-1280.avif",
+      "width": 1280,
+      "height": 960,
+      "bytes": 37818
+     },
+     {
+      "path": "/photos/lagoon-sunset-footbridge-1920.avif",
+      "width": 1920,
+      "height": 1440,
+      "bytes": 77114
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/lagoon-sunset-footbridge-640.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 19370
+     },
+     {
+      "path": "/photos/lagoon-sunset-footbridge-1280.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 76842
+     },
+     {
+      "path": "/photos/lagoon-sunset-footbridge-1920.webp",
+      "width": 1920,
+      "height": 1440,
+      "bytes": 161480
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRnIAAABXRUJQVlA4IGYAAADQBACdASoYABIAPu1iqE4ppaOiMBgMATAdiWMAACXXqUlw0wJ4nz6gS5w9RPYUgADdkO4mUTfu+VfuUXBiFVK+YL53N3sUFzlCADnsM+fvx4P2IYR9UtTGr5OC7QKS/gImJ3kAAAA=",
+   "dominant": "#736662",
+   "focal": "40% 60%",
+   "hero_rating": 4,
+   "notes": "Hero suitability 4/5. Footbridge leading the eye to the setting sun, calm rippled water. Phone photo (4032 px); slight softness at the edges. Caption must not say lagoon vs sea: source does not state which.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP. Filed under subject 'lagoon' but the page says only 'Perendimi i diellit ne Divjake' / 'Divjake-Karavasta'; it shows a wooden jetty over shallow water. Caption correctly names neither lagoon nor sea."
+  },
+  {
+   "slug": "lagoon-fishing-boats",
+   "subject": "lagoon",
+   "caption_en": "Fishing boats moored on the Karavasta Lagoon",
+   "caption_sq": "Varka peshkimi të ankoruara në Lagunën e Karavastasë",
+   "location_verified": true,
+   "real_location": "Karavasta Lagoon (title 'Laguna Karavastase HD')",
+   "author": "Julianruizp",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Laguna_Karavastase_HD.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/7/7e/Laguna_Karavastase_HD.jpg",
+   "width": 4608,
+   "height": 3072,
+   "raw_file": "raw/photos/lagoon-fishing-boats.jpg",
+   "raw_width": 3840,
+   "raw_height": 2560,
+   "date_taken": "2024-03-12 06:20:40",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/lagoon-fishing-boats-640.avif",
+      "width": 640,
+      "height": 427,
+      "bytes": 20518
+     },
+     {
+      "path": "/photos/lagoon-fishing-boats-1280.avif",
+      "width": 1280,
+      "height": 853,
+      "bytes": 73029
+     },
+     {
+      "path": "/photos/lagoon-fishing-boats-1920.avif",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 150212
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/lagoon-fishing-boats-640.webp",
+      "width": 640,
+      "height": 427,
+      "bytes": 37886
+     },
+     {
+      "path": "/photos/lagoon-fishing-boats-1280.webp",
+      "width": 1280,
+      "height": 853,
+      "bytes": 134278
+     },
+     {
+      "path": "/photos/lagoon-fishing-boats-1920.webp",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 261856
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRpQAAABXRUJQVlA4IIgAAADwAwCdASoYABAAPu1iqU2ppaOiMAgBMB2JagCdACGWgt9ChthoRDCAAP5VwlPWmdT8PXByXOBs0V0tUkBnKN4g1GxLRUCiH/IT2ZTe38nZ4mUKAk1yO60AoG7RALeVugfDDZ6ogntt3LEz9WHllXlTyxvW2DyP9WYaeWWTtYWwt2Vf5n9lRoAA",
+   "dominant": "#83a1b1",
+   "focal": "45% 60%",
+   "hero_rating": 4,
+   "notes": "Hero suitability 4/5. Two painted wooden boats beside a jetty, vivid colour, sharp. Good section image; busy for a full-bleed hero.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP."
+  },
+  {
+   "slug": "lagoon-view-from-above",
+   "subject": "lagoon",
+   "caption_en": "The lagoon, pine woods and the Adriatic seen from above, Divjakë-Karavasta National Park",
+   "caption_sq": "Laguna, pyjet me pisha dhe Adriatiku parë nga lart, Parku Kombëtar Divjakë-Karavasta",
+   "location_verified": true,
+   "real_location": "Divjakë-Karavasta National Park (title 'Divjakë-Karavasta, peizazh piktoresk')",
+   "author": "Darioharuni",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Divjak%C3%AB-Karavasta,_peizazh_piktoresk.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/7/71/Divjak%C3%AB-Karavasta%2C_peizazh_piktoresk.jpg",
+   "width": 5472,
+   "height": 3078,
+   "raw_file": "raw/photos/lagoon-view-from-above.jpg",
+   "raw_width": 3840,
+   "raw_height": 2160,
+   "date_taken": "2019-03-03 13:03:52",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/lagoon-view-from-above-640.avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 11124
+     },
+     {
+      "path": "/photos/lagoon-view-from-above-1280.avif",
+      "width": 1280,
+      "height": 720,
+      "bytes": 41052
+     },
+     {
+      "path": "/photos/lagoon-view-from-above-1920.avif",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 87530
+     },
+     {
+      "path": "/photos/lagoon-view-from-above-2560.avif",
+      "width": 2560,
+      "height": 1440,
+      "bytes": 143543
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/lagoon-view-from-above-640.webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 18288
+     },
+     {
+      "path": "/photos/lagoon-view-from-above-1280.webp",
+      "width": 1280,
+      "height": 720,
+      "bytes": 66312
+     },
+     {
+      "path": "/photos/lagoon-view-from-above-1920.webp",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 140328
+     },
+     {
+      "path": "/photos/lagoon-view-from-above-2560.webp",
+      "width": 2560,
+      "height": 1440,
+      "bytes": 224382
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRoQAAABXRUJQVlA4IHgAAAAwBACdASoYAA4APu1iqk2ppaQiMAgBMB2JZACdH8GJ/gPISXv8xOVybbAA/q78CbfKOiGraeyTzZmFKjuhtdiO5nXoMqI0Bmh+L8gyd+QOQry7BQA8YDBUV+hCy1OvAJ6zzvL/mcgOqjnBtVmuw9vds70olv9UQAA=",
+   "dominant": "#747571",
+   "focal": "50% 50%",
+   "hero_rating": 4,
+   "notes": "Hero suitability 4/5. Elevated view with three bands: pines, lagoon with sand bars, turquoise sea. 16:9, sharp. Good wide hero; no strong focal point.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP. Page states only 'Pictorial view Divjakë-Karavasta' (category Divjaka Beach). 'Lagoon' and 'Adriatic' in the caption are read from the picture and the park's sourced geography (heritage.json: Adriatic coastline on the park's west side), not from the file page. Slightly soft at 1920."
+  },
+  {
+   "slug": "lagoon-pine-reflection",
+   "subject": "lagoon",
+   "caption_en": "Pines mirrored in still water, Divjakë-Karavasta National Park",
+   "caption_sq": "Pisha që pasqyrohen në ujë të qetë, Parku Kombëtar Divjakë-Karavasta",
+   "location_verified": true,
+   "real_location": "Divjakë-Karavasta National Park / Karavasta Lagoon (GPS 40.9669, 19.4956)",
+   "author": "Nicolas Vollmer",
+   "license": "CC BY 2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Habitat_in_Divjak%C3%AB-Karavasta_National_Park,_Albania.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/f/f7/Habitat_in_Divjak%C3%AB-Karavasta_National_Park%2C_Albania.jpg",
+   "width": 5584,
+   "height": 3723,
+   "raw_file": "raw/photos/lagoon-pine-reflection.jpg",
+   "raw_width": 3840,
+   "raw_height": 2560,
+   "date_taken": "2018-08-25 18:48:44",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/lagoon-pine-reflection-640.avif",
+      "width": 640,
+      "height": 427,
+      "bytes": 25850
+     },
+     {
+      "path": "/photos/lagoon-pine-reflection-1280.avif",
+      "width": 1280,
+      "height": 853,
+      "bytes": 104238
+     },
+     {
+      "path": "/photos/lagoon-pine-reflection-1920.avif",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 237385
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/lagoon-pine-reflection-640.webp",
+      "width": 640,
+      "height": 427,
+      "bytes": 51270
+     },
+     {
+      "path": "/photos/lagoon-pine-reflection-1280.webp",
+      "width": 1280,
+      "height": 853,
+      "bytes": 210034
+     },
+     {
+      "path": "/photos/lagoon-pine-reflection-1920.webp",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 484228
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRqYAAABXRUJQVlA4IJoAAACQBACdASoYABAAPu1iqU2ppaOiMAgBMB2JZACdFQA5/8B7wVdDTap2EzbLrGAA/uetjt13xC5t+4mDo9Y60nyBn0Pmy3t8tDEHwJ8Ru1JPVEg7AcjV3JIyziSB3SnASm9RiWeOp24lYX0AQh78xGkCLD0a/rNSrJsM/GRzlutT2PEK577hcyZDROJ3tL5hMj05pfwavDEgNAAA",
+   "dominant": "#9e9260",
+   "focal": "50% 50%",
+   "hero_rating": 4,
+   "notes": "Hero suitability 4/5. Symmetric reflection, high-key bright sky; striking but almost abstract. Text over it needs a dark scrim (bright image).",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP. Flickr licence confirmed by FlickreviewR 2 on 8 Sep 2018."
+  },
+  {
+   "slug": "lagoon-from-observation-tower",
+   "subject": "lagoon",
+   "caption_en": "The Karavasta Lagoon seen from the observation tower",
+   "caption_sq": "Laguna e Karavastasë parë nga kulla e vëzhgimit",
+   "location_verified": true,
+   "real_location": "Karavasta Lagoon, from the observation tower (file description)",
+   "author": "AMcreative1",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:View_taken_from_the_observation_tower,_over_the_lagoon_of_Karavatsa.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/2/2a/View_taken_from_the_observation_tower%2C_over_the_lagoon_of_Karavatsa.jpg",
+   "width": 5568,
+   "height": 3712,
+   "raw_file": "raw/photos/lagoon-from-observation-tower.jpg",
+   "raw_width": 3840,
+   "raw_height": 2560,
+   "date_taken": "2023-06-10 13:53:10",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/lagoon-from-observation-tower-640.avif",
+      "width": 640,
+      "height": 427,
+      "bytes": 10981
+     },
+     {
+      "path": "/photos/lagoon-from-observation-tower-1280.avif",
+      "width": 1280,
+      "height": 853,
+      "bytes": 41224
+     },
+     {
+      "path": "/photos/lagoon-from-observation-tower-1920.avif",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 89884
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/lagoon-from-observation-tower-640.webp",
+      "width": 640,
+      "height": 427,
+      "bytes": 17416
+     },
+     {
+      "path": "/photos/lagoon-from-observation-tower-1280.webp",
+      "width": 1280,
+      "height": 853,
+      "bytes": 73850
+     },
+     {
+      "path": "/photos/lagoon-from-observation-tower-1920.webp",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 187528
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRmAAAABXRUJQVlA4IFQAAABwAwCdASoYABAALrV2u12jqampiYC0SxgE6AIddUw9F6NAiYAA/vNwA124GnMUAHicLfKVS73za9DMxh1AJ3haT0nZs1f4G7VLzU7ayTYL6LgAAAA=",
+   "dominant": "#b6bcc3",
+   "focal": "50% 55%",
+   "hero_rating": 4,
+   "notes": "Hero suitability 4/5. Wide calm lagoon with salt-marsh islets and hills on the horizon; soft daylight, sharp.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP."
+  },
+  {
+   "slug": "lagoon-islets",
+   "subject": "lagoon",
+   "caption_en": "Salt-marsh islets in the Karavasta Lagoon",
+   "caption_sq": "Ishuj kënetorë në Lagunën e Karavastasë",
+   "location_verified": true,
+   "real_location": "Karavasta Lagoon (description: 'piece of land in the karavasta lagoon')",
+   "author": "AMcreative1",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Pjese_toke_ne_lagunen_e_karavastas_qe_duket_si_harte.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/3/31/Pjese_toke_ne_lagunen_e_karavastas_qe_duket_si_harte.jpg",
+   "width": 5568,
+   "height": 3712,
+   "raw_file": "raw/photos/lagoon-islets.jpg",
+   "raw_width": 3840,
+   "raw_height": 2560,
+   "date_taken": "2023-06-10 11:42:20",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/lagoon-islets-640.avif",
+      "width": 640,
+      "height": 427,
+      "bytes": 13370
+     },
+     {
+      "path": "/photos/lagoon-islets-1280.avif",
+      "width": 1280,
+      "height": 853,
+      "bytes": 52348
+     },
+     {
+      "path": "/photos/lagoon-islets-1920.avif",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 124953
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/lagoon-islets-640.webp",
+      "width": 640,
+      "height": 427,
+      "bytes": 22678
+     },
+     {
+      "path": "/photos/lagoon-islets-1280.webp",
+      "width": 1280,
+      "height": 853,
+      "bytes": 97414
+     },
+     {
+      "path": "/photos/lagoon-islets-1920.webp",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 230986
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRoQAAABXRUJQVlA4IHgAAACwAwCdASoYABAAPu1iqk2ppaQiMAgBMB2JYwCdACHM4hyPsWGvuAD+78H/HSz/knQJSIT8lAUNI5yC4l03ZWymIpEwdwM1O/DKm52ltfIKQ9bnR6oO70WmDtBVpJRhlDahKpP3snSaMvnK7510gqmpujM4+X+jsAA=",
+   "dominant": "#c4c7cd",
+   "focal": "50% 55%",
+   "hero_rating": 4,
+   "notes": "Hero suitability 4/5. Shallow lagoon with green islets and pine shore, clean daylight, sharp.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP."
+  },
+  {
+   "slug": "lagoon-dusk",
+   "subject": "lagoon",
+   "caption_en": "Dusk on the Karavasta Lagoon",
+   "caption_sq": "Muzg në Lagunën e Karavastasë",
+   "location_verified": true,
+   "real_location": "Karavasta Lagoon, Divjakë-Karavasta National Park",
+   "author": "Arxet",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Laguna_e_Karavastas%C3%AB_(Nat%C3%ABn).jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/0/0f/Laguna_e_Karavastas%C3%AB_%28Nat%C3%ABn%29.jpg",
+   "width": 3264,
+   "height": 2448,
+   "raw_file": "raw/photos/lagoon-dusk.jpg",
+   "raw_width": 3264,
+   "raw_height": 2448,
+   "date_taken": "2016-05-27 19:55:00",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/lagoon-dusk-640.avif",
+      "width": 640,
+      "height": 480,
+      "bytes": 10895
+     },
+     {
+      "path": "/photos/lagoon-dusk-1280.avif",
+      "width": 1280,
+      "height": 960,
+      "bytes": 36654
+     },
+     {
+      "path": "/photos/lagoon-dusk-1920.avif",
+      "width": 1920,
+      "height": 1440,
+      "bytes": 71563
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/lagoon-dusk-640.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 18446
+     },
+     {
+      "path": "/photos/lagoon-dusk-1280.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 61952
+     },
+     {
+      "path": "/photos/lagoon-dusk-1920.webp",
+      "width": 1920,
+      "height": 1440,
+      "bytes": 110176
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRo4AAABXRUJQVlA4IIIAAADQBACdASoYABIAPu1mq02ppaQiMAgBMB2JYgCsL9YT+gZlOIjfVyfkFplhzOKCAAD930WQiDLvATorSQOpxBVf1oyWlVKtNG2ZfK7uoJpfYjU3zGv2smn6k8FF40KbrvIM/FnjTSCMFJaCIDH8jn/rezaxvYYH2tNt7bpsIP80AAAA",
+   "dominant": "#101107",
+   "focal": "45% 50%",
+   "hero_rating": 3,
+   "notes": "Hero suitability 3/5. Sun setting behind a wooden walkway and tamarisk; dramatic but only 3264 px and some noise in the shadows.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP."
+  },
+  {
+   "slug": "pelicans-karavasta",
+   "subject": "pelicans",
+   "caption_en": "Dalmatian pelicans resting on the Karavasta Lagoon",
+   "caption_sq": "Pelikanë kaçurrelë duke pushuar në Lagunën e Karavastasë",
+   "location_verified": true,
+   "real_location": "Karavasta Lagoon (title 'Pelikan Divjake'; categories Pelecanus crispus, Karavasta Lagoon)",
+   "author": "Arbenllapashtica",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Pelikan_Divjake_Arben_Llapashtica.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/6/6d/Pelikan_Divjake_Arben_Llapashtica.jpg",
+   "width": 7820,
+   "height": 4973,
+   "raw_file": "raw/photos/pelicans-karavasta.jpg",
+   "raw_width": 3840,
+   "raw_height": 2442,
+   "date_taken": "2025-02-23 11:53:13",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/pelicans-karavasta-640.avif",
+      "width": 640,
+      "height": 407,
+      "bytes": 6230
+     },
+     {
+      "path": "/photos/pelicans-karavasta-1280.avif",
+      "width": 1280,
+      "height": 814,
+      "bytes": 18447
+     },
+     {
+      "path": "/photos/pelicans-karavasta-1920.avif",
+      "width": 1920,
+      "height": 1221,
+      "bytes": 36635
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/pelicans-karavasta-640.webp",
+      "width": 640,
+      "height": 407,
+      "bytes": 8872
+     },
+     {
+      "path": "/photos/pelicans-karavasta-1280.webp",
+      "width": 1280,
+      "height": 814,
+      "bytes": 28308
+     },
+     {
+      "path": "/photos/pelicans-karavasta-1920.webp",
+      "width": 1920,
+      "height": 1221,
+      "bytes": 58168
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRmYAAABXRUJQVlA4IFoAAACQAwCdASoYAA8APu1iqU2ppaOiMAgBMB2JQBOmUAAtxGIa6aAAAKjrvH4GXRCno+tBZFJHGxgblKP/9kMIEICorznoweHvV241/FUARoraSFqcqpxXuJbAAAA=",
+   "dominant": "#7f8ead",
+   "focal": "55% 55%",
+   "hero_rating": 5,
+   "notes": "Hero suitability 5/5. Group of wild Dalmatian pelicans on a sand bar with reflections, soft blue light, very sharp (7820 px). Best wildlife image.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP. One bird wears a numbered wing tag and leg rings (monitoring tags); the group is on a sand bar in open water, consistent with wild birds. Category Karavasta Lagoon."
+  },
+  {
+   "slug": "pelican-xhimi",
+   "subject": "pelicans",
+   "caption_en": "One of the park's tame Dalmatian pelicans, Divjakë-Karavasta National Park",
+   "caption_sq": "Një nga pelikanët kaçurrelë të zbutur të parkut, Parku Kombëtar Divjakë-Karavasta",
+   "location_verified": true,
+   "real_location": "Divjakë-Karavasta National Park (file description 'Dalmatian Pelican, in Divjaka national Park'; category 'Pelican Xhimi'). The category page carries no text; it groups 15 photos of the park's tame pelicans, one of them titled 'Xhoni the dalmatian pelican'. albaniatravelguide.net: 'two tame pelicans running outside the park's visitor centre'; AP (1 July 2021): two pelicans, Johnny and Vlashi, live at the park's bird recovery centre. Not established: the bird's name (Xhimi vs Xhoni/Johnny), that this exact spot is the Visitor Centre, and whether it still lives there.",
+   "author": "AMcreative1",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Dalmatian_Pelican_in_l_divjaka_park_nationa.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/5/51/Dalmatian_Pelican_in_l_divjaka_park_nationa.jpg",
+   "width": 5568,
+   "height": 3712,
+   "raw_file": "raw/photos/pelican-xhimi.jpg",
+   "raw_width": 3840,
+   "raw_height": 2560,
+   "date_taken": "2023-05-28 15:01:42",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/pelican-xhimi-640.avif",
+      "width": 640,
+      "height": 427,
+      "bytes": 17725
+     },
+     {
+      "path": "/photos/pelican-xhimi-1280.avif",
+      "width": 1280,
+      "height": 853,
+      "bytes": 44200
+     },
+     {
+      "path": "/photos/pelican-xhimi-1920.avif",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 83141
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/pelican-xhimi-640.webp",
+      "width": 640,
+      "height": 427,
+      "bytes": 31850
+     },
+     {
+      "path": "/photos/pelican-xhimi-1280.webp",
+      "width": 1280,
+      "height": 853,
+      "bytes": 84772
+     },
+     {
+      "path": "/photos/pelican-xhimi-1920.webp",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 158144
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRpwAAABXRUJQVlA4IJAAAADQAwCdASoYABAAPu1iqU2ppaOiMAgBMB2JaAAAW1p3Ao5+UqAhS9gA/vDOXGx4RMMkCA3qNkmThnvQjcEQKaeEvPbsJDaFRysSDBUOZy3sTV9g5/EskX+q3BP3rcQyRrTdYps7kCvwtvSroqLtkdDjT9JqWnCeIQWrZik0mGBO9xoZE7xPsdR/N0PWE8N/AAA=",
+   "dominant": "#808a52",
+   "focal": "48% 35%",
+   "hero_rating": 4,
+   "notes": "Hero suitability 4/5. Close portrait, curly crest and bill, sharp, blurred background. Tame resident bird of the park: never caption it as wild; its name and current whereabouts are unconfirmed.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP. Caption changed: the old one stated a name ('Xhimi') and present-tense residence at the Visitor Centre that no opened source confirms. Focal moved up to the head so 16:9 and square crops keep head and bill.",
+   "verification_sources": [
+    "https://commons.wikimedia.org/wiki/Category:Pelican_Xhimi",
+    "https://www.albaniatravelguide.net/?p=4430",
+    "https://mynews13.com/fl/orlando/ap-online/2021/07/01/colony-of-shy-albanian-pelicans-flourishes-during-pandemic"
+   ]
+  },
+  {
+   "slug": "pelicans-visitor-centre",
+   "subject": "pelicans",
+   "caption_en": "Two Dalmatian pelicans outside the park's Visitor Centre",
+   "caption_sq": "Dy pelikanë kaçurrelë para Qendrës së Vizitorëve të parkut",
+   "location_verified": true,
+   "real_location": "Conflict: the file description says 'Pelicans on Divjake laguna', but the photo shows two pelicans on a lawn by a building with a timber-framed glass front, an ivy-covered stone wall and a wooden railing, which matches the Visitor Centre in visitor-centre.jpg; the category is 'Pelican Xhimi' (the park's tame pelicans). albaniatravelguide.net reports tame pelicans outside the Visitor Centre. Caption follows the picture: medium confidence.",
+   "author": "Arjola Dema",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Pelicans_communicating.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/4/44/Pelicans_communicating.jpg",
+   "width": 4048,
+   "height": 3036,
+   "raw_file": "raw/photos/pelicans-visitor-centre.jpg",
+   "raw_width": 3840,
+   "raw_height": 2880,
+   "date_taken": "2019-08-17 13:10:39",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/pelicans-visitor-centre-640.avif",
+      "width": 640,
+      "height": 480,
+      "bytes": 35727
+     },
+     {
+      "path": "/photos/pelicans-visitor-centre-1280.avif",
+      "width": 1280,
+      "height": 960,
+      "bytes": 136276
+     },
+     {
+      "path": "/photos/pelicans-visitor-centre-1920.avif",
+      "width": 1920,
+      "height": 1440,
+      "bytes": 275666
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/pelicans-visitor-centre-640.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 70380
+     },
+     {
+      "path": "/photos/pelicans-visitor-centre-1280.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 260430
+     },
+     {
+      "path": "/photos/pelicans-visitor-centre-1920.webp",
+      "width": 1920,
+      "height": 1440,
+      "bytes": 521732
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRrgAAABXRUJQVlA4IKwAAAAQBQCdASoYABIAPu1sq1EppaOiqAqpMB2JYwC+SBEdvGyfrMN2rlHGcut52y1Ls81UAP7cia5txi8fOiwSMKsXFDYMCLB6PQycu/tu9qHUolKys/TbYdStiRXiC8ywDH2cMsjp7dUl74PfjeI9s/MIwGwxotx19AeLM19GN5rVwLEBMdzVfprHQ835HlQlu/d2ziyxIS7mTSkjlE7ke4ZhvQ0jLEn4kpE0AAAA",
+   "dominant": "#14130e",
+   "focal": "50% 55%",
+   "hero_rating": 3,
+   "notes": "Hero suitability 3/5. Two pelicans facing each other in front of the wooden Visitor Centre; good story image, phone quality, hard midday light. Tame resident birds.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP. Building identified by visual match with visitor-centre and one travel-guide source; one bird wears a leg ring. Tame resident birds: never caption as wild.",
+   "verification_sources": [
+    "https://www.albaniatravelguide.net/?p=4430"
+   ]
+  },
+  {
+   "slug": "pine-forest-light",
+   "subject": "forest",
+   "caption_en": "Sunlight through the pine forest, Divjakë-Karavasta National Park",
+   "caption_sq": "Dritë dielli mes pyllit me pisha, Parku Kombëtar Divjakë-Karavasta",
+   "location_verified": true,
+   "real_location": "Divjakë-Karavasta National Park",
+   "author": "Bunker92",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Divjaka_(7).jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Divjaka_%287%29.jpg",
+   "width": 2304,
+   "height": 1728,
+   "raw_file": "raw/photos/pine-forest-light.jpg",
+   "raw_width": 2304,
+   "raw_height": 1728,
+   "date_taken": "2005-01-01 16:03:46",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/pine-forest-light-640.avif",
+      "width": 640,
+      "height": 480,
+      "bytes": 30897
+     },
+     {
+      "path": "/photos/pine-forest-light-1280.avif",
+      "width": 1280,
+      "height": 960,
+      "bytes": 108063
+     },
+     {
+      "path": "/photos/pine-forest-light-1920.avif",
+      "width": 1920,
+      "height": 1440,
+      "bytes": 209605
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/pine-forest-light-640.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 58774
+     },
+     {
+      "path": "/photos/pine-forest-light-1280.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 197366
+     },
+     {
+      "path": "/photos/pine-forest-light-1920.webp",
+      "width": 1920,
+      "height": 1440,
+      "bytes": 367280
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRtAAAABXRUJQVlA4IMQAAAAQBQCdASoYABIAPu1ur1IppiQiqAgBMB2JYwDG9BEl9mqAotm4PFxmZ7qqtPtEFfsAAP7I9dmllulCKlCw45BoIGGS6y3JjRZNIsQ+ZF1CZmSZimv6z08oR+WCimb4nGmrtkSlbPUbPopS7lqDgKFNKSGqiPx4miYPQM9kLeUmPVDcIQrqki6sEdk17FdKc87z/57NZTMkTKqyRc3kyh/a9jAKe6w7/8QW51RufFw1cy1Rrx/4IjHAuzpGoqEe0MVQAAAA",
+   "dominant": "#797263",
+   "focal": "50% 45%",
+   "hero_rating": 3,
+   "notes": "Hero suitability 3/5. Backlit pines with a sandy path; atmospheric. Only 2304 px wide (no 2560 variant). Camera date reads 2005-01-01 (unset clock).",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP. Caption no longer says 'morning': the camera clock was unset (2005-01-01 16:03), so the time of day is unknown. Hazy, backlit with flare and only 2304 px: section image, not a hero (rating 4 -> 3)."
+  },
+  {
+   "slug": "pine-forest-wetland",
+   "subject": "forest",
+   "caption_en": "Pine forest and wet meadow, Divjakë-Karavasta National Park",
+   "caption_sq": "Pyll me pisha dhe livadh i lagësht, Parku Kombëtar Divjakë-Karavasta",
+   "location_verified": true,
+   "real_location": "Divjaka-Karavasta National Park (title; GPS 40.9905, 19.4902)",
+   "author": "Srg.dnch",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Conifer_forest_and_wet_grassland_in_Divjaka-Karavasta_National_Park.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/0/01/Conifer_forest_and_wet_grassland_in_Divjaka-Karavasta_National_Park.jpg",
+   "width": 4000,
+   "height": 3000,
+   "raw_file": "raw/photos/pine-forest-wetland.jpg",
+   "raw_width": 3840,
+   "raw_height": 2880,
+   "date_taken": "2024-06-14 21:20:35",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/pine-forest-wetland-640.avif",
+      "width": 640,
+      "height": 480,
+      "bytes": 33187
+     },
+     {
+      "path": "/photos/pine-forest-wetland-1280.avif",
+      "width": 1280,
+      "height": 960,
+      "bytes": 138285
+     },
+     {
+      "path": "/photos/pine-forest-wetland-1920.avif",
+      "width": 1920,
+      "height": 1440,
+      "bytes": 292900
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/pine-forest-wetland-640.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 69732
+     },
+     {
+      "path": "/photos/pine-forest-wetland-1280.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 278772
+     },
+     {
+      "path": "/photos/pine-forest-wetland-1920.webp",
+      "width": 1920,
+      "height": 1440,
+      "bytes": 566542
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRsQAAABXRUJQVlA4ILgAAABQBQCdASoYABIAPu1qq1EppaOiqAqpMB2JYwC94f/gGrWBCn0tuvoNNchjNpPOospQeEAA/XgYeUPzzTdOA4YLa98tX/mTGt96kaPjF4QBi1o5XpZdxGWL2O2h/yW86GuGj/ZzsauNBQBptzDxmLmLN0xjusmEbO7bbmhahXMl1VtYN8tGSLk4dEJZP74O9t3ak7rZibwiDc7/08xrGAZW/OftDmWaRY05CvZU1CdDBNiiwCfA3YAA",
+   "dominant": "#3a3727",
+   "focal": "50% 50%",
+   "hero_rating": 4,
+   "notes": "Hero suitability 4/5. Low evening light on umbrella pines and marsh grass, sharp, 4000 px.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP."
+  },
+  {
+   "slug": "pine-forest-from-above",
+   "subject": "forest",
+   "caption_en": "The pine forest of Divjaka seen from above",
+   "caption_sq": "Pylli me pisha i Divjakës parë nga lart",
+   "location_verified": true,
+   "real_location": "Divjakë-Karavasta National Park (description 'divjaka forest dense with pines')",
+   "author": "AMcreative1",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Parku_i_Divjake_karavasta.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/4/48/Parku_i_Divjake_karavasta.jpg",
+   "width": 5568,
+   "height": 3712,
+   "raw_file": "raw/photos/pine-forest-from-above.jpg",
+   "raw_width": 3840,
+   "raw_height": 2560,
+   "date_taken": "2023-05-28 14:40:11",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/pine-forest-from-above-640.avif",
+      "width": 640,
+      "height": 427,
+      "bytes": 20559
+     },
+     {
+      "path": "/photos/pine-forest-from-above-1280.avif",
+      "width": 1280,
+      "height": 853,
+      "bytes": 84094
+     },
+     {
+      "path": "/photos/pine-forest-from-above-1920.avif",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 202001
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/pine-forest-from-above-640.webp",
+      "width": 640,
+      "height": 427,
+      "bytes": 40622
+     },
+     {
+      "path": "/photos/pine-forest-from-above-1280.webp",
+      "width": 1280,
+      "height": 853,
+      "bytes": 170070
+     },
+     {
+      "path": "/photos/pine-forest-from-above-1920.webp",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 413068
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRoAAAABXRUJQVlA4IHQAAADwAwCdASoYABAAPu1kqU2ppaOiMAgBMB2JQBOkERhgTODB49KG4S4gAP7tQ3D/r6i7FkELMxlJfgAhjYLiEvnPw7Syw4UhNQ20wAdN9GEy7JWFayx2m1tK0yvZkTd7FB0tJK+0nO9bywDjIDFP13zUDUAAAA==",
+   "dominant": "#6b714d",
+   "focal": "50% 60%",
+   "hero_rating": 3,
+   "notes": "Hero suitability 3/5. Canopy view toward the lagoon and hills; flat midday light, useful as a texture/section band.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP."
+  },
+  {
+   "slug": "beach-shelters",
+   "subject": "beach",
+   "caption_en": "Reed beach shelters on the sand at Divjaka Beach",
+   "caption_sq": "Strehë me kallama mbi rërë në plazhin e Divjakës",
+   "location_verified": true,
+   "real_location": "Divjaka Beach (category Divjaka Beach; GPS 40.9749, 19.4660)",
+   "author": "Leeturtle",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Karavasta_bay,_Divjak%C3%AB,_Albania_2.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/0/0c/Karavasta_bay%2C_Divjak%C3%AB%2C_Albania_2.jpg",
+   "width": 3264,
+   "height": 2448,
+   "raw_file": "raw/photos/beach-shelters.jpg",
+   "raw_width": 3264,
+   "raw_height": 2448,
+   "date_taken": "4 June 2022 (according to Exif data)",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/beach-shelters-640.avif",
+      "width": 640,
+      "height": 480,
+      "bytes": 16485
+     },
+     {
+      "path": "/photos/beach-shelters-1280.avif",
+      "width": 1280,
+      "height": 960,
+      "bytes": 55620
+     },
+     {
+      "path": "/photos/beach-shelters-1920.avif",
+      "width": 1920,
+      "height": 1440,
+      "bytes": 117371
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/beach-shelters-640.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 30796
+     },
+     {
+      "path": "/photos/beach-shelters-1280.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 101964
+     },
+     {
+      "path": "/photos/beach-shelters-1920.webp",
+      "width": 1920,
+      "height": 1440,
+      "bytes": 213062
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRpAAAABXRUJQVlA4IIQAAABQBQCdASoYABIAPu1qrlCppaQiqAqpMB2JZQDG9A9q4ZAMnO5dmFhsh3JVnM9Yuifws4AA/o04BDgoj719jw9BCRSG9PivGnvm3s4ixUVuMQNvKzKikibsi6QXWbVmcOWwN6q2t0tOSb7XyIGLu1kqrx8YQXnkgu67CmtMXdRhurSrkAA=",
+   "dominant": "#75644e",
+   "focal": "40% 60%",
+   "hero_rating": 3,
+   "notes": "Hero suitability 3/5. Sand ripples, shade huts, sea on the right. Phone wide-angle: dark lens vignette on the right edge, so crop right ~8% or use focal left.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP."
+  },
+  {
+   "slug": "beach-dunes",
+   "subject": "beach",
+   "caption_en": "Rippled sand and coastal scrub at Divjaka Beach",
+   "caption_sq": "Rërë e valëzuar dhe shkurre bregdetare në plazhin e Divjakës",
+   "location_verified": true,
+   "real_location": "Divjaka Beach (category Divjaka Beach)",
+   "author": "Albinfo",
+   "license": "CC0",
+   "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Sand_dunes_at_Divjaka_beach_(OSCAL19_trip).jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/3/38/Sand_dunes_at_Divjaka_beach_%28OSCAL19_trip%29.jpg",
+   "width": 4912,
+   "height": 3264,
+   "raw_file": "raw/photos/beach-dunes.jpg",
+   "raw_width": 3840,
+   "raw_height": 2552,
+   "date_taken": "2019-05-20",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/beach-dunes-640.avif",
+      "width": 640,
+      "height": 425,
+      "bytes": 8129
+     },
+     {
+      "path": "/photos/beach-dunes-1280.avif",
+      "width": 1280,
+      "height": 851,
+      "bytes": 31384
+     },
+     {
+      "path": "/photos/beach-dunes-1920.avif",
+      "width": 1920,
+      "height": 1276,
+      "bytes": 74085
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/beach-dunes-640.webp",
+      "width": 640,
+      "height": 425,
+      "bytes": 11242
+     },
+     {
+      "path": "/photos/beach-dunes-1280.webp",
+      "width": 1280,
+      "height": 851,
+      "bytes": 49070
+     },
+     {
+      "path": "/photos/beach-dunes-1920.webp",
+      "width": 1920,
+      "height": 1276,
+      "bytes": 119518
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRmIAAABXRUJQVlA4IFYAAACwAwCdASoYABAAPu1qrU8ppiQiMAgBMB2JQBOgAspxJGRj9g/i0AD8f/+dk2BkCL5ZSlRnypqvks2cMhAtPNzC8GSb7Q5hPJHgu/G5HXyt4mJEOAAAAA==",
+   "dominant": "#6d6a5f",
+   "focal": "50% 60%",
+   "hero_rating": 2,
+   "notes": "Hero suitability 2/5. Quiet natural beach with wind ripples, flat light; honest, not glamorous.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP. File title says 'Sand dunes' but no dunes are visible: flat sand, rippled sand under a shallow pool, scrub behind. The page description ('Beach with some vegetation at Divjaka') fits; caption changed to match. Rating 3 -> 2."
+  },
+  {
+   "slug": "beach-from-tower",
+   "subject": "beach",
+   "caption_en": "The pine forest and Divjaka Beach, seen from the lookout tower",
+   "caption_sq": "Pylli me pisha dhe plazhi i Divjakës, parë nga kulla e vrojtimit",
+   "location_verified": true,
+   "real_location": "Divjaka Beach seen from the lookout tower (file description)",
+   "author": "Albinfo",
+   "license": "CC0",
+   "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Divjaka_Beach_from_tower_(OSCAL19_trip).jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/2/29/Divjaka_Beach_from_tower_%28OSCAL19_trip%29.jpg",
+   "width": 4912,
+   "height": 3264,
+   "raw_file": "raw/photos/beach-from-tower.jpg",
+   "raw_width": 3840,
+   "raw_height": 2552,
+   "date_taken": "2019-05-20",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/beach-from-tower-640.avif",
+      "width": 640,
+      "height": 425,
+      "bytes": 6659
+     },
+     {
+      "path": "/photos/beach-from-tower-1280.avif",
+      "width": 1280,
+      "height": 851,
+      "bytes": 24172
+     },
+     {
+      "path": "/photos/beach-from-tower-1920.avif",
+      "width": 1920,
+      "height": 1276,
+      "bytes": 58038
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/beach-from-tower-640.webp",
+      "width": 640,
+      "height": 425,
+      "bytes": 8744
+     },
+     {
+      "path": "/photos/beach-from-tower-1280.webp",
+      "width": 1280,
+      "height": 851,
+      "bytes": 36442
+     },
+     {
+      "path": "/photos/beach-from-tower-1920.webp",
+      "width": 1920,
+      "height": 1276,
+      "bytes": 83726
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRloAAABXRUJQVlA4IE4AAADQAwCdASoYABAAPu1mq04ppaQiMAgBMB2JYwCdACHfrokam4odjPQA/lFycPJTrbJqxQgtyWmREJVYGxGefdCIiW7ZhFMdE2z7plcAAAA=",
+   "dominant": "#191c13",
+   "focal": "50% 70%",
+   "hero_rating": 2,
+   "notes": "Hero suitability 2/5. Wide forest canopy meeting the sea; hazy light, low contrast.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP. Page description: 'The Divjaka beach seen from the lookout tower'; the sea is barely visible, so the caption now names the beach. Two thirds of the frame is hazy sky: focal moved down to the forest and shore. Rating 3 -> 2."
+  },
+  {
+   "slug": "tower-360",
+   "subject": "tower",
+   "caption_en": "The 360° observation tower in the pine forest, Divjakë-Karavasta National Park",
+   "caption_sq": "Kulla 360° e vëzhgimit në pyllin me pisha, Parku Kombëtar Divjakë-Karavasta",
+   "location_verified": true,
+   "real_location": "Divjakë-Karavasta National Park: the 360-degree observation tower ('Kulla 360'), built 2018 by the municipality per file description",
+   "author": "AMcreative1",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Kulla_360_grade_ne_Divjake.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/8/80/Kulla_360_grade_ne_Divjake.jpg",
+   "width": 5568,
+   "height": 3712,
+   "raw_file": "raw/photos/tower-360.jpg",
+   "raw_width": 3840,
+   "raw_height": 2560,
+   "date_taken": "2023-05-28 15:10:19",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/tower-360-640.avif",
+      "width": 640,
+      "height": 427,
+      "bytes": 31712
+     },
+     {
+      "path": "/photos/tower-360-1280.avif",
+      "width": 1280,
+      "height": 853,
+      "bytes": 133052
+     },
+     {
+      "path": "/photos/tower-360-1920.avif",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 324497
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/tower-360-640.webp",
+      "width": 640,
+      "height": 427,
+      "bytes": 58620
+     },
+     {
+      "path": "/photos/tower-360-1280.webp",
+      "width": 1280,
+      "height": 853,
+      "bytes": 252910
+     },
+     {
+      "path": "/photos/tower-360-1920.webp",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 602008
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRroAAABXRUJQVlA4IK4AAACQBACdASoYABAAPu1iqU2ppaOiMAgBMB2JYgCdMoAvQTP4jNdQNiEIqmekZygAze/Mprp1PLrXjMwBBAcWQHjo+6RnEEVh000G0EvWchvLiw45PAH0WYf/CV6HDFSl4SWh2/6drlT4Sbg0ScPLk8tXtgoolZrNBDJMzbRHand0Cn0Ktdp/E+RxvBgFA9A1vb+HpBDf9hcSHxjY/QoMbLiIWVIZRr2SgjJix3cAAAA=",
+   "dominant": "#2b3333",
+   "focal": "52% 45%",
+   "hero_rating": 4,
+   "notes": "Hero suitability 4/5. Tower framed by pine branches on a lawn, clean blue sky, sharp. Not confirmed to be the 'Pelican Observation Tower' named in the spec.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP. Focal centred on the tower (it sits at about 52% across). Small, unidentifiable visitors at the cafe tables on the right."
+  },
+  {
+   "slug": "birdwatch-tower-boardwalk",
+   "subject": "tower",
+   "caption_en": "Wooden bird-watching tower and covered boardwalk on the Karavasta Lagoon",
+   "caption_sq": "Kulla prej druri për vëzhgimin e shpendëve dhe shëtitorja e mbuluar mbi Lagunën e Karavastasë",
+   "location_verified": true,
+   "real_location": "Divjakë-Karavasta National Park: wooden observation tower and covered boardwalk on the Karavasta Lagoon (category Observation decks in Albania)",
+   "author": "AMcreative1",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:The_observation_tower_in_the_lagoon_of_Karavatsa.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/9/99/The_observation_tower_in_the_lagoon_of_Karavatsa.jpg",
+   "width": 5568,
+   "height": 3712,
+   "raw_file": "raw/photos/birdwatch-tower-boardwalk.jpg",
+   "raw_width": 3840,
+   "raw_height": 2560,
+   "date_taken": "2023-06-10 13:50:16",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/birdwatch-tower-boardwalk-640.avif",
+      "width": 640,
+      "height": 427,
+      "bytes": 15251
+     },
+     {
+      "path": "/photos/birdwatch-tower-boardwalk-1280.avif",
+      "width": 1280,
+      "height": 853,
+      "bytes": 51339
+     },
+     {
+      "path": "/photos/birdwatch-tower-boardwalk-1920.avif",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 108813
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/birdwatch-tower-boardwalk-640.webp",
+      "width": 640,
+      "height": 427,
+      "bytes": 26960
+     },
+     {
+      "path": "/photos/birdwatch-tower-boardwalk-1280.webp",
+      "width": 1280,
+      "height": 853,
+      "bytes": 99598
+     },
+     {
+      "path": "/photos/birdwatch-tower-boardwalk-1920.webp",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 218314
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRnYAAABXRUJQVlA4IGoAAADwAwCdASoYABAAPu1kqk4ppaQiMAgBMB2JQBOj+ABgWZB5q5c0a+cwAP7nhndMa/MpEtYP4XKBHSe2YCc4C0tQUZcg4lHoCSij4yaMQ0KiKzsqXAYWvRZ/TnyZ4doQyGDGD5H1+H0sIAAA",
+   "dominant": "#b6b9a2",
+   "focal": "60% 45%",
+   "hero_rating": 4,
+   "notes": "Hero suitability 4/5. Shows the boardwalk crossing the water to the wooden tower; bright daylight, sharp.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP."
+  },
+  {
+   "slug": "wooden-bridges-park",
+   "subject": "tower",
+   "caption_en": "Wooden footbridges over a channel in Divjakë-Karavasta National Park",
+   "caption_sq": "Ura druri mbi një kanal në Parkun Kombëtar Divjakë-Karavasta",
+   "location_verified": true,
+   "real_location": "Divjakë-Karavasta National Park (description: wooden bridge over the lagoon in Karavasta)",
+   "author": "AMcreative1",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Wooden_bridge_for_crossing_over_the_lagoon_in_karavasta.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/d/d6/Wooden_bridge_for_crossing_over_the_lagoon_in_karavasta.jpg",
+   "width": 5568,
+   "height": 3712,
+   "raw_file": "raw/photos/wooden-bridges-park.jpg",
+   "raw_width": 3840,
+   "raw_height": 2560,
+   "date_taken": "2023-05-28 16:41:01",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/wooden-bridges-park-640.avif",
+      "width": 640,
+      "height": 427,
+      "bytes": 32346
+     },
+     {
+      "path": "/photos/wooden-bridges-park-1280.avif",
+      "width": 1280,
+      "height": 853,
+      "bytes": 135824
+     },
+     {
+      "path": "/photos/wooden-bridges-park-1920.avif",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 321684
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/wooden-bridges-park-640.webp",
+      "width": 640,
+      "height": 427,
+      "bytes": 67266
+     },
+     {
+      "path": "/photos/wooden-bridges-park-1280.webp",
+      "width": 1280,
+      "height": 853,
+      "bytes": 277466
+     },
+     {
+      "path": "/photos/wooden-bridges-park-1920.webp",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 642122
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRqQAAABXRUJQVlA4IJgAAABwBACdASoYABAAPu1iqU2ppaOiMAgBMB2JZQClrCP2X03de3Nq6CwmAd2ANAD+1RUuU8DA/1oSJ6fIWCfR3Yu/Wqn2X2fxG9P4l3OI9ZH3gbR2bjw8+UO8gofP26LxJw5z8pT+Be+TFTh3kbMz6u5d01+4tJHbJ8wz8dmWRbpqMt0XY3zblyy0bGz4Gm8TjJZtUsKpQQAAAA==",
+   "dominant": "#525a54",
+   "focal": "45% 60%",
+   "hero_rating": 3,
+   "notes": "Hero suitability 3/5. Painted footbridges with flower boxes among pines; busy composition but on-subject.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP."
+  },
+  {
+   "slug": "visitor-centre",
+   "subject": "visitor-centre",
+   "caption_en": "The Visitor Centre of Divjakë-Karavasta National Park",
+   "caption_sq": "Qendra e Vizitorëve e Parkut Kombëtar Divjakë-Karavasta",
+   "location_verified": true,
+   "real_location": "Visitor Centre, Divjakë-Karavasta National Park (sign reads 'Qendër Vizitorësh / Visitor Center')",
+   "author": "Big Virgil",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Visitor_Center_Divjaka.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/f/f9/Visitor_Center_Divjaka.jpg",
+   "width": 4608,
+   "height": 3456,
+   "raw_file": "raw/photos/visitor-centre.jpg",
+   "raw_width": 3840,
+   "raw_height": 2880,
+   "date_taken": "2018-07-07 14:49:39",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/visitor-centre-640.avif",
+      "width": 640,
+      "height": 480,
+      "bytes": 19403
+     },
+     {
+      "path": "/photos/visitor-centre-1280.avif",
+      "width": 1280,
+      "height": 960,
+      "bytes": 70131
+     },
+     {
+      "path": "/photos/visitor-centre-1920.avif",
+      "width": 1920,
+      "height": 1440,
+      "bytes": 152844
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/visitor-centre-640.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 34982
+     },
+     {
+      "path": "/photos/visitor-centre-1280.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 126198
+     },
+     {
+      "path": "/photos/visitor-centre-1920.webp",
+      "width": 1920,
+      "height": 1440,
+      "bytes": 264576
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRqoAAABXRUJQVlA4IJ4AAAAQBQCdASoYABIAPuVgpk2pJaOiMAwBIByJQBOgBDuTo518Izv56umO6eBa82tD+4wAAP7qeZmFX3rkuxOlYEFcWXqhd7eroBpbWUE9cLEv41JL2ru1Q2Eb1slKqFNuJdD8B5SzOCRyDJg/rNmhJVop0oRJ4qc+J9FttVdOdJ0QtTLDxDGgGA7TJ2ROYXvVW6igOME1joVw2fVMFgbwAA==",
+   "dominant": "#26261e",
+   "focal": "50% 45%",
+   "hero_rating": 4,
+   "notes": "Hero suitability 4/5. Front of the building with readable sign, stone path, blue sky, sharp. Photo from 2018: the building may look different today.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP."
+  },
+  {
+   "slug": "visitor-centre-garden",
+   "subject": "visitor-centre",
+   "caption_en": "Garden path to the Visitor Centre, Divjakë-Karavasta National Park",
+   "caption_sq": "Shtegu i kopshtit drejt Qendrës së Vizitorëve, Parku Kombëtar Divjakë-Karavasta",
+   "location_verified": true,
+   "real_location": "Visitor Centre, Divjaka-Karavasta National Park (file description)",
+   "author": "Albinfo",
+   "license": "CC0",
+   "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Divjaka-Karavasta_National_Park_Visitor_Center_(OSCAL19_trip).jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/2/25/Divjaka-Karavasta_National_Park_Visitor_Center_%28OSCAL19_trip%29.jpg",
+   "width": 4912,
+   "height": 3264,
+   "raw_file": "raw/photos/visitor-centre-garden.jpg",
+   "raw_width": 3840,
+   "raw_height": 2552,
+   "date_taken": "2019-05-20",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/visitor-centre-garden-640.avif",
+      "width": 640,
+      "height": 425,
+      "bytes": 25854
+     },
+     {
+      "path": "/photos/visitor-centre-garden-1280.avif",
+      "width": 1280,
+      "height": 851,
+      "bytes": 102811
+     },
+     {
+      "path": "/photos/visitor-centre-garden-1920.avif",
+      "width": 1920,
+      "height": 1276,
+      "bytes": 232554
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/visitor-centre-garden-640.webp",
+      "width": 640,
+      "height": 425,
+      "bytes": 49564
+     },
+     {
+      "path": "/photos/visitor-centre-garden-1280.webp",
+      "width": 1280,
+      "height": 851,
+      "bytes": 194718
+     },
+     {
+      "path": "/photos/visitor-centre-garden-1920.webp",
+      "width": 1920,
+      "height": 1276,
+      "bytes": 435636
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRs4AAABXRUJQVlA4IMIAAACwBACdASoYABAAPu1iqU2ppaOiMAgBMB2JQBadO4FwHNWAkcoliQSeN9t+zEnIAP14vTOUlF3bG/G0B35FDYdq3D3PbUPPVj0b1je+YkHVFi8kpEV633P4B9+T/ZPlHm+Lc576OPHbBTfrRv8mSUMoY5UPqhmQY37xh2P+Yt8haNN9lxbqAQtIrxzIUT4o0R416pMMmltMi4+zH5MRiu7V//QU5r55WpbM3waOPtr6eil21L5XqIXLY5yqj2L6+llcAA==",
+   "dominant": "#767759",
+   "focal": "50% 50%",
+   "hero_rating": 3,
+   "notes": "Hero suitability 3/5. Same building framed by pines (2019); CC0. Alternative to visitor-centre.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP."
+  },
+  {
+   "slug": "flamingos-wading",
+   "subject": "birds",
+   "caption_en": "Greater flamingos wading in the shallows at Divjakë",
+   "caption_sq": "Flamingo të mëdhenj në ujërat e cekëta në Divjakë",
+   "location_verified": true,
+   "real_location": "Divjakë (title 'Flamingo Divjakë'; category Phoenicopterus roseus in Albania)",
+   "author": "Arbenllapashtica",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Flamingo_Divjak%C3%AB.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/4/41/Flamingo_Divjak%C3%AB.jpg",
+   "width": 8256,
+   "height": 5252,
+   "raw_file": "raw/photos/flamingos-wading.jpg",
+   "raw_width": 3840,
+   "raw_height": 2443,
+   "date_taken": "2025-02-23 09:39:58",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/flamingos-wading-640.avif",
+      "width": 640,
+      "height": 407,
+      "bytes": 5994
+     },
+     {
+      "path": "/photos/flamingos-wading-1280.avif",
+      "width": 1280,
+      "height": 814,
+      "bytes": 15685
+     },
+     {
+      "path": "/photos/flamingos-wading-1920.avif",
+      "width": 1920,
+      "height": 1222,
+      "bytes": 27617
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/flamingos-wading-640.webp",
+      "width": 640,
+      "height": 407,
+      "bytes": 9062
+     },
+     {
+      "path": "/photos/flamingos-wading-1280.webp",
+      "width": 1280,
+      "height": 814,
+      "bytes": 22836
+     },
+     {
+      "path": "/photos/flamingos-wading-1920.webp",
+      "width": 1920,
+      "height": 1222,
+      "bytes": 41300
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRl4AAABXRUJQVlA4IFIAAACwAwCdASoYAA8APu1kqU2ppaQiMAgBMB2JZwC/OCHVbvmWkvKO0AD+rvSA+F9VYeHE+CDyPTid+FQxn19RCru5IRHGqC6XR/lP95tJJWeoAAAA",
+   "dominant": "#babece",
+   "focal": "50% 55%",
+   "hero_rating": 5,
+   "notes": "Hero suitability 5/5. Line of flamingos with reflections, soft pastel light, very sharp (8256 px).",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP."
+  },
+  {
+   "slug": "flamingos-flight",
+   "subject": "birds",
+   "caption_en": "Three flamingos in flight over the Karavasta Lagoon",
+   "caption_sq": "Tre flamingo në fluturim mbi Lagunën e Karavastasë",
+   "location_verified": true,
+   "real_location": "Karavasta Lagoon (description: three flamingos flying over the Karavasta lagoon)",
+   "author": "AMcreative1",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Tre_flamengo_duke_fluturuar_krah_njeri_tjetrit.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Tre_flamengo_duke_fluturuar_krah_njeri_tjetrit.jpg",
+   "width": 5568,
+   "height": 3712,
+   "raw_file": "raw/photos/flamingos-flight.jpg",
+   "raw_width": 3840,
+   "raw_height": 2560,
+   "date_taken": "2023-06-10 11:59:18",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/flamingos-flight-640.avif",
+      "width": 640,
+      "height": 427,
+      "bytes": 3245
+     },
+     {
+      "path": "/photos/flamingos-flight-1280.avif",
+      "width": 1280,
+      "height": 853,
+      "bytes": 7324
+     },
+     {
+      "path": "/photos/flamingos-flight-1920.avif",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 11608
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/flamingos-flight-640.webp",
+      "width": 640,
+      "height": 427,
+      "bytes": 4180
+     },
+     {
+      "path": "/photos/flamingos-flight-1280.webp",
+      "width": 1280,
+      "height": 853,
+      "bytes": 10536
+     },
+     {
+      "path": "/photos/flamingos-flight-1920.webp",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 19236
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRloAAABXRUJQVlA4IE4AAADQAwCdASoYABAAPu1iqU2ppaOiMAgBMB2JQBYdhDwsCbK+zfUZhAAA/q715urKbx4laTLAdJ6vl9CfgrVsn9sJB4ZJtHzO0yWhGWuIwAA=",
+   "dominant": "#a9c5ea",
+   "focal": "40% 72%",
+   "hero_rating": 3,
+   "notes": "Hero suitability 3/5. Birds against a plain sky: lots of negative space for text.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP. The birds fill the lower half and the left bird's legs touch the frame edge: focal moved to 40% 72% so 16:9 crops keep all three. Slightly soft at 100% (fine at 1280 and below). Rating 4 -> 3. The lagoon is not visible; 'over the Karavasta Lagoon' comes from the file description."
+  },
+  {
+   "slug": "flamingos-flock-lagoon",
+   "subject": "birds",
+   "caption_en": "A flock of flamingos landing on the Karavasta Lagoon",
+   "caption_sq": "Një tufë flamingosh duke u ulur në Lagunën e Karavastasë",
+   "location_verified": true,
+   "real_location": "Karavasta Lagoon (description), Divjakë-Karavasta National Park",
+   "author": "AMcreative1",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:A_flock_of_flamingos_flying_side_by_side_and_landing_on_the_lagoon_of_Karavasta.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/9/9a/A_flock_of_flamingos_flying_side_by_side_and_landing_on_the_lagoon_of_Karavasta.jpg",
+   "width": 4617,
+   "height": 2729,
+   "raw_file": "raw/photos/flamingos-flock-lagoon.jpg",
+   "raw_width": 3840,
+   "raw_height": 2270,
+   "date_taken": "2023-06-10 12:00:06",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/flamingos-flock-lagoon-640.avif",
+      "width": 640,
+      "height": 378,
+      "bytes": 9785
+     },
+     {
+      "path": "/photos/flamingos-flock-lagoon-1280.avif",
+      "width": 1280,
+      "height": 757,
+      "bytes": 31849
+     },
+     {
+      "path": "/photos/flamingos-flock-lagoon-1920.avif",
+      "width": 1920,
+      "height": 1135,
+      "bytes": 58619
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/flamingos-flock-lagoon-640.webp",
+      "width": 640,
+      "height": 378,
+      "bytes": 14830
+     },
+     {
+      "path": "/photos/flamingos-flock-lagoon-1280.webp",
+      "width": 1280,
+      "height": 757,
+      "bytes": 46810
+     },
+     {
+      "path": "/photos/flamingos-flock-lagoon-1920.webp",
+      "width": 1920,
+      "height": 1135,
+      "bytes": 86884
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRl4AAABXRUJQVlA4IFIAAACQAwCdASoYAA4APu1iqk2ppaQiMAgBMB2JYwCdACHWrJbPobQuAP7eqqmloE3afSEf4Xyg+TXR8FvCUtHWQ2SHKvO6NZ8wXqrsmLdoWg3PMgAA",
+   "dominant": "#5b603e",
+   "focal": "35% 45%",
+   "hero_rating": 3,
+   "notes": "Hero suitability 3/5. Small birds against green hills; tells the place better than it shows the birds.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP."
+  },
+  {
+   "slug": "egret-lagoon",
+   "subject": "birds",
+   "caption_en": "A little egret over the salt marsh, Divjakë-Karavasta National Park",
+   "caption_sq": "Një çafkë e bardhë mbi kënetën e kripur, Parku Kombëtar Divjakë-Karavasta",
+   "location_verified": true,
+   "real_location": "Divjakë National Park / Karavasta Lagoon (title says heron; Commons category says Egretta garzetta = little egret)",
+   "author": "Albinfo",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Heron_in_Divjak%C3%AB_National_Park.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/0/05/Heron_in_Divjak%C3%AB_National_Park.jpg",
+   "width": 4730,
+   "height": 2883,
+   "raw_file": "raw/photos/egret-lagoon.jpg",
+   "raw_width": 3840,
+   "raw_height": 2341,
+   "date_taken": "2019-05-20 17:23:28",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/egret-lagoon-640.avif",
+      "width": 640,
+      "height": 390,
+      "bytes": 16475
+     },
+     {
+      "path": "/photos/egret-lagoon-1280.avif",
+      "width": 1280,
+      "height": 780,
+      "bytes": 77526
+     },
+     {
+      "path": "/photos/egret-lagoon-1920.avif",
+      "width": 1920,
+      "height": 1170,
+      "bytes": 192480
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/egret-lagoon-640.webp",
+      "width": 640,
+      "height": 390,
+      "bytes": 31960
+     },
+     {
+      "path": "/photos/egret-lagoon-1280.webp",
+      "width": 1280,
+      "height": 780,
+      "bytes": 159212
+     },
+     {
+      "path": "/photos/egret-lagoon-1920.webp",
+      "width": 1920,
+      "height": 1170,
+      "bytes": 399580
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRngAAABXRUJQVlA4IGwAAACQBACdASoYAA8APu1oqk6ppiQiMAgBMB2JQBOkr/4gzzvP/k5+GzkIb56S3ZQA/lv4rJ7MtcoJiA/U8DzEDYRhvNL4Sd4WpUn1M3sF8Ay3i93Nxj7xt4Dd0zWe0NaRt9gcC0h3Vmt6GFkL4AA=",
+   "dominant": "#6f797a",
+   "focal": "30% 50%",
+   "hero_rating": 3,
+   "notes": "Hero suitability 3/5. Bird is small in frame; the landscape (lagoon, marsh, hills) carries it. Title says 'heron', category says little egret: caption uses the category.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP. Category 'Egretta garzetta in flight' (title says heron): caption follows the category."
+  },
+  {
+   "slug": "ardenica-monastery",
+   "subject": "culture",
+   "caption_en": "Ardenica Monastery, near Lushnjë",
+   "caption_sq": "Manastiri i Ardenicës, pranë Lushnjës",
+   "location_verified": false,
+   "real_location": "Ardenica Monastery (Church of the Nativity of the Theotokos), near Lushnjë, Albania: not in Divjakë",
+   "author": "Marmontel",
+   "license": "CC BY 2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:%C3%89glise_de_la_Nativit%C3%A9_de_la_M%C3%A8re_de_Dieu_1743_(53100021886).jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/8/80/%C3%89glise_de_la_Nativit%C3%A9_de_la_M%C3%A8re_de_Dieu_1743_%2853100021886%29.jpg",
+   "width": 7775,
+   "height": 5554,
+   "raw_file": "raw/photos/ardenica-monastery.jpg",
+   "raw_width": 3840,
+   "raw_height": 2743,
+   "date_taken": "2023-07-13 12:55",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/ardenica-monastery-640.avif",
+      "width": 640,
+      "height": 457,
+      "bytes": 18609
+     },
+     {
+      "path": "/photos/ardenica-monastery-1280.avif",
+      "width": 1280,
+      "height": 914,
+      "bytes": 68210
+     },
+     {
+      "path": "/photos/ardenica-monastery-1920.avif",
+      "width": 1920,
+      "height": 1372,
+      "bytes": 148333
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/ardenica-monastery-640.webp",
+      "width": 640,
+      "height": 457,
+      "bytes": 36368
+     },
+     {
+      "path": "/photos/ardenica-monastery-1280.webp",
+      "width": 1280,
+      "height": 914,
+      "bytes": 134528
+     },
+     {
+      "path": "/photos/ardenica-monastery-1920.webp",
+      "width": 1920,
+      "height": 1372,
+      "bytes": 288044
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRqoAAABXRUJQVlA4IJ4AAACwBACdASoYABEAPu1kq0+ppSOiMBgIATAdiWIAtOgNzOdEJieOZcRGqzoT/TM4AP6vi8RpyHtKndTcn0owmMTEL7qBFAzz95WN5k1b+zb8XjN1PBvxqW8wEdIiJg6gALa9AH0y5HGCqG67IqpndXuD1jcsL+ZCT29QS70B+mJ5EgNk4mB0zcUyCdLjl3nhsLpRw+96jW5wzodEOAAAAA==",
+   "dominant": "#98b5d7",
+   "focal": "45% 50%",
+   "hero_rating": 4,
+   "notes": "Hero suitability 4/5. Bell tower and arcaded church, flowers, blue sky, no people, very sharp (Flickr 7775 px). Distance from Divjakë not stated on the source page.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP. Commons camera location 40.8185 N, 19.5929 E; 'near Lushnjë' backed by heritage.json (Wikipedia: 18 km south of Lushnjë). Flickr licence confirmed by FlickreviewR 2 on 15 Sep 2023."
+  },
+  {
+   "slug": "apollonia",
+   "subject": "culture",
+   "caption_en": "The ruins of ancient Apollonia, near Fier",
+   "caption_sq": "Rrënojat e Apolonisë antike, pranë Fierit",
+   "location_verified": false,
+   "real_location": "Apollonia archaeological park, near Fier, Albania: not in Divjakë",
+   "author": "Inkey",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Appolonia_Albania.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/0/0c/Appolonia_Albania.jpg",
+   "width": 4237,
+   "height": 2825,
+   "raw_file": "raw/photos/apollonia.jpg",
+   "raw_width": 3840,
+   "raw_height": 2560,
+   "date_taken": "2012-07-23 14:25:56",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/apollonia-640.avif",
+      "width": 640,
+      "height": 427,
+      "bytes": 17070
+     },
+     {
+      "path": "/photos/apollonia-1280.avif",
+      "width": 1280,
+      "height": 853,
+      "bytes": 62225
+     },
+     {
+      "path": "/photos/apollonia-1920.avif",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 126150
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/apollonia-640.webp",
+      "width": 640,
+      "height": 427,
+      "bytes": 29100
+     },
+     {
+      "path": "/photos/apollonia-1280.webp",
+      "width": 1280,
+      "height": 853,
+      "bytes": 108538
+     },
+     {
+      "path": "/photos/apollonia-1920.webp",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 212366
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRooAAABXRUJQVlA4IH4AAAAwBACdASoYABAAPu1iqU2ppaOiMAgBMB2JQBOgA9jpAS0hPxvyr5KrfAAA/pbqcRtG2SHjU5T1gtqKfOtlnZ9WtKZaJZHCGGYhBntxMVVq6hNQruegplMUBB5UcblviqWOP1GBaxjEGnh0h5xQWYUb8jd8FONDdRvlk2ugAAA=",
+   "dominant": "#7b6d4c",
+   "focal": "72% 55%",
+   "hero_rating": 4,
+   "notes": "Hero suitability 4/5. Restored facade (Monument of Agonothetes) among olive trees, summer haze, sharp. 2012 photo.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP. Focal moved onto the restored temple facade (about 72% across) so narrow crops do not cut it. 'Near Fier': heritage.json (Wikipedia, Apollonia near Pojan, Fier County)."
+  },
+  {
+   "slug": "lagoon-fishing-nets",
+   "subject": "local-life",
+   "caption_en": "A fishing hut on stilts, net poles and fishing boats, Divjakë-Karavasta",
+   "caption_sq": "Peshkarexha dhe varka peshkimi, Divjakë-Karavasta",
+   "location_verified": true,
+   "real_location": "Divjakë-Karavasta (title 'Peshkarexha në Divjakë-Karavasta')",
+   "author": "Darioharuni",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Peshkarexha_n%C3%AB_Divjak%C3%AB-Karavasta.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/4/4f/Peshkarexha_n%C3%AB_Divjak%C3%AB-Karavasta.jpg",
+   "width": 5472,
+   "height": 3648,
+   "raw_file": "raw/photos/lagoon-fishing-nets.jpg",
+   "raw_width": 3840,
+   "raw_height": 2560,
+   "date_taken": "2025-04-20 14:26:22",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/lagoon-fishing-nets-640.avif",
+      "width": 640,
+      "height": 427,
+      "bytes": 12509
+     },
+     {
+      "path": "/photos/lagoon-fishing-nets-1280.avif",
+      "width": 1280,
+      "height": 853,
+      "bytes": 48840
+     },
+     {
+      "path": "/photos/lagoon-fishing-nets-1920.avif",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 107243
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/lagoon-fishing-nets-640.webp",
+      "width": 640,
+      "height": 427,
+      "bytes": 19108
+     },
+     {
+      "path": "/photos/lagoon-fishing-nets-1280.webp",
+      "width": 1280,
+      "height": 853,
+      "bytes": 79088
+     },
+     {
+      "path": "/photos/lagoon-fishing-nets-1920.webp",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 180226
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRmoAAABXRUJQVlA4IF4AAAAQBACdASoYABAAPu1iqU2ppaQiMAgBMB2JZACdAB06rsRzSYn+2WfNAADtdrfS/c4gPNn/gmp78UO/JvmJicj9k6NpVV/DOAEF7480+rXCcWxQ4RTdePpsfb40AAAA",
+   "dominant": "#7f94c3",
+   "focal": "45% 55%",
+   "hero_rating": 4,
+   "notes": "Hero suitability 4/5. Fishing hut on stilts, lift-net poles and blue boats, deep blue sky; strong colour, slightly over-saturated.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP. Caption no longer says 'lift nets' (an inference from the title 'Peshkarexha'; the page says only 'Fishing in Divjakë-Karavasta'). A boat on the right edge carries a painted business name ('DIVJAKA RESOR...'): keep the focal left or crop the right edge where the site promotes Hotel Pelikan."
+  },
+  {
+   "slug": "lagoon-boat-trips",
+   "subject": "local-life",
+   "caption_en": "A boat moored at the jetty for trips on the Karavasta Lagoon",
+   "caption_sq": "Një varkë në skelë për shëtitje në Lagunën e Karavastasë",
+   "location_verified": true,
+   "real_location": "Karavasta Lagoon (title 'Shëtitje me varka në Lagunën e Karavastasë' = boat trips on the Karavasta Lagoon)",
+   "author": "ErtonKashta",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Sh%C3%ABtitje_me_varka_n%C3%AB_Lagun%C3%ABn_e_Karavastas%C3%AB.jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/0/01/Sh%C3%ABtitje_me_varka_n%C3%AB_Lagun%C3%ABn_e_Karavastas%C3%AB.jpg",
+   "width": 4608,
+   "height": 3456,
+   "raw_file": "raw/photos/lagoon-boat-trips.jpg",
+   "raw_width": 3840,
+   "raw_height": 2880,
+   "date_taken": "2018-07-22 16:04:47",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/lagoon-boat-trips-640.avif",
+      "width": 640,
+      "height": 480,
+      "bytes": 28435
+     },
+     {
+      "path": "/photos/lagoon-boat-trips-1280.avif",
+      "width": 1280,
+      "height": 960,
+      "bytes": 93041
+     },
+     {
+      "path": "/photos/lagoon-boat-trips-1920.avif",
+      "width": 1920,
+      "height": 1440,
+      "bytes": 169519
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/lagoon-boat-trips-640.webp",
+      "width": 640,
+      "height": 480,
+      "bytes": 55430
+     },
+     {
+      "path": "/photos/lagoon-boat-trips-1280.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 177290
+     },
+     {
+      "path": "/photos/lagoon-boat-trips-1920.webp",
+      "width": 1920,
+      "height": 1440,
+      "bytes": 310780
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRpwAAABXRUJQVlA4IJAAAADQBACdASoYABIAPu1sq1EppiOiqAqpMB2JZwDE2BG59hX0aiAPrCb5KpPOVK8yAAD766a+6TayuuYkjLN08jhUsuPzmkc7U6Vrrwo4+k+lnEBCo8xEKkUsuWemhuV25u3+yNhHslWSB9AdvXoO6itGZEHABPo1M1OVfjxcWjq2QF25orW2gCPaaufh48MAAAA=",
+   "dominant": "#f3f2f2",
+   "focal": "52% 60%",
+   "hero_rating": 3,
+   "notes": "Hero suitability 3/5. Boardwalk, moored boat and red-white poles in a pine-lined channel; 2018 photo.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP. Only one boat is moored (a second is under way in the channel): caption singular. Focal moved right so narrow crops keep the moored boat."
+  },
+  {
+   "slug": "divjake-town-square",
+   "subject": "local-life",
+   "caption_en": "The central square of Divjakë",
+   "caption_sq": "Sheshi qendror i Divjakës",
+   "location_verified": true,
+   "real_location": "Central square of Divjakë town (file description)",
+   "author": "Albinfo",
+   "license": "CC0",
+   "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Divjaka_central_square_(OSCAL19_trip).jpg",
+   "original_url": "https://upload.wikimedia.org/wikipedia/commons/b/b1/Divjaka_central_square_%28OSCAL19_trip%29.jpg",
+   "width": 4912,
+   "height": 3264,
+   "raw_file": "raw/photos/divjake-town-square.jpg",
+   "raw_width": 3840,
+   "raw_height": 2552,
+   "date_taken": "2019-05-20",
+   "files": {
+    "avif": [
+     {
+      "path": "/photos/divjake-town-square-640.avif",
+      "width": 640,
+      "height": 425,
+      "bytes": 16929
+     },
+     {
+      "path": "/photos/divjake-town-square-1280.avif",
+      "width": 1280,
+      "height": 851,
+      "bytes": 63411
+     },
+     {
+      "path": "/photos/divjake-town-square-1920.avif",
+      "width": 1920,
+      "height": 1276,
+      "bytes": 140446
+     }
+    ],
+    "webp": [
+     {
+      "path": "/photos/divjake-town-square-640.webp",
+      "width": 640,
+      "height": 425,
+      "bytes": 30784
+     },
+     {
+      "path": "/photos/divjake-town-square-1280.webp",
+      "width": 1280,
+      "height": 851,
+      "bytes": 117240
+     },
+     {
+      "path": "/photos/divjake-town-square-1920.webp",
+      "width": 1920,
+      "height": 1276,
+      "bytes": 256624
+     }
+    ]
+   },
+   "lqip": "data:image/webp;base64,UklGRqYAAABXRUJQVlA4IJoAAAAwBACdASoYABAAPu1iqU2ppaOiMAgBMB2JaACdAB4jNMf8d7Ny0QVNIgIA4TJ2iHeyk9Nu/0N0qBEdsskzL7mv7Qw66KCxyu7HiVI8et40AKLeP4n0mG8pguLHg0drmghZE+CFgf6aRpWIh6cI882S/6EXXFxD91QvTTRatMOs687a4VaMf0QE8VJ1YDHe7q+Gl7I7WCMDAAAA",
+   "dominant": "#6ea7d3",
+   "focal": "50% 50%",
+   "hero_rating": 2,
+   "notes": "Hero suitability 2/5. Plain documentary shot of the square (2019); usable small, not as a hero.",
+   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "verified": true,
+   "verified_on": "2026-10-23",
+   "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP."
+  }
+ ],
+ "verification": {
+  "date": "2026-10-23",
+  "by": "adversarial verifier",
+  "checked": "All 32 Commons file pages re-opened (HTML, not the API): author, licence template, description, categories, original file URL, deletion/problem templates. All 198 files under public/photos opened with Pillow 12.3: present, non-zero, byte size and dimensions match the JSON, no EXIF, GPS or XMP. Every 1280 WebP viewed; 100% crops of the six lowest-detail images.",
+  "removed": [],
+  "result": "32/32 kept. No author or licence mismatch, no watermark, no deletion template. Captions changed: pelican-xhimi, pine-forest-light, beach-dunes, beach-from-tower, lagoon-fishing-nets, lagoon-boat-trips, and 'Karavastasës' -> 'Karavastasë' in Albanian captions (sq.wikipedia title 'Laguna e Karavastasë'). Focal points changed: pelican-xhimi, beach-from-tower, tower-360, flamingos-flight, apollonia, lagoon-boat-trips."
+ }
+}

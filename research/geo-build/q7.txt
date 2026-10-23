@@ -1,0 +1,12 @@
+[out:json][timeout:60];
+(
+  nwr["man_made"~"tower|pier|bridge"](40.80,19.34,41.06,19.62);
+  nwr["leisure"="bird_hide"](40.80,19.34,41.06,19.62);
+  nwr["tourism"](40.80,19.34,41.06,19.62);
+  nwr["place"](40.80,19.34,41.06,19.62);
+  nwr["natural"="beach"](40.80,19.34,41.06,19.62);
+  nwr["name"~"Pelikan|Pelican|Vizitor|Visitor",i](40.80,19.34,41.06,19.62);
+  nwr["amenity"="townhall"](40.80,19.34,41.06,19.62);
+  nwr["boundary"="administrative"]["admin_level"~"7|8"](40.98,19.50,41.01,19.55);
+);
+out tags center;

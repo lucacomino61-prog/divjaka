@@ -1,0 +1,1868 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-10-23T09:30:36Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 728417440,
+  "lat": 40.8493577,
+  "lon": 19.5081450,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Libofshë",
+    "COM_ID": "5108",
+    "DIS_ID": "51",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "309",
+    "VILL_ID": "510805.00000000000",
+    "addr:district": "FIER",
+    "name": "Havaleas",
+    "place": "village",
+    "wikidata": "Q13039836",
+    "wikipedia": "sq:Havaleas (Komuna Libofshë)"
+  }
+},
+{
+  "type": "node",
+  "id": 728417721,
+  "lat": 40.9087359,
+  "lon": 19.6089439,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Grabian",
+    "COM_ID": "5208",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "972",
+    "VILL_ID": "520803.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Ferras",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 728417959,
+  "lat": 40.8874261,
+  "lon": 19.5874736,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Gradishtë",
+    "COM_ID": "5209",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "1239",
+    "VILL_ID": "520905.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Gradishtë",
+    "place": "village",
+    "wikidata": "Q13039545"
+  }
+},
+{
+  "type": "node",
+  "id": 728418141,
+  "lat": 40.8333293,
+  "lon": 19.5542530,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Libofshë",
+    "COM_ID": "5108",
+    "DIS_ID": "51",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "2519",
+    "VILL_ID": "510810.00000000000",
+    "addr:district": "FIER",
+    "name": "Libofshë",
+    "place": "village",
+    "wikidata": "Q54978188"
+  }
+},
+{
+  "type": "node",
+  "id": 728418325,
+  "lat": 41.0493793,
+  "lon": 19.5774891,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Tërbuf",
+    "COM_ID": "5216",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "1736",
+    "VILL_ID": "521603.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Çermë-Shkumbin",
+    "place": "village",
+    "wikidata": "Q16362766"
+  }
+},
+{
+  "type": "node",
+  "id": 728418453,
+  "lat": 40.8983173,
+  "lon": 19.5385567,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Remas",
+    "COM_ID": "5215",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "1111",
+    "VILL_ID": "521505.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Gur",
+    "place": "village",
+    "wikidata": "Q13039645"
+  }
+},
+{
+  "type": "node",
+  "id": 728418688,
+  "lat": 41.0215992,
+  "lon": 19.5742414,
+  "tags": {
+    "ADMINSTATE": "MUNICIPALITY",
+    "Access_SDP": "No",
+    "COMMUN_NAM": "Divjakë",
+    "COM_ID": "5204",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "549",
+    "VILL_ID": "520406.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Bishcukas",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 728418919,
+  "lat": 40.8280827,
+  "lon": 19.4204532,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "No",
+    "COMMUN_NAM": "Topoje",
+    "COM_ID": "5116",
+    "DIS_ID": "51",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "197",
+    "VILL_ID": "511604.00000000000",
+    "addr:district": "FIER",
+    "name": "Sheq",
+    "place": "village",
+    "wikidata": "Q13045696",
+    "wikipedia": "sq:Sheq"
+  }
+},
+{
+  "type": "node",
+  "id": 728419499,
+  "lat": 40.8254518,
+  "lon": 19.6048673,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Kolonjë",
+    "COM_ID": "5212",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "2458",
+    "VILL_ID": "521208.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Kolonjë",
+    "place": "village",
+    "wikidata": "Q16360143"
+  }
+},
+{
+  "type": "node",
+  "id": 728420145,
+  "lat": 41.0399551,
+  "lon": 19.6157407,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Tërbuf",
+    "COM_ID": "5216",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "5673",
+    "VILL_ID": "521605.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Tërbuf",
+    "place": "village",
+    "wikidata": "Q16360317"
+  }
+},
+{
+  "type": "node",
+  "id": 728420590,
+  "lat": 40.8618380,
+  "lon": 19.5771058,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Libofshë",
+    "COM_ID": "5108",
+    "DIS_ID": "51",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "158",
+    "VILL_ID": "510802.00000000000",
+    "addr:district": "FIER",
+    "name": "Gozhdaras",
+    "place": "village",
+    "wikidata": "Q13039536",
+    "wikipedia": "sq:Gozhdaras"
+  }
+},
+{
+  "type": "node",
+  "id": 728420716,
+  "lat": 40.8466395,
+  "lon": 19.5889293,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Kolonjë",
+    "COM_ID": "5212",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "405",
+    "VILL_ID": "521205.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Bitaj",
+    "place": "village",
+    "wikidata": "Q16350908",
+    "wikipedia": "sq:Bitaj"
+  }
+},
+{
+  "type": "node",
+  "id": 728421034,
+  "lat": 40.8826906,
+  "lon": 19.5482194,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Gradishtë",
+    "COM_ID": "5209",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "633",
+    "VILL_ID": "520906.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Babunjë",
+    "place": "village",
+    "wikidata": "Q16349676"
+  }
+},
+{
+  "type": "node",
+  "id": 728421143,
+  "lat": 40.8070541,
+  "lon": 19.5651694,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Libofshë",
+    "COM_ID": "5108",
+    "DIS_ID": "51",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "1870",
+    "VILL_ID": "510811.00000000000",
+    "addr:district": "FIER",
+    "name": "Rreth Libofshë",
+    "place": "village",
+    "wikidata": "Q16355495",
+    "wikipedia": "sq:Rreth-Libofshë"
+  }
+},
+{
+  "type": "node",
+  "id": 728421374,
+  "lat": 40.9254189,
+  "lon": 19.5403067,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "No",
+    "COMMUN_NAM": "Remas",
+    "COM_ID": "5215",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "1357",
+    "VILL_ID": "521502.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Kryekuq",
+    "place": "village",
+    "wikidata": "Q13041151"
+  }
+},
+{
+  "type": "node",
+  "id": 728421543,
+  "lat": 41.0127190,
+  "lon": 19.5780499,
+  "tags": {
+    "ADMINSTATE": "MUNICIPALITY",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Divjakë",
+    "COM_ID": "5204",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "255",
+    "VILL_ID": "520407.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Gërmenj i Vogël",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 728421975,
+  "lat": 40.8456721,
+  "lon": 19.4702977,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "No",
+    "COMMUN_NAM": "Libofshë",
+    "COM_ID": "5108",
+    "DIS_ID": "51",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "730",
+    "VILL_ID": "510806.00000000000",
+    "addr:district": "FIER",
+    "name": "Hasturkas",
+    "place": "village",
+    "wikidata": "Q16357655",
+    "wikipedia": "sq:Hasturkas"
+  }
+},
+{
+  "type": "node",
+  "id": 728422552,
+  "lat": 40.8150464,
+  "lon": 19.6075036,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Kolonjë",
+    "COM_ID": "5212",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "1158",
+    "VILL_ID": "521209.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Ardenicë",
+    "place": "village",
+    "wikidata": "Q20572785",
+    "wikipedia": "sq:Ardenica"
+  }
+},
+{
+  "type": "node",
+  "id": 728422687,
+  "lat": 40.8864742,
+  "lon": 19.5138054,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Remas",
+    "COM_ID": "5215",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "819",
+    "VILL_ID": "521506.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Remas",
+    "place": "village",
+    "wikidata": "Q13044956"
+  }
+},
+{
+  "type": "node",
+  "id": 728423141,
+  "lat": 40.9828311,
+  "lon": 19.5791442,
+  "tags": {
+    "ADMINSTATE": "MUNICIPALITY",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Divjakë",
+    "COM_ID": "5204",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "345",
+    "VILL_ID": "520403.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Hallvaxhias",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 728423641,
+  "lat": 40.8436453,
+  "lon": 19.5585259,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Libofshë",
+    "COM_ID": "5108",
+    "DIS_ID": "51",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "1376",
+    "VILL_ID": "510803.00000000000",
+    "addr:district": "FIER",
+    "name": "Vanaj",
+    "place": "village",
+    "wikidata": "Q16360805",
+    "wikipedia": "sq:Vanaj"
+  }
+},
+{
+  "type": "node",
+  "id": 728423759,
+  "lat": 40.9962370,
+  "lon": 19.5894882,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Grabian",
+    "COM_ID": "5208",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "432",
+    "VILL_ID": "520801.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Stravec",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 728423885,
+  "lat": 40.8811219,
+  "lon": 19.4192141,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "No",
+    "COMMUN_NAM": "Libofshë",
+    "COM_ID": "5108",
+    "DIS_ID": "51",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "0",
+    "VILL_ID": "510813.00000000000",
+    "addr:district": "FIER",
+    "name": "Nb. Hadaj",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 728423929,
+  "lat": 40.8398363,
+  "lon": 19.5361376,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Libofshë",
+    "COM_ID": "5108",
+    "DIS_ID": "51",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "0",
+    "VILL_ID": "510808.00000000000",
+    "addr:district": "FIER",
+    "name": "Daullas",
+    "place": "village",
+    "wikidata": "Q16352302",
+    "wikipedia": "sq:Daullas"
+  }
+},
+{
+  "type": "node",
+  "id": 728423988,
+  "lat": 40.9664837,
+  "lon": 19.5811127,
+  "tags": {
+    "ADMINSTATE": "MUNICIPALITY",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Divjakë",
+    "COM_ID": "5204",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "395",
+    "VILL_ID": "520402.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Dushk Can",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 728424148,
+  "lat": 40.9126697,
+  "lon": 19.5366673,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Remas",
+    "COM_ID": "5215",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "587",
+    "VILL_ID": "521503.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Kamenicë",
+    "place": "village",
+    "wikidata": "Q13040584"
+  }
+},
+{
+  "type": "node",
+  "id": 728424403,
+  "lat": 41.0385759,
+  "lon": 19.5231469,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Tërbuf",
+    "COM_ID": "5216",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "856",
+    "VILL_ID": "521606.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Sulzotaj",
+    "place": "village",
+    "wikidata": "Q13046478"
+  }
+},
+{
+  "type": "node",
+  "id": 728424535,
+  "lat": 40.8778038,
+  "lon": 19.4769805,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Remas",
+    "COM_ID": "5215",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "881",
+    "VILL_ID": "521508.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Karavasta",
+    "name:mk": "Караваста",
+    "place": "village",
+    "wikidata": "Q13040657"
+  }
+},
+{
+  "type": "node",
+  "id": 728424751,
+  "lat": 40.8399688,
+  "lon": 19.4834362,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Libofshë",
+    "COM_ID": "5108",
+    "DIS_ID": "51",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "1254",
+    "VILL_ID": "510807.00000000000",
+    "addr:district": "FIER",
+    "name": "Ndërnenas",
+    "place": "village",
+    "wikidata": "Q20577229",
+    "wikipedia": "sq:Ndërnenas"
+  }
+},
+{
+  "type": "node",
+  "id": 728424970,
+  "lat": 40.9726729,
+  "lon": 19.5819272,
+  "tags": {
+    "ADMINSTATE": "MUNICIPALITY",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Divjakë",
+    "COM_ID": "5204",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "589",
+    "VILL_ID": "520411.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Bregas",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 728425042,
+  "lat": 40.8164376,
+  "lon": 19.5009011,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "No",
+    "COMMUN_NAM": "Libofshë",
+    "COM_ID": "5108",
+    "DIS_ID": "51",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "373",
+    "VILL_ID": "510812.00000000000",
+    "addr:district": "FIER",
+    "name": "Adriatik",
+    "place": "village",
+    "wikidata": "Q16347709",
+    "wikipedia": "sq:Adriatik (Komuna Libofshë)"
+  }
+},
+{
+  "type": "node",
+  "id": 728425225,
+  "lat": 40.8776497,
+  "lon": 19.4885457,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Remas",
+    "COM_ID": "5215",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "743",
+    "VILL_ID": "521507.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Karavasta e Re",
+    "place": "village",
+    "wikidata": "Q16359491"
+  }
+},
+{
+  "type": "node",
+  "id": 728425433,
+  "lat": 40.9912540,
+  "lon": 19.5734908,
+  "tags": {
+    "ADMINSTATE": "MUNICIPALITY",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Divjakë",
+    "COM_ID": "5204",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "784",
+    "VILL_ID": "520408.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Gërmenj i Madh",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 728425737,
+  "lat": 41.0556431,
+  "lon": 19.5119371,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Gosë",
+    "COM_ID": "11102",
+    "DIS_ID": "111",
+    "PREFECTURE": "TIRANË",
+    "PRE_ID": "11",
+    "Pop05": "1596",
+    "VILL_ID": "1110201.00000000000",
+    "addr:district": "KAVAJË",
+    "name": "Vilë-Ballaj",
+    "place": "village",
+    "type": "Village"
+  }
+},
+{
+  "type": "node",
+  "id": 728426150,
+  "lat": 40.9536322,
+  "lon": 19.5816204,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Grabian",
+    "COM_ID": "5208",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "5077",
+    "VILL_ID": "520802.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Grabian",
+    "place": "village",
+    "wikidata": "Q16356965"
+  }
+},
+{
+  "type": "node",
+  "id": 728426324,
+  "lat": 40.8285625,
+  "lon": 19.5270070,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Libofshë",
+    "COM_ID": "5108",
+    "DIS_ID": "51",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "598",
+    "VILL_ID": "510809.00000000000",
+    "addr:district": "FIER",
+    "name": "Metaj",
+    "place": "village",
+    "wikidata": "Q13042784",
+    "wikipedia": "sq:Metaj (Fier)"
+  }
+},
+{
+  "type": "node",
+  "id": 728426526,
+  "lat": 40.8776023,
+  "lon": 19.5633913,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Gradishtë",
+    "COM_ID": "5209",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "529",
+    "VILL_ID": "520909.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Gungas",
+    "place": "village",
+    "wikidata": "Q13039639"
+  }
+},
+{
+  "type": "node",
+  "id": 728426615,
+  "lat": 40.8005087,
+  "lon": 19.4155289,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "No",
+    "COMMUN_NAM": "Topoje",
+    "COM_ID": "5116",
+    "DIS_ID": "51",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "537",
+    "VILL_ID": "511610.00000000000",
+    "addr:district": "FIER",
+    "name": "Grykë",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 728426697,
+  "lat": 41.0272906,
+  "lon": 19.5457236,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Tërbuf",
+    "COM_ID": "5216",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "1568",
+    "VILL_ID": "521607.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Shënepremte",
+    "place": "village",
+    "wikidata": "Q54979035"
+  }
+},
+{
+  "type": "node",
+  "id": 728427027,
+  "lat": 40.8452693,
+  "lon": 19.5270065,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Libofshë",
+    "COM_ID": "5108",
+    "DIS_ID": "51",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "1199",
+    "VILL_ID": "510804.00000000000",
+    "addr:district": "FIER",
+    "name": "Agim",
+    "place": "village",
+    "wikidata": "Q13036816",
+    "wikipedia": "sq:Agim (Fier)"
+  }
+},
+{
+  "type": "node",
+  "id": 728427081,
+  "lat": 40.8409914,
+  "lon": 19.6004847,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Kolonjë",
+    "COM_ID": "5212",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "482",
+    "VILL_ID": "521207.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Rrapëz Sektor",
+    "place": "village",
+    "wikidata": "Q16355481"
+  }
+},
+{
+  "type": "node",
+  "id": 728427257,
+  "lat": 40.8847404,
+  "lon": 19.5757723,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Gradishtë",
+    "COM_ID": "5209",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "936",
+    "VILL_ID": "520908.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Fier-Seman",
+    "place": "village",
+    "wikidata": "Q5447260"
+  }
+},
+{
+  "type": "node",
+  "id": 728427271,
+  "lat": 40.9003437,
+  "lon": 19.4271988,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "No",
+    "COMMUN_NAM": "Remas",
+    "COM_ID": "5215",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "520",
+    "VILL_ID": "521501.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Adriatik",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 728427547,
+  "lat": 40.8974697,
+  "lon": 19.5195079,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Remas",
+    "COM_ID": "5215",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "717",
+    "VILL_ID": "521504.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Mucias",
+    "place": "village",
+    "wikidata": "Q16349488"
+  }
+},
+{
+  "type": "node",
+  "id": 728427729,
+  "lat": 40.9956207,
+  "lon": 19.5331220,
+  "tags": {
+    "ADMINSTATE": "MUNICIPALITY",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Divjakë",
+    "COM_ID": "5204",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "6689",
+    "VILL_ID": "520409.00000000000",
+    "addr:district": "LUSHNJE",
+    "ele": "20",
+    "name": "Divjakë",
+    "name:mk": "Дивјака",
+    "name:ru": "Дивьяка",
+    "place": "town",
+    "population": "7200",
+    "wikidata": "Q1945622",
+    "wikimedia_commons": "Category:Divjaka",
+    "wikipedia": "sq:Divjaka"
+  }
+},
+{
+  "type": "node",
+  "id": 728428049,
+  "lat": 41.0557809,
+  "lon": 19.5398908,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Kryevidh",
+    "COM_ID": "11105",
+    "DIS_ID": "111",
+    "PREFECTURE": "TIRANË",
+    "PRE_ID": "11",
+    "Pop05": "752",
+    "VILL_ID": "1110505.00000000000",
+    "addr:district": "KAVAJË",
+    "name": "Ballaj",
+    "place": "village",
+    "type": "Village"
+  }
+},
+{
+  "type": "node",
+  "id": 728428692,
+  "lat": 40.9168050,
+  "lon": 19.5833613,
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Gradishtë",
+    "COM_ID": "5209",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "1208",
+    "VILL_ID": "520901.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Spolat",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 2379832424,
+  "lat": 40.9778592,
+  "lon": 19.5356147,
+  "tags": {
+    "ADMINSTATE": "MUNICIPALITY",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Divjakë",
+    "COM_ID": "5204",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "580",
+    "VILL_ID": "520410.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Xeng",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 2379832620,
+  "lat": 40.9658636,
+  "lon": 19.5361063,
+  "tags": {
+    "ADMINSTATE": "MUNICIPALITY",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Divjakë",
+    "COM_ID": "5204",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "1614",
+    "VILL_ID": "520412.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Mizë",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 2379964275,
+  "lat": 40.9394286,
+  "lon": 19.5377465,
+  "tags": {
+    "ADMINSTATE": "MUNICIPALITY",
+    "Access_SDP": "Yes",
+    "COMMUN_NAM": "Divjakë",
+    "COM_ID": "5204",
+    "DIS_ID": "52",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Pop05": "867",
+    "VILL_ID": "520405.00000000000",
+    "addr:district": "LUSHNJE",
+    "name": "Zharnec",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 2954235256,
+  "lat": 40.9616950,
+  "lon": 19.5676698,
+  "tags": {
+    "man_made": "tower"
+  }
+},
+{
+  "type": "node",
+  "id": 4473240151,
+  "lat": 40.9454228,
+  "lon": 19.5890878,
+  "tags": {
+    "place": "isolated_dwelling"
+  }
+},
+{
+  "type": "node",
+  "id": 4473309193,
+  "lat": 40.9570888,
+  "lon": 19.6013381,
+  "tags": {
+    "place": "isolated_dwelling"
+  }
+},
+{
+  "type": "node",
+  "id": 4473309194,
+  "lat": 40.9608936,
+  "lon": 19.6069635,
+  "tags": {
+    "place": "isolated_dwelling"
+  }
+},
+{
+  "type": "node",
+  "id": 4473309195,
+  "lat": 40.9605503,
+  "lon": 19.6121722,
+  "tags": {
+    "place": "isolated_dwelling"
+  }
+},
+{
+  "type": "node",
+  "id": 4473309209,
+  "lat": 40.9561492,
+  "lon": 19.6119814,
+  "tags": {
+    "place": "isolated_dwelling"
+  }
+},
+{
+  "type": "node",
+  "id": 4473333137,
+  "lat": 40.9642002,
+  "lon": 19.6132546,
+  "tags": {
+    "place": "farm"
+  }
+},
+{
+  "type": "node",
+  "id": 6483801119,
+  "lat": 40.9861564,
+  "lon": 19.4999141,
+  "tags": {
+    "name": "Laguna camping",
+    "tourism": "camp_site"
+  }
+},
+{
+  "type": "node",
+  "id": 6938544953,
+  "lat": 40.8776648,
+  "lon": 19.4893347,
+  "tags": {
+    "man_made": "tower"
+  }
+},
+{
+  "type": "node",
+  "id": 7875214285,
+  "lat": 40.9715528,
+  "lon": 19.4774808,
+  "tags": {
+    "name": "Divjaka beach",
+    "tourism": "attraction"
+  }
+},
+{
+  "type": "node",
+  "id": 8738192798,
+  "lat": 40.9710437,
+  "lon": 19.4800313,
+  "tags": {
+    "name": "Relax",
+    "tourism": "guest_house"
+  }
+},
+{
+  "type": "node",
+  "id": 8738263832,
+  "lat": 40.8182984,
+  "lon": 19.5929537,
+  "tags": {
+    "ele": "206",
+    "tourism": "viewpoint"
+  }
+},
+{
+  "type": "node",
+  "id": 8738280465,
+  "lat": 40.9503121,
+  "lon": 19.4807894,
+  "tags": {
+    "check_date": "2025-09-24",
+    "fee": "no",
+    "leisure": "bird_hide",
+    "note": "destroyed",
+    "opening_hours": "Mo-Su off",
+    "source": "survey"
+  }
+},
+{
+  "type": "node",
+  "id": 8837784839,
+  "lat": 40.9897893,
+  "lon": 19.4846537,
+  "tags": {
+    "addr:city": "Divjakë",
+    "information": "office",
+    "name": "NP Divjake-Karavasta Visitors Centre",
+    "source": "survey",
+    "tourism": "information"
+  }
+},
+{
+  "type": "node",
+  "id": 8837790181,
+  "lat": 40.9745232,
+  "lon": 19.4802472,
+  "tags": {
+    "caravans": "yes",
+    "name": "Piccolo Paradise",
+    "tents": "yes",
+    "tourism": "camp_site"
+  }
+},
+{
+  "type": "node",
+  "id": 8890781407,
+  "lat": 40.9928901,
+  "lon": 19.5314820,
+  "tags": {
+    "addr:city": "Divjake",
+    "addr:housenumber": "20",
+    "addr:postcode": "9022",
+    "addr:street": "Rruga Zona",
+    "museum": "nature",
+    "name": "Koleksioni Natyror i Altinit",
+    "operator": "Altin Hila",
+    "operator:type": "private",
+    "tourism": "museum"
+  }
+},
+{
+  "type": "node",
+  "id": 9033692799,
+  "lat": 40.8030846,
+  "lon": 19.5433935,
+  "tags": {
+    "name": "Manastiri dhe Varri i Shën Kozmait",
+    "name:el": "Μοναστήρι και Τάφος Αγίου Κοσμά Αιτωλού Πατροκοσμά Καλικόντασι",
+    "name:en": "Monastery and Tomb of Saint Cosmas",
+    "tourism": "attraction"
+  }
+},
+{
+  "type": "node",
+  "id": 9282711761,
+  "lat": 40.9988115,
+  "lon": 19.5314834,
+  "tags": {
+    "tourism": "guest_house"
+  }
+},
+{
+  "type": "node",
+  "id": 9759230533,
+  "lat": 40.8253572,
+  "lon": 19.5938725,
+  "tags": {
+    "tourism": "viewpoint"
+  }
+},
+{
+  "type": "node",
+  "id": 11021725056,
+  "lat": 40.9722217,
+  "lon": 19.4798462,
+  "tags": {
+    "name": "Hotel Pelikan",
+    "tourism": "hotel"
+  }
+},
+{
+  "type": "node",
+  "id": 11025002431,
+  "lat": 40.9905030,
+  "lon": 19.4701295,
+  "tags": {
+    "name": "Infopoint National Park Divjaka-Karavasta",
+    "tourism": "information"
+  }
+},
+{
+  "type": "node",
+  "id": 11379665876,
+  "lat": 40.9503569,
+  "lon": 19.4807950,
+  "tags": {
+    "name:en": "Bird watching tower",
+    "tourism": "viewpoint"
+  }
+},
+{
+  "type": "node",
+  "id": 11635602469,
+  "lat": 40.9957209,
+  "lon": 19.5331881,
+  "tags": {
+    "addr:postcode": "9022",
+    "addr:street": "SH57",
+    "internet_access": "wlan",
+    "name": "Divjaka Apartments",
+    "opening_hours": "24/7",
+    "phone": "00355694321545",
+    "tourism": "hotel",
+    "website": "https://linktr.ee/divjakaholidays"
+  }
+},
+{
+  "type": "node",
+  "id": 11635714469,
+  "lat": 40.9979763,
+  "lon": 19.5358367,
+  "tags": {
+    "addr:housenumber": "18",
+    "addr:postcode": "9022",
+    "addr:street": "Dituria street",
+    "air_conditioning": "yes",
+    "email": "divjaka.holidays@gmail.com",
+    "internet_access": "wlan",
+    "internet_access:fee": "no",
+    "name": "Mia Guest House",
+    "opening_hours": "24/7",
+    "phone": "00355694321545",
+    "tourism": "hotel",
+    "website": "https://linktr.ee/divjakaholidays"
+  }
+},
+{
+  "type": "node",
+  "id": 12438564490,
+  "lat": 40.9917277,
+  "lon": 19.6145562,
+  "tags": {
+    "COMMUN_NAM": "Grabian",
+    "PREFECTURE": "Fier",
+    "name": "Tre Urat",
+    "place": "village",
+    "wikidata": "Q13046953"
+  }
+},
+{
+  "type": "node",
+  "id": 12853547415,
+  "lat": 40.9923995,
+  "lon": 19.4810305,
+  "tags": {
+    "leisure": "bird_hide"
+  }
+},
+{
+  "type": "node",
+  "id": 13136239198,
+  "lat": 40.9900636,
+  "lon": 19.4852753,
+  "tags": {
+    "artwork_type": "installation",
+    "tourism": "artwork"
+  }
+},
+{
+  "type": "node",
+  "id": 13765370901,
+  "lat": 40.9898298,
+  "lon": 19.4964462,
+  "tags": {
+    "name": "Lagoon Boat Trips",
+    "tourism": "attraction"
+  }
+},
+{
+  "type": "way",
+  "id": 83632019,
+  "center": {
+    "lat": 41.0233564,
+    "lon": 19.5490591
+  },
+  "tags": {
+    "admin_level": "8",
+    "boundary": "administrative"
+  }
+},
+{
+  "type": "way",
+  "id": 234350457,
+  "center": {
+    "lat": 40.9593418,
+    "lon": 19.4617017
+  },
+  "tags": {
+    "natural": "beach"
+  }
+},
+{
+  "type": "way",
+  "id": 292705751,
+  "center": {
+    "lat": 40.9897525,
+    "lon": 19.4846248
+  },
+  "tags": {
+    "amenity": "ranger_station",
+    "building": "yes",
+    "check_date": "2025-09-11",
+    "name": "NP Divjake-Karavasta Visitors Centre",
+    "website": "https://www.bashkiadivjake.gov.al/"
+  }
+},
+{
+  "type": "way",
+  "id": 559801618,
+  "center": {
+    "lat": 40.9919508,
+    "lon": 19.4808848
+  },
+  "tags": {
+    "highway": "footway",
+    "man_made": "pier"
+  }
+},
+{
+  "type": "way",
+  "id": 573637932,
+  "center": {
+    "lat": 40.9723621,
+    "lon": 19.4797797
+  },
+  "tags": {
+    "amenity": "restaurant",
+    "building": "yes",
+    "description": "Owner: Mr. Rrudha",
+    "name": "Hotel & Restaurant Pelikan",
+    "opening_hours": "Mo-Su 08:00-22:00",
+    "tourism": "hotel"
+  }
+},
+{
+  "type": "way",
+  "id": 632193200,
+  "center": {
+    "lat": 41.0469682,
+    "lon": 19.4971758
+  },
+  "tags": {
+    "barrier": "city_wall",
+    "historic": "yes",
+    "man_made": "tower",
+    "ruins": "yes",
+    "tower:type": "defensive",
+    "viewpoint": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 632193201,
+  "center": {
+    "lat": 41.0473421,
+    "lon": 19.4962927
+  },
+  "tags": {
+    "barrier": "city_wall",
+    "historic": "yes",
+    "man_made": "tower",
+    "ruins": "yes",
+    "tower:type": "defensive",
+    "viewpoint": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 729514164,
+  "center": {
+    "lat": 40.9608553,
+    "lon": 19.5117277
+  },
+  "tags": {
+    "natural": "scrub",
+    "place": "islet"
+  }
+},
+{
+  "type": "way",
+  "id": 729514169,
+  "center": {
+    "lat": 40.9619830,
+    "lon": 19.5031047
+  },
+  "tags": {
+    "natural": "scrub",
+    "place": "islet"
+  }
+},
+{
+  "type": "way",
+  "id": 729514177,
+  "center": {
+    "lat": 40.9589226,
+    "lon": 19.5039246
+  },
+  "tags": {
+    "natural": "scrub",
+    "place": "islet"
+  }
+},
+{
+  "type": "way",
+  "id": 729514188,
+  "center": {
+    "lat": 40.9576868,
+    "lon": 19.5074511
+  },
+  "tags": {
+    "natural": "scrub",
+    "place": "islet"
+  }
+},
+{
+  "type": "way",
+  "id": 729514189,
+  "center": {
+    "lat": 40.9585034,
+    "lon": 19.5073932
+  },
+  "tags": {
+    "natural": "scrub",
+    "place": "islet"
+  }
+},
+{
+  "type": "way",
+  "id": 977778133,
+  "center": {
+    "lat": 40.8970786,
+    "lon": 19.4078121
+  },
+  "tags": {
+    "name": "Samuel King seaside",
+    "natural": "beach",
+    "surface": "sand"
+  }
+},
+{
+  "type": "way",
+  "id": 1124509421,
+  "center": {
+    "lat": 40.9901475,
+    "lon": 19.4846478
+  },
+  "tags": {
+    "building": "yes",
+    "fee": "yes",
+    "height": "35",
+    "man_made": "tower",
+    "name": "Kulla 360°",
+    "name:en": "360° Tower",
+    "tower:construction": "wood",
+    "tower:type": "observation"
+  }
+},
+{
+  "type": "way",
+  "id": 1170877707,
+  "center": {
+    "lat": 40.9724058,
+    "lon": 19.4798824
+  },
+  "tags": {
+    "building": "hotel",
+    "name": "Pelikan",
+    "nohousenumber": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1203806603,
+  "center": {
+    "lat": 40.9811306,
+    "lon": 19.4632515
+  },
+  "tags": {
+    "natural": "coastline",
+    "place": "island",
+    "surface": "sand"
+  }
+},
+{
+  "type": "way",
+  "id": 1354891926,
+  "center": {
+    "lat": 40.9850616,
+    "lon": 19.4692022
+  },
+  "tags": {
+    "natural": "coastline",
+    "place": "islet"
+  }
+},
+{
+  "type": "way",
+  "id": 1364731871,
+  "center": {
+    "lat": 40.9597014,
+    "lon": 19.4938112
+  },
+  "tags": {
+    "natural": "scrub",
+    "place": "islet"
+  }
+},
+{
+  "type": "way",
+  "id": 1364731876,
+  "center": {
+    "lat": 40.8913032,
+    "lon": 19.4849899
+  },
+  "tags": {
+    "natural": "scrub",
+    "place": "islet"
+  }
+},
+{
+  "type": "relation",
+  "id": 1251476,
+  "center": {
+    "lat": 40.9853648,
+    "lon": 19.5127026
+  },
+  "tags": {
+    "ADMINSTATE": "MUNICIPALITY",
+    "COMMUN_NAM": "Divjakë",
+    "COM_ID": "5204",
+    "DIS_ID": "52",
+    "ET_ID": "57",
+    "FAM_97": "3402.00000000000",
+    "POP_97": "11536.00000000000",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Shape_Area": "81186521.3367999941",
+    "Shape_Leng": "93721.01594940000",
+    "addr:district": "BASHKIA DIVJAKË",
+    "admin_level": "8",
+    "boundary": "administrative",
+    "name": "Divjakë",
+    "name:mk": "Дивјака",
+    "population": "8445",
+    "postal_code": "9022",
+    "type": "boundary",
+    "website": "http://www.bashkiadivjake.com/",
+    "wikidata": "Q1945622",
+    "wikipedia": "en:Divjakë"
+  }
+},
+{
+  "type": "relation",
+  "id": 1251480,
+  "center": {
+    "lat": 41.0281363,
+    "lon": 19.5877812
+  },
+  "tags": {
+    "ADMINSTATE": "COMMUNE",
+    "COMMUN_NAM": "Tërbuf",
+    "COM_ID": "5216",
+    "DIS_ID": "52",
+    "ET_ID": "325",
+    "FAM_97": "2722.00000000000",
+    "POP_97": "12909.00000000000",
+    "PREFECTURE": "FIER",
+    "PRE_ID": "5",
+    "Shape_Area": "58577646.2062999978",
+    "Shape_Leng": "46771.28019940000",
+    "addr:district": "BASHKIA DIVJAKË",
+    "admin_level": "8",
+    "boundary": "administrative",
+    "name": "Tërbuf",
+    "population": "10201",
+    "postal_code": "9015",
+    "type": "boundary",
+    "wikidata": "Q2619575",
+    "wikipedia": "en:Tërbuf"
+  }
+},
+{
+  "type": "relation",
+  "id": 7698694,
+  "center": {
+    "lat": 40.9601885,
+    "lon": 19.5355599
+  },
+  "tags": {
+    "admin_level": "7",
+    "boundary": "administrative",
+    "name": "Bashkia Divjakë",
+    "name:el": "Δήμος Ντιβγιάκα",
+    "name:mk": "Општина Дивјака",
+    "population": "34254",
+    "population:date": "2011",
+    "type": "boundary",
+    "website": "http://www.bashkiadivjake.com/",
+    "wikidata": "Q16350064",
+    "wikipedia": "sq:Bashkia Divjakë"
+  }
+},
+{
+  "type": "relation",
+  "id": 10092045,
+  "center": {
+    "lat": 40.9671383,
+    "lon": 19.5023383
+  },
+  "tags": {
+    "name": "Ishulli Hapashalit",
+    "natural": "scrub",
+    "place": "islet",
+    "source": "GNS",
+    "type": "multipolygon"
+  }
+},
+{
+  "type": "relation",
+  "id": 10092046,
+  "center": {
+    "lat": 40.9619551,
+    "lon": 19.5106172
+  },
+  "tags": {
+    "natural": "scrub",
+    "place": "islet",
+    "type": "multipolygon"
+  }
+},
+{
+  "type": "relation",
+  "id": 10092048,
+  "center": {
+    "lat": 40.9663182,
+    "lon": 19.4958185
+  },
+  "tags": {
+    "natural": "scrub",
+    "place": "islet",
+    "type": "multipolygon"
+  }
+},
+{
+  "type": "relation",
+  "id": 10092049,
+  "center": {
+    "lat": 40.9591087,
+    "lon": 19.5123281
+  },
+  "tags": {
+    "natural": "scrub",
+    "place": "islet",
+    "type": "multipolygon"
+  }
+},
+{
+  "type": "relation",
+  "id": 10092050,
+  "center": {
+    "lat": 40.9583454,
+    "lon": 19.5144132
+  },
+  "tags": {
+    "natural": "scrub",
+    "place": "islet",
+    "type": "multipolygon"
+  }
+},
+{
+  "type": "relation",
+  "id": 10092051,
+  "center": {
+    "lat": 40.9595211,
+    "lon": 19.5047442
+  },
+  "tags": {
+    "natural": "scrub",
+    "place": "islet",
+    "type": "multipolygon"
+  }
+},
+{
+  "type": "relation",
+  "id": 10092052,
+  "center": {
+    "lat": 40.9590102,
+    "lon": 19.5076895
+  },
+  "tags": {
+    "natural": "scrub",
+    "place": "islet",
+    "type": "multipolygon"
+  }
+},
+{
+  "type": "relation",
+  "id": 18096103,
+  "center": {
+    "lat": 40.9933236,
+    "lon": 19.5309139
+  },
+  "tags": {
+    "amenity": "townhall",
+    "building": "yes",
+    "name": "Bashkia Divjakë",
+    "name:en": "Divjakë City Hall",
+    "townhall:type": "city",
+    "type": "multipolygon"
+  }
+},
+{
+  "type": "relation",
+  "id": 18784529,
+  "center": {
+    "lat": 40.8902039,
+    "lon": 19.4813416
+  },
+  "tags": {
+    "natural": "scrub",
+    "place": "islet",
+    "type": "multipolygon"
+  }
+},
+{
+  "type": "relation",
+  "id": 18784530,
+  "center": {
+    "lat": 40.8899120,
+    "lon": 19.4807586
+  },
+  "tags": {
+    "natural": "scrub",
+    "place": "islet",
+    "type": "multipolygon"
+  }
+},
+{
+  "type": "relation",
+  "id": 18784531,
+  "center": {
+    "lat": 40.9599944,
+    "lon": 19.5059909
+  },
+  "tags": {
+    "natural": "scrub",
+    "place": "islet",
+    "type": "multipolygon"
+  }
+},
+{
+  "type": "relation",
+  "id": 18784532,
+  "center": {
+    "lat": 40.9646055,
+    "lon": 19.4996305
+  },
+  "tags": {
+    "natural": "scrub",
+    "place": "islet",
+    "type": "multipolygon"
+  }
+}
+
+  ]
+}

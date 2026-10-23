@@ -1,0 +1,125 @@
+---
+/**
+ * Photo — a mounted plate (DESIGN §3): thin ink border, 6 px salt mat, AVIF/WebP <picture>
+ * with width/height and srcset from research/photos.json (files under /photos/), LQIP behind,
+ * lazy unless `priority` (LCP: eager + fetchpriority="high"). Optional caption row: italic place
+ * name + mono coordinates (only when photos.json gives verified lat/lon) + the credit short form
+ * linking to the credits page. The credit link is
+ * always printed (also with caption={false} or mat={false}) unless credit={false} — the CC BY
+ * and BY-SA photos need their attribution next to the picture. Pointer devices get
+ * the crosshair; `parallax` moves the image ±4 % with scroll (motion on only).
+ * A missing slug renders a placeholder plate (hatched waterlines) — never a broken image.
+ *   <Photo slug="karavasta-lagoon-01" lang={lang} sizes="100vw" priority caption parallax />
+ * Children are placed inside the frame (position them absolutely: labels on the photo).
+ */
+import { getPhoto } from './site-data';
+import { coords as fmtCoords } from '../../i18n/format';
+import { path, type Lang } from '../../i18n/routes';
+import { t } from '../../i18n/ui';
+
+interface Props {
+  slug?: string | null;
+  lang: Lang;
+  sizes?: string;
+  priority?: boolean;
+  class?: string;
+  caption?: boolean;
+  alt?: string;
+  ratio?: string;          // CSS aspect-ratio for the frame, e.g. "3 / 2"; default = the photo's own
+  mat?: boolean;           // the salt mat + ink border (default true)
+  parallax?: boolean;
+  crosshair?: boolean;
+  fit?: 'cover' | 'contain';
+  reveal?: boolean;
+  credit?: boolean;        // the credit initials link (default true; CC BY/BY-SA photos need it)
+}
+const {
+  slug, lang, sizes = '(min-width: 1024px) 50vw, 100vw', priority = false, class: cls, caption = false, alt,
+  ratio, mat = true, parallax = false, crosshair = true, fit = 'cover', reveal = false, credit = true,
+} = Astro.props;
+
+const p = getPhoto(slug ?? null);
+const usable = !!p && p.widths.length > 0;
+const widths = usable ? p!.widths : [];
+const set = (fmt: 'avif' | 'webp' | 'jpg') =>
+  widths.map((w) => { const s = p!.srcFor(w, fmt); return s ? `${s} ${w}w` : null; }).filter(Boolean).join(', ');
+const avif = usable ? set('avif') : '';
+const webp = usable ? set('webp') : '';
+const jpg = usable ? set('jpg') : '';
+const mid = widths.find((w) => w >= 960) ?? widths.at(-1);
+const fallbackSrc = usable && mid ? (p!.srcFor(mid, 'jpg') ?? p!.srcFor(mid, 'webp') ?? p!.srcFor(mid, 'avif')) : null;
+const altText = alt ?? (p ? p.alt[lang] : '');
+const frameRatio = ratio ?? (p ? `${p.width} / ${p.height}` : '3 / 2');
+const lqip = p?.lqip ?? null;
+const lqipStyle = lqip ? (lqip.startsWith('data:') ? `background-image:url("${lqip}")` : `background-color:${lqip}`) : '';
+const place = p ? (p.location_verified || !/karavasta/i.test(p.place[lang]) ? p.place[lang] : '') : '';
+const coordText = p && p.lat != null && p.lon != null && p.location_verified ? fmtCoords(p.lat, p.lon) : '';
+// credit short form: the author's name as written when it is short (a handle like "AMcreative1"
+// read as a stray "A" when cut to initials), else first name + surname initial ("Julien S.")
+const initials = (() => {
+  const c = p?.credit?.trim() ?? '';
+  if (!c) return '';
+  if (c.length <= 16) return c;
+  const w = c.split(/\s+/).filter(Boolean);
+  return w.length > 1 ? `${w[0]} ${w.at(-1)![0]}.` : `${c.slice(0, 15)}…`;
+})();
+const creditsHref = path('credits', lang) + (p ? `#${p.slug}` : '');
+---
+<figure
+  class:list={['plate', mat && 'plate--mat', !usable && 'plate--missing', cls]}
+  data-reveal={reveal ? 'plate' : undefined}
+>
+  <div
+    class="plate__frame"
+    style={`aspect-ratio:${frameRatio};${lqipStyle}${parallax && usable ? ';--plx:4' : ''}`}
+    data-parallax={parallax && usable ? '4' : undefined}
+    data-crosshair={crosshair && usable ? '' : undefined}
+  >
+    {usable && fallbackSrc ? (
+      <picture>
+        {avif && <source type="image/avif" srcset={avif} sizes={sizes} />}
+        {webp && <source type="image/webp" srcset={webp} sizes={sizes} />}
+        <img
+          src={fallbackSrc}
+          srcset={jpg || undefined}
+          sizes={jpg ? sizes : undefined}
+          width={p!.width}
+          height={p!.height}
+          alt={altText}
+          loading={priority ? 'eager' : 'lazy'}
+          fetchpriority={priority ? 'high' : undefined}
+          decoding={priority ? 'sync' : 'async'}
+          style={`object-fit:${fit};${p!.focal ? `object-position:${p!.focal}` : ''}`}
+        />
+      </picture>
+    ) : (
+      <div class="plate__empty" role="img" aria-label={altText || t(lang, 'photo.pending')}>
+        <svg viewBox="0 0 120 80" preserveAspectRatio="none" aria-hidden="true">
+          {[14, 26, 38, 50, 62].map((y, i) => <path d={`M0 ${y} C 30 ${y - 4 + i}, 60 ${y + 5 - i}, 120 ${y - 2}`} fill="none" stroke="currentColor" stroke-width="0.6" vector-effect="non-scaling-stroke" />)}
+        </svg>
+        <span class="mono">{t(lang, 'photo.pending')}</span>
+      </div>
+    )}
+    <slot />{/* overlays anchored to the picture itself (e.g. a water label), not the caption row */}
+    {crosshair && usable && (
+      <span class="plate__cross" aria-hidden="true">
+        <span class="plate__cross-x"></span><span class="plate__cross-y"></span>
+        <span class="plate__cross-read mono" data-cross-readout>{coordText}</span>
+      </span>
+    )}
+  </div>
+  {p && (caption || (credit && initials)) && (
+    <figcaption class:list={['plate__caption', !caption && 'plate__caption--credit']}>
+      {caption && place && <span class="water plate__place">{place}</span>}
+      {caption && coordText && <span class="mono plate__coords">{coordText}</span>}
+      {initials && (
+        <a
+          class="mono plate__credit"
+          href={creditsHref}
+          aria-label={`${t(lang, 'photo.credit')} · ${initials}${initials !== p.credit ? ` — ${p.credit}` : ''}${p.license ? `, ${p.license}` : ''}`}
+          title={`${t(lang, 'photo.credit')}: ${p.credit}${p.license ? ` · ${p.license}` : ''}`}
+        >{t(lang, 'photo.credit')} · {initials}</a>
+      )}
+    </figcaption>
+  )}
+</figure>

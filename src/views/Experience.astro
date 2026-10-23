@@ -1,0 +1,13 @@
+---
+/**
+ * Experience view — PLACEHOLDER from T2 (route shell). The owning feature task (PLAN §9)
+ * replaces this file. Props contract: { lang, params?, data? } — data comes from
+ * src/views/experience.load.ts.
+ */
+import PlaceholderView from '../components/site/PlaceholderView.astro';
+import type { Lang } from '../i18n/routes';
+
+interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
+const { lang, params = {} } = Astro.props;
+---
+<PlaceholderView lang={lang} routeKey="experience" index="03" params={params} />

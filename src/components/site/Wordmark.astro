@@ -1,0 +1,60 @@
+---
+/**
+ * Wordmark — the outlined DIVJAKA (src/assets/wordmark.ts, built by tools/wordmark.mjs).
+ * variant:
+ *  - "poster": ink fill clipped to the letters + a hairline outline. With `enter`, the motion
+ *    engine draws the outline, then the ink pools up from the bottom (Pioneer, once per view).
+ *  - "outline": hairline only (footer; with `draw` it is drawn as a line on arrival).
+ *  - "solid": plain fill (header mark).
+ * Decorative by default (aria-hidden); pass `label` to expose it as an image.
+ */
+import { wordmark, hotelLine } from '../../assets/wordmark';
+
+interface Props {
+  variant?: 'poster' | 'outline' | 'solid';
+  line?: 'divjaka' | 'hotel';
+  enter?: boolean;
+  draw?: boolean;
+  label?: string;
+  class?: string;
+  stroke?: number;
+}
+const { variant = 'solid', line = 'divjaka', enter = false, draw = false, label, class: cls = '', stroke = 1.25 } = Astro.props;
+const o = line === 'hotel' ? hotelLine : wordmark;
+const [vx, vy, vw, vh] = o.viewBox.split(' ').map(Number);
+const uid = `wm${Math.random().toString(36).slice(2, 8)}`;
+const a11y: Record<string, string> = label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': 'true', focusable: 'false' };
+---
+<svg
+  class:list={['wordmark', `wordmark--${variant}`, cls]}
+  viewBox={o.viewBox}
+  style={`aspect-ratio:${vw} / ${vh}`}
+  preserveAspectRatio="xMinYMin meet"
+  data-wordmark-enter={enter ? '' : undefined}
+  data-wordmark-draw={draw ? '' : undefined}
+  {...a11y}
+>
+  {variant === 'poster' && (
+    <>
+      <defs>
+        <clipPath id={`${uid}-clip`}>
+          {o.paths.map((d) => <path d={d} />)}
+        </clipPath>
+      </defs>
+      <g class="wm-fill" clip-path={`url(#${uid}-clip)`}>
+        <rect data-wm-tide x={vx} y={vy} width={vw} height={vh} fill="currentColor" />
+      </g>
+      <g class="wm-stroke" fill="none" stroke="currentColor" stroke-width={stroke} vector-effect="non-scaling-stroke">
+        {o.paths.map((d) => <path d={d} vector-effect="non-scaling-stroke" />)}
+      </g>
+    </>
+  )}
+  {variant === 'outline' && (
+    <g class="wm-stroke" fill="none" stroke="currentColor" stroke-width={stroke}>
+      {o.paths.map((d) => <path d={d} vector-effect="non-scaling-stroke" />)}
+    </g>
+  )}
+  {variant === 'solid' && (
+    <g fill="currentColor">{o.paths.map((d) => <path d={d} />)}</g>
+  )}
+</svg>

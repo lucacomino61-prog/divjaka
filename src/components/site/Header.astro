@@ -1,0 +1,48 @@
+---
+/**
+ * Header — 64 px salt bar (DESIGN §3): wordmark + "HOTEL PELIKAN · 40°58′N"; four links
+ * (≥ 1024 px); live dot + temperature (filled by chrome.ts when /api/live is fresh), SQ/EN,
+ * Stop switch, cart pill "SHPORTA · 02" (a real link; opens the drawer with JS) and MENU.
+ * Entrances are opacity-only (tap targets never move).
+ */
+import Wordmark from './Wordmark.astro';
+import LangSwitch from './LangSwitch.astro';
+import MotionSwitch from './MotionSwitch.astro';
+import { HEADER_NAV, ariaCurrent } from './nav';
+import { t } from '../../i18n/ui';
+import { path, type Lang } from '../../i18n/routes';
+import { dms } from '../../i18n/format';
+
+interface Props { lang: Lang; routeKey: string; params?: Record<string, string>; lat: number; langHref?: string }
+const { lang, routeKey, params = {}, lat, langHref } = Astro.props;
+---
+<header class="site-header" data-header>
+  <div class="site-header__bar wrap">
+    <a class="brand" href={path('home', lang)} aria-label={`Divjaka · ${t(lang, 'site.hotel')} — ${t(lang, 'nav.home')}`}>
+      <Wordmark variant="solid" class="brand__mark" />
+      <span class="brand__meta mono" aria-hidden="true"><span translate="no">Hotel Pelikan</span> · {dms(lat, 'lat')}</span>
+    </a>
+    <nav class="site-nav" aria-label={t(lang, 'nav.main')}>
+      <ul>
+        {HEADER_NAV.map((n) => (
+          <li><a href={path(n.key, lang)} aria-current={ariaCurrent(routeKey, n.key)}>{t(lang, n.label)}</a></li>
+        ))}
+      </ul>
+    </nav>
+    <div class="site-header__tools">
+      <a class="live-mini mono" href={path('now', lang)} data-live-mini data-state="pending">
+        <span class="live-dot" aria-hidden="true"></span>
+        <span class="visually-hidden">{t(lang, 'live.label')}: </span><span data-live-temp>—</span>
+      </a>
+      <LangSwitch lang={lang} routeKey={routeKey} params={params} href={langHref} class="site-header__lang" />
+      <MotionSwitch lang={lang} compact class="site-header__motion" />
+      <a class="pill pill--outline pill--s cart-pill" href={path('cart', lang)} data-cart-open data-cart-pill aria-label={t(lang, 'cart.open', { n: 0 })}>
+        <span class="cart-pill__label">{t(lang, 'cart.pill')}</span><span class="cart-pill__sep" aria-hidden="true"> · </span><span class="cart-pill__count" data-cart-count>00</span>
+      </a>
+      <button class="pill pill--primary pill--s menu-btn" type="button" commandfor="menu" command="show-modal" aria-haspopup="dialog" aria-controls="menu" aria-expanded="false">
+        <span>{t(lang, 'menu.open')}</span>
+        <svg viewBox="0 0 18 10" width="18" height="10" aria-hidden="true"><path d="M0 1h18M0 9h18" stroke="currentColor" stroke-width="1.5" /></svg>
+      </button>
+    </div>
+  </div>
+</header>

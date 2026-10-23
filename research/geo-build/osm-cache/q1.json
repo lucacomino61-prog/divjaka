@@ -1,0 +1,803 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-10-23T09:13:13Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "way",
+  "id": 10228257,
+  "center": {
+    "lat": 40.8243737,
+    "lon": 19.4527025
+  },
+  "tags": {
+    "boat": "no",
+    "name": "Semani",
+    "name:de": "Seman",
+    "natural": "water",
+    "water": "river",
+    "wikipedia": "sq:Lumi i Semanit"
+  }
+},
+{
+  "type": "way",
+  "id": 183356295,
+  "center": {
+    "lat": 40.7827329,
+    "lon": 19.5801295
+  },
+  "tags": {
+    "natural": "water",
+    "source": "Bing Aerial Imagery",
+    "water": "reservoir"
+  }
+},
+{
+  "type": "way",
+  "id": 229390252,
+  "center": {
+    "lat": 40.9320727,
+    "lon": 19.5530141
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 244404127,
+  "center": {
+    "lat": 40.8173818,
+    "lon": 19.5063868
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 244982750,
+  "center": {
+    "lat": 40.9246225,
+    "lon": 19.4587880
+  },
+  "tags": {
+    "natural": "water",
+    "water": "river"
+  }
+},
+{
+  "type": "way",
+  "id": 244982751,
+  "center": {
+    "lat": 40.9155107,
+    "lon": 19.4534783
+  },
+  "tags": {
+    "natural": "water",
+    "water": "river"
+  }
+},
+{
+  "type": "way",
+  "id": 246857577,
+  "center": {
+    "lat": 41.0417436,
+    "lon": 19.4968469
+  },
+  "tags": {
+    "name": "Shkumbini",
+    "name:en": "Shkumbin River",
+    "natural": "water",
+    "water": "river",
+    "wikipedia": "sq:Shkumbini"
+  }
+},
+{
+  "type": "way",
+  "id": 251496432,
+  "center": {
+    "lat": 40.9374554,
+    "lon": 19.5271101
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 276176622,
+  "center": {
+    "lat": 40.8035507,
+    "lon": 19.5354199
+  },
+  "tags": {
+    "natural": "water",
+    "water": "river"
+  }
+},
+{
+  "type": "way",
+  "id": 276176624,
+  "center": {
+    "lat": 40.8168016,
+    "lon": 19.5065370
+  },
+  "tags": {
+    "alt_name": "Pylli Kurores",
+    "boundary": "protected_area",
+    "email": "info@akzm.gov.al;denonco@akzm.gov.al",
+    "leaf_type": "mixed",
+    "leisure": "nature_reserve",
+    "name": "Monument Natyre \"Kurora",
+    "old_name": "Kurora e Lumit te Vjeter",
+    "opening_hours": "24/7",
+    "phone": "+35542258120;+35542225068",
+    "protect_class": "3",
+    "protection_title": "Nature Monument",
+    "ref:WDPA": "182229",
+    "source": "bing;mapbox;digitalglobe satellite;knowledge;local-info;",
+    "source_ref:url": "https://www.protectedplanet.net/country/AL",
+    "start_date": "2002",
+    "website": "https://www.akzm.gov.al/"
+  }
+},
+{
+  "type": "way",
+  "id": 277767049,
+  "center": {
+    "lat": 41.0450880,
+    "lon": 19.4594194
+  },
+  "tags": {
+    "name": "Shkumbini",
+    "name:en": "Shkumbin River",
+    "natural": "water",
+    "water": "river",
+    "wikipedia": "sq:Shkumbini"
+  }
+},
+{
+  "type": "way",
+  "id": 282034024,
+  "center": {
+    "lat": 40.9033443,
+    "lon": 19.4229470
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 282034026,
+  "center": {
+    "lat": 40.8888727,
+    "lon": 19.4145913
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 282034031,
+  "center": {
+    "lat": 40.8756906,
+    "lon": 19.4221866
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 291722638,
+  "center": {
+    "lat": 40.9422513,
+    "lon": 19.5821990
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 291722639,
+  "center": {
+    "lat": 40.9965715,
+    "lon": 19.5561738
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 291876981,
+  "center": {
+    "lat": 40.9631846,
+    "lon": 19.5483154
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 291879581,
+  "center": {
+    "lat": 40.9507867,
+    "lon": 19.5762755
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 291879584,
+  "center": {
+    "lat": 40.9465074,
+    "lon": 19.5579911
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 291879585,
+  "center": {
+    "lat": 40.9777881,
+    "lon": 19.5578329
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 291890969,
+  "center": {
+    "lat": 40.9830477,
+    "lon": 19.5521375
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 291892048,
+  "center": {
+    "lat": 40.9327019,
+    "lon": 19.5789191
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 291893361,
+  "center": {
+    "lat": 40.9850959,
+    "lon": 19.5628630
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 291893362,
+  "center": {
+    "lat": 40.9858878,
+    "lon": 19.5608678
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 292684120,
+  "center": {
+    "lat": 40.9107647,
+    "lon": 19.5776206
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 292691330,
+  "center": {
+    "lat": 40.8960074,
+    "lon": 19.5711323
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 292705750,
+  "center": {
+    "lat": 41.0115455,
+    "lon": 19.5571662
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 295004597,
+  "center": {
+    "lat": 40.9936859,
+    "lon": 19.4772325
+  },
+  "tags": {
+    "name": "Laguna e Godullës",
+    "natural": "water",
+    "water": "lagoon"
+  }
+},
+{
+  "type": "way",
+  "id": 295049018,
+  "center": {
+    "lat": 41.0691369,
+    "lon": 19.5197080
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 295049019,
+  "center": {
+    "lat": 41.0636131,
+    "lon": 19.5360222
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 503885261,
+  "center": {
+    "lat": 40.9366858,
+    "lon": 19.4671356
+  },
+  "tags": {
+    "area": "yes",
+    "boundary": "national_park",
+    "email": "info@akzm.gov.al;denonco@akzm.gov.al",
+    "name": "Parku Kombëtar Divjakë-Karavasta",
+    "name:en": "Divjaka-Karavasta National Park",
+    "opening_hours": "24/7",
+    "phone": "+35542258120;+35542225068",
+    "protect_class": "2",
+    "protection_title": "National Park",
+    "ref:WDPA": "4679",
+    "source": "bing;mapbox;digitalglobe satellite;knowledge;local-info;",
+    "source_ref:url": "https://www.protectedplanet.net/country/AL",
+    "start_date": "2007",
+    "website": "https://www.akzm.gov.al/",
+    "wikidata": "Q1231952",
+    "wikimedia_commons": "Category:Divjakë-Karavasta National Park",
+    "wikipedia": "en:Divjakë-Karavasta National Park"
+  }
+},
+{
+  "type": "way",
+  "id": 534521503,
+  "center": {
+    "lat": 40.8164440,
+    "lon": 19.3854323
+  },
+  "tags": {
+    "boat": "no",
+    "canoe": "no",
+    "intermittent": "yes",
+    "motorboat": "no",
+    "name": "Liqeni i Godullës së Veçmës",
+    "natural": "water",
+    "salt": "yes",
+    "ship": "no",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 534521504,
+  "center": {
+    "lat": 40.8041457,
+    "lon": 19.3865079
+  },
+  "tags": {
+    "intermittent": "yes",
+    "name": "Liqeni i Petritit",
+    "natural": "water",
+    "salt": "yes",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 534521505,
+  "center": {
+    "lat": 40.7743730,
+    "lon": 19.3770504
+  },
+  "tags": {
+    "boat": "no",
+    "canoe": "no",
+    "intermittent": "yes",
+    "motorboat": "no",
+    "name": "Liqeni Gryka e Gjemisë",
+    "natural": "water",
+    "salt": "yes",
+    "ship": "no",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 696697670,
+  "center": {
+    "lat": 40.8273894,
+    "lon": 19.5763459
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 729514161,
+  "center": {
+    "lat": 40.9673459,
+    "lon": 19.5024248
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 729514163,
+  "center": {
+    "lat": 40.9620590,
+    "lon": 19.5107099
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 729514165,
+  "center": {
+    "lat": 40.9661586,
+    "lon": 19.4957449
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 729514167,
+  "center": {
+    "lat": 40.9645696,
+    "lon": 19.4996430
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 729514170,
+  "center": {
+    "lat": 40.9591025,
+    "lon": 19.5123404
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 729514172,
+  "center": {
+    "lat": 40.9582762,
+    "lon": 19.5144476
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 729514174,
+  "center": {
+    "lat": 40.9598410,
+    "lon": 19.5060082
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 729514178,
+  "center": {
+    "lat": 40.9602870,
+    "lon": 19.5046580
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 729514179,
+  "center": {
+    "lat": 40.9597648,
+    "lon": 19.5047237
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 729514180,
+  "center": {
+    "lat": 40.9598345,
+    "lon": 19.5050171
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 729514181,
+  "center": {
+    "lat": 40.9591559,
+    "lon": 19.5046129
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 729514182,
+  "center": {
+    "lat": 40.9600902,
+    "lon": 19.5052613
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 729514183,
+  "center": {
+    "lat": 40.9599550,
+    "lon": 19.5071159
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 729514184,
+  "center": {
+    "lat": 40.9575479,
+    "lon": 19.5069163
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 729514186,
+  "center": {
+    "lat": 40.9593000,
+    "lon": 19.5077326
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 729514187,
+  "center": {
+    "lat": 40.9593417,
+    "lon": 19.5081508
+  },
+  "tags": {
+    "natural": "water",
+    "water": "lake"
+  }
+},
+{
+  "type": "way",
+  "id": 965145946,
+  "center": {
+    "lat": 40.8809289,
+    "lon": 19.4064444
+  },
+  "tags": {
+    "natural": "water",
+    "water": "river"
+  }
+},
+{
+  "type": "way",
+  "id": 1124719283,
+  "center": {
+    "lat": 41.0000914,
+    "lon": 19.4644440
+  },
+  "tags": {
+    "natural": "water"
+  }
+},
+{
+  "type": "way",
+  "id": 1364731873,
+  "center": {
+    "lat": 40.8897932,
+    "lon": 19.4815463
+  },
+  "tags": {
+    "natural": "water"
+  }
+},
+{
+  "type": "way",
+  "id": 1364731875,
+  "center": {
+    "lat": 40.8898560,
+    "lon": 19.4806920
+  },
+  "tags": {
+    "natural": "water"
+  }
+},
+{
+  "type": "way",
+  "id": 1364731877,
+  "center": {
+    "lat": 40.8908502,
+    "lon": 19.4814476
+  },
+  "tags": {
+    "natural": "water"
+  }
+},
+{
+  "type": "way",
+  "id": 1388562414,
+  "center": {
+    "lat": 40.9898749,
+    "lon": 19.4848901
+  },
+  "tags": {
+    "natural": "water",
+    "water": "pond"
+  }
+},
+{
+  "type": "way",
+  "id": 1476556771,
+  "center": {
+    "lat": 40.8163244,
+    "lon": 19.6041759
+  },
+  "tags": {
+    "natural": "water"
+  }
+},
+{
+  "type": "way",
+  "id": 1492372310,
+  "center": {
+    "lat": 40.8730403,
+    "lon": 19.4476915
+  },
+  "tags": {
+    "natural": "water"
+  }
+},
+{
+  "type": "relation",
+  "id": 3688163,
+  "center": {
+    "lat": 40.9345426,
+    "lon": 19.4478547
+  },
+  "tags": {
+    "natural": "water",
+    "type": "multipolygon",
+    "water": "lake"
+  }
+},
+{
+  "type": "relation",
+  "id": 10092047,
+  "center": {
+    "lat": 40.9335038,
+    "lon": 19.4859241
+  },
+  "tags": {
+    "name": "Laguna e Karavastasë",
+    "name:en": "Karavasta Lagoon",
+    "name:nl": "Karavastalagune",
+    "natural": "water",
+    "type": "multipolygon",
+    "water": "lagoon",
+    "wikidata": "Q1729043",
+    "wikipedia": "en:Lagoon of Karavasta"
+  }
+}
+
+  ]
+}

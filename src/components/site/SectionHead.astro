@@ -1,0 +1,46 @@
+---
+/**
+ * SectionHead — a sheet heading: mono index number + kicker on a 2 px rule, then the title.
+ * size "poster" sets the title at poster size, laid out on the server from the font's own advances
+ * (posterLayout): the longest word fills the line, each line is printed nowrap and carries a
+ * fallback face sized never wider than the real one — a late web font cannot reflow it (no CLS);
+ * "heading" is the normal section head. `as` picks the heading level (h1 once per page).
+ *   <SectionHead as="h1" index="02" kicker="Hotel Pelikan" title="Qëndrimi" size="poster" />
+ */
+import { posterLayout } from '../../assets/poster-metrics';
+
+interface Props {
+  title: string;
+  as?: 'h1' | 'h2' | 'h3';
+  index?: string;
+  kicker?: string;
+  size?: 'poster' | 'heading' | 'title';
+  id?: string;
+  class?: string;
+  reveal?: boolean;
+  lead?: string;
+}
+const { title, as: Tag = 'h2', index, kicker, size = 'heading', id, class: cls, reveal = false, lead } = Astro.props;
+// Poster fit (server side, from the font's own advance widths): the longest word fills the
+// line; a short title is capped at --poster-max. Long Albanian words never overflow.
+const poster = size === 'poster' ? posterLayout(title) : null;
+---
+<header class:list={['section-head', `section-head--${size}`, cls]}>
+  {(index || kicker) && (
+    <p class="section-head__rule mono">
+      {index && <span class="section-head__index">{index}</span>}
+      {kicker && <span class="section-head__kicker">{kicker}</span>}
+      <slot name="aside" />
+    </p>
+  )}
+  <div class:list={[size === 'poster' && 'poster-wrap']}>
+    <Tag
+      id={id}
+      class:list={[size === 'poster' ? 'poster' : size === 'title' ? 'title' : 'heading', 'section-head__title']}
+      style={poster ? `--fit-em:${poster.fitEm.toFixed(3)};--poster-fb:"Poster Fallback ${poster.fallback}"` : undefined}
+      data-reveal={reveal && size !== 'poster' ? 'lines' : undefined}
+    >{poster ? poster.lines.map((l, i) => <Fragment>{i > 0 ? ' ' : ''}<span class="poster__line">{l}</span></Fragment>) : title}</Tag>
+  </div>
+  {lead && <p class="lede section-head__lead">{lead}</p>}
+  <slot />
+</header>

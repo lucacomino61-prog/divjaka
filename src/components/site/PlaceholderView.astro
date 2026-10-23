@@ -1,0 +1,41 @@
+---
+/**
+ * PlaceholderView — the stand-in every feature view renders until its task replaces it:
+ * Base with the right title/description, a poster SectionHead and a "Në ndërtim" line.
+ */
+import Base from '../../layouts/Base.astro';
+import SectionHead from './SectionHead.astro';
+import Pill from './Pill.astro';
+import Stamp from './Stamp.astro';
+import { t, has } from '../../i18n/ui';
+import { path, type Lang } from '../../i18n/routes';
+
+interface Props {
+  lang: Lang;
+  routeKey: string;
+  index?: string;
+  params?: Record<string, string>;
+  poster?: string;
+  title?: string;
+  description?: string;
+  noindex?: boolean;
+}
+const { lang, routeKey, index = '—', params = {}, poster, title, description, noindex = false } = Astro.props;
+const pageTitle = title ?? (has(lang, `page.${routeKey}.title`) ? t(lang, `page.${routeKey}.title`) : routeKey);
+const desc = description ?? (has(lang, `page.${routeKey}.description`) ? t(lang, `page.${routeKey}.description`) : t(lang, 'site.description'));
+const heading = poster ?? (has(lang, `nav.${routeKey}`) ? t(lang, `nav.${routeKey}`) : pageTitle);
+const sub = Object.values(params).filter(Boolean).join(' · ');
+---
+<Base lang={lang} title={pageTitle} description={desc} routeKey={routeKey} params={params} noindex={noindex}>
+  <section class="wrap placeholder">
+    <SectionHead as="h1" title={heading} index={index} kicker={sub || t(lang, 'site.hotel')} size="poster" />
+    <div class="placeholder__note">
+      <Stamp tone="ink">{t(lang, 'placeholder.building')}</Stamp>
+      <p class="lede">{t(lang, 'placeholder.body')}</p>
+    </div>
+    <div class="cluster">
+      <Pill href={path('stay', lang)} arrow>{t(lang, 'cta.stay')}</Pill>
+      <Pill href={path('contact', lang)} variant="outline">{t(lang, 'nav.contact')}</Pill>
+    </div>
+  </section>
+</Base>

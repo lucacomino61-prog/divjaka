@@ -1,0 +1,445 @@
+{
+ "meta": {
+  "generated": "2026-10-23",
+  "note": "Each item cites one opened source; confidence as in heritage.json. Events marked medium/low are not confirmed as annual.",
+  "verification": "Adversarial check 2026-10-23: every source_url re-fetched and compared with the item text; verified=true means the page (with any page named in notes) states the item as now worded. 'verification' = confirmed | corrected | sq-fixed. Corrections are listed under '## Verification' in heritage.md."
+ },
+ "months": [
+  {
+   "month": 1,
+   "name_en": "January",
+   "name_sq": "Janar",
+   "items": [
+    {
+     "type": "birds",
+     "text_en": "Dalmatian pelicans start building nests on Pelican Island (breeding season January–June); watch from the observation point, the island is closed.",
+     "text_sq": "Pelikanët kaçurrelë nisin të ndërtojnë foletë në Ishullin e Pelikanit (sezoni i folezimit janar–qershor); vëzhgojini nga pika e vëzhgimit, ishulli është i mbyllur.",
+     "source_url": "https://akt.gov.al/en/attractions/Pelican-Island/",
+     "confidence": "high",
+     "notes": "",
+     "verified": true,
+     "verification": "confirmed"
+    },
+    {
+     "type": "birds",
+     "text_en": "Peak of wintering waterbirds: in the January 2020 International Waterbird Census the park held about 42,000 waterbirds of 55 species, the most in Albania.",
+     "text_sq": "Kulmi i shpendëve të ujit që dimërojnë: në numërimin ndërkombëtar të janarit 2020 parku kishte rreth 42 000 shpendë uji të 55 llojeve, më shumë se kudo në Shqipëri.",
+     "source_url": "https://aos-alb.org/completed-international-waterbirds-census-2020-in-albania-%e2%9c%94%ef%b8%8f/",
+     "confidence": "medium",
+     "notes": "Census held on the second weekend of January.",
+     "verified": true,
+     "verification": "confirmed"
+    },
+    {
+     "type": "birds",
+     "text_en": "The globally threatened greater spotted eagle winters in the park (seen every year since 2015).",
+     "text_sq": "Shqiponja e madhe e rosave, e rrezikuar globalisht, dimëron në park (vrojtohet çdo vit që nga 2015).",
+     "source_url": "https://aos-alb.org/the-greater-spotted-eagle-wintering-again-in-divjaka-karavasta-national-park/",
+     "confidence": "medium",
+     "notes": "",
+     "verified": true,
+     "verification": "confirmed"
+    }
+   ]
+  },
+  {
+   "month": 2,
+   "name_en": "February",
+   "name_sq": "Shkurt",
+   "items": [
+    {
+     "type": "birds",
+     "text_en": "Pelicans are incubating; in the third week of February 2020 about 80 pairs occupied the three nesting beds. Adults show the red pouch and curly crest.",
+     "text_sq": "Pelikanët po ngrohin vezët; në javën e tretë të shkurtit 2020 rreth 80 çifte zinin tri shtretërit e folezimit. Të rriturit kanë qesen e kuqe dhe kreshtën kaçurrele.",
+     "source_url": "https://aos-alb.org/the-colony-of-the-dalmatian-pelicans-is-in-full-activity-in-divjaka-with-the-number-of-breeders-increasing-every-day/",
+     "confidence": "medium",
+     "notes": "",
+     "verified": true,
+     "verification": "confirmed"
+    },
+    {
+     "type": "event",
+     "text_en": "World Wetlands Day (2 February) was marked in the park on 2 February 2021 by AOS with the Fier and Tirana protected-areas administrations and pupils of the Çermë-Shkumbin secondary school.",
+     "text_sq": "Dita Botërore e Ligatinave (2 shkurt) u shënua në park më 2 shkurt 2021 nga AOS me AdZM Fier, AdZM Tiranë dhe nxënës të Shkollës së Mesme të Bashkuar Çermë-Shkumbin.",
+     "source_url": "https://aos-alb.org/dita-boterore-e-ligatinave-ne-parkun-kombetar-divjake-karavasta/",
+     "confidence": "medium",
+     "notes": "Not confirmed as an annual public event. Verification: the cited page covers 2021 only; the earlier mention of 2020 was removed.",
+     "verified": true,
+     "verification": "corrected"
+    }
+   ]
+  },
+  {
+   "month": 3,
+   "name_en": "March",
+   "name_sq": "Mars",
+   "items": [
+    {
+     "type": "birds",
+     "text_en": "Spring migration begins: AOS ringing camp of 17–21 March 2025 ringed 42 birds of 14 species in the pine forest and dunes; the park is a stopover between Africa and northern Europe.",
+     "text_sq": "Nis shtegtimi pranveror: kampi i unazimit i AOS më 17–21 mars 2025 unazoi 42 shpendë të 14 llojeve në pyllin me pisha dhe duna; parku është vend ndalese mes Afrikës dhe Evropës veriore.",
+     "source_url": "https://aos-alb.org/spring-migratory-bird-ringing-camp-divjake-karavasta-national-park/",
+     "confidence": "medium",
+     "notes": "",
+     "verified": true,
+     "verification": "confirmed"
+    },
+    {
+     "type": "birds",
+     "text_en": "From the pelican observation tower: brooding pelicans plus flamingos, herons, pygmy cormorants, marsh harriers, ducks and waders (school visit, March 2020).",
+     "text_sq": "Nga kulla e vëzhgimit: pelikanë që ngrohin vezët, si dhe flamingo, çafka, karabullakë të vegjël, shqipe të kënetës (Circus aeruginosus), rosa e shpendë bregujorë (vizitë shkollore, mars 2020).",
+     "source_url": "https://aos-alb.org/ornithological-friday-in-divjaka-karavasta-national-park/",
+     "confidence": "medium",
+     "notes": "",
+     "verified": true,
+     "verification": "sq-fixed"
+    },
+    {
+     "type": "nature",
+     "text_en": "The endemic Albanian orchid (Orchis albanica) flowers in spring in sunny open parts of the forest.",
+     "text_sq": "Salepi shqiptar endemik (Orchis albanica) lulëzon në pranverë në pjesët e hapura e me diell të pyllit.",
+     "source_url": "https://akzm.gov.al/wp-content/uploads/2020/07/Buletini-Nentor-2022.pdf",
+     "confidence": "high",
+     "notes": "Exact months not stated; spring.",
+     "verified": true,
+     "verification": "confirmed"
+    }
+   ]
+  },
+  {
+   "month": 4,
+   "name_en": "April",
+   "name_sq": "Prill",
+   "items": [
+    {
+     "type": "birds",
+     "text_en": "The heron and cormorant colony, Albania's largest (about 3,000 pairs: little egret, squacco heron, cattle egret, night heron, pygmy cormorant, glossy ibis), starts breeding in April.",
+     "text_sq": "Kolonia e çafkave dhe karabullakëve, më e madhja në Shqipëri (rreth 3 000 çifte: çafka e bardhë e vogël, çafka e verdhë, çafka e gjedhit, çafka e natës, karabullaku i vogël, ibisi i zi), nis folezimin në prill.",
+     "source_url": "https://aos-alb.org/glimpses-from-the-colony-of-herons-and-cormorants-breeding-in-divjaka/",
+     "confidence": "high",
+     "notes": "Size from AKZM bulletin Nov 2022.",
+     "verified": true,
+     "verification": "confirmed"
+    },
+    {
+     "type": "birds",
+     "text_en": "Spring passage continues: a 30 March–2 April 2026 ringing camp caught more than 50 migrants of 7 species; the Eurasian blackcap was the most frequent.",
+     "text_sq": "Vazhdon shtegtimi pranveror: kampi i unazimit 30 mars–2 prill 2026 kapi mbi 50 shtegtarë të 7 llojeve; më i shpeshti ishte kokëzeza.",
+     "source_url": "https://aos-alb.org/spring-migration-monitoring-in-divjake-karavasta-national-park/",
+     "confidence": "medium",
+     "notes": "",
+     "verified": true,
+     "verification": "corrected"
+    },
+    {
+     "type": "birds",
+     "text_en": "Little terns return to breed on lagoon islets (a nesting platform built in April 2021 attracted over 100 pairs).",
+     "text_sq": "Dallëndyshet e vogla të detit kthehen për të folezuar në ishujt e lagunës (një platformë e ndërtuar në prill 2021 tërhoqi mbi 100 çifte).",
+     "source_url": "https://aos-alb.org/new-nesting-platform-for-the-little-tern/",
+     "confidence": "medium",
+     "notes": "",
+     "verified": true,
+     "verification": "confirmed"
+    }
+   ]
+  },
+  {
+   "month": 5,
+   "name_en": "May",
+   "name_sq": "Maj",
+   "items": [
+    {
+     "type": "event",
+     "text_en": "Dalmatian Pelican Day, around 10 May (proposed 2017): awareness events in the park; in 2019 it included a local fair of farm, food and craft products.",
+     "text_sq": "Dita e Pelikanit Kaçurrel, rreth 10 majit (propozuar më 2017): aktivitete ndërgjegjësuese në park; në 2019 përfshiu një panair vendor të produkteve bujqësore, ushqimore dhe artizanale.",
+     "source_url": "https://ppnea.org/happy-pelicans-day/?lang=en",
+     "confidence": "high",
+     "notes": "AOS reports 11 May 2019 and 10/12 May 2023 activities.",
+     "verified": true,
+     "verification": "confirmed"
+    },
+    {
+     "type": "event",
+     "text_en": "World Migratory Bird Day, second Saturday of May (2026: 9 May); AOS marked it in the park in 2020 by restoring little tern nesting ground.",
+     "text_sq": "Dita Botërore e Shpendëve Shtegtarë, e shtuna e dytë e majit (2026: 9 maj); AOS e shënoi në park në 2020 duke rregulluar terrenin e folezimit të dallëndyshes së vogël të detit.",
+     "source_url": "https://www.worldmigratorybirdday.org/",
+     "confidence": "medium",
+     "notes": "Divjaka activity: https://aos-alb.org/rehabilitation-of-breeding-grounds-for-little-terns-in-divjaka-karavasta-national-park/ — Verification: the WMBD site gives the 2026 dates (9 May, 10 October) but does not state the 'second Saturday' rule; both dates are second Saturdays.",
+     "verified": true,
+     "verification": "confirmed"
+    },
+    {
+     "type": "birds",
+     "text_en": "Heron colony in full swing: by late May 2020 most little egret and pygmy cormorant eggs had hatched while other herons were still incubating.",
+     "text_sq": "Kolonia e çafkave në kulm: deri në fund të majit 2020 shumica e vezëve të çafkës së bardhë të vogël dhe të karabullakut të vogël kishin çelur, ndërsa çafkat e tjera ende i ngrohnin.",
+     "source_url": "https://aos-alb.org/glimpses-from-the-colony-of-herons-and-cormorants-breeding-in-divjaka/",
+     "confidence": "medium",
+     "notes": "",
+     "verified": true,
+     "verification": "confirmed"
+    }
+   ]
+  },
+  {
+   "month": 6,
+   "name_en": "June",
+   "name_sq": "Qershor",
+   "items": [
+    {
+     "type": "birds",
+     "text_en": "End of the pelican breeding season; young pelicans are close to flying (in June 2024 five were fitted with satellite trackers).",
+     "text_sq": "Mbaron sezoni i folezimit të pelikanëve; pelikanët e rinj janë gati të fluturojnë (në qershor 2024 pesë prej tyre u pajisën me gjurmues satelitorë).",
+     "source_url": "https://akt.gov.al/en/attractions/Pelican-Island/",
+     "confidence": "high",
+     "notes": "Tracker detail: https://aos-alb.org/aventurat-e-adriatikut-arnises-bazhorrit-godulles-dhe-artirit/ — Verification: AOS says the five were tagged in June 2024 'shortly before they could fly'.",
+     "verified": true,
+     "verification": "confirmed"
+    },
+    {
+     "type": "birds",
+     "text_en": "Tern and gull colonies on the lagoon islets (2020: common tern 240–270 pairs, yellow-legged gull 60–70, little tern 45–55, black-winged stilt 7–9).",
+     "text_sq": "Kolonitë e dallëndysheve të detit dhe pulëbardhave në ishujt e lagunës (2020: Sterna hirundo 240–270 çifte, pulëbardha këmbëverdhë 60–70, dallëndyshja e vogël e detit 45–55, kalorësi 7–9).",
+     "source_url": "https://aos-alb.org/results-from-the-monitoring-of-breeding-waterbirds-in-divjaka-karavasta-national-park/",
+     "confidence": "medium",
+     "notes": "",
+     "verified": true,
+     "verification": "confirmed"
+    }
+   ]
+  },
+  {
+   "month": 7,
+   "name_en": "July",
+   "name_sq": "Korrik",
+   "items": [
+    {
+     "type": "beach",
+     "text_en": "Beach season at Divjaka beach (fine sand, calm water, pine shade); guides name July–August as the beach peak, when Albanian families holiday here.",
+     "text_sq": "Sezoni i plazhit në Divjakë (rërë e imët, ujë i qetë, hije pishash); guidat e quajnë korrik–gushtin kulmin e plazhit, kur familjet shqiptare pushojnë këtu.",
+     "source_url": "https://www.albania-spirit.com/destinations/divjaka-karavasta/",
+     "confidence": "low",
+     "notes": "Beach description official: https://akt.gov.al/en/nature/divjake-beach/",
+     "verified": true,
+     "verification": "confirmed"
+    },
+    {
+     "type": "practical",
+     "text_en": "Highest forest-fire risk of the year: no fires outside designated points; staff watch from observation points.",
+     "text_sq": "Rreziku më i lartë i zjarreve në pyll: ndalohet ndezja e zjarrit jashtë pikave të caktuara; stafi vëzhgon nga pikat e vrojtimit.",
+     "source_url": "https://akzm.gov.al/wp-content/uploads/2020/07/Buletini-Gusht-2022.pdf",
+     "confidence": "high",
+     "notes": "Rule: https://ikmt.gov.al/wp-content/uploads/2024/03/LIGJ_Nr_81_2017_Per_zonat_e_mbrojtura_1.pdf",
+     "verified": true,
+     "verification": "confirmed"
+    },
+    {
+     "type": "practical",
+     "text_en": "Mosquitoes are active near the lagoon in summer; bring repellent.",
+     "text_sq": "Në verë mushkonjat janë aktive pranë lagunës; merrni me vete mbrojtës kundër insekteve.",
+     "source_url": "https://en.wikipedia.org/wiki/Karavasta_Lagoon",
+     "confidence": "low",
+     "notes": "",
+     "verified": true,
+     "verification": "confirmed"
+    }
+   ]
+  },
+  {
+   "month": 8,
+   "name_en": "August",
+   "name_sq": "Gusht",
+   "items": [
+    {
+     "type": "beach",
+     "text_en": "Warmest month (average about 24 °C); in July 2018 the Minister of Tourism and Environment said he expected visitor numbers to keep rising through August.",
+     "text_sq": "Muaji më i ngrohtë (mesatarisht rreth 24 °C); në korrik 2018 ministri i Turizmit dhe Mjedisit tha se priste që numri i turistëve të vazhdonte të rritej edhe gjatë gushtit.",
+     "source_url": "https://en.wikipedia.org/wiki/Divjak%C3%AB-Karavasta_National_Park",
+     "confidence": "medium",
+     "notes": "Minister quote: https://shqiptarja.com/lajm/ministri-klosi-nga-divjaka-ky-sezon-turistik-shume-here-me-i-mire-se-i-kaluari",
+     "verified": true,
+     "verification": "corrected"
+    },
+    {
+     "type": "birds",
+     "text_en": "Young pelicans disperse: in August 2024 tracked birds were at Cape Bisht-Pallë, Lake Prespa and along the Vjosë, Shushicë and Seman rivers.",
+     "text_sq": "Pelikanët e rinj shpërndahen: në gusht 2024 shpendët e gjurmuar ishin në Kepin e Bisht-Pallës, në Prespë dhe përgjatë Vjosës, Shushicës e Semanit.",
+     "source_url": "https://aos-alb.org/aventurat-e-adriatikut-arnises-bazhorrit-godulles-dhe-artirit/",
+     "confidence": "medium",
+     "notes": "",
+     "verified": true,
+     "verification": "confirmed"
+    },
+    {
+     "type": "practical",
+     "text_en": "Fire watch continues; the most problematic fires start when farmers burn field waste close to the forest.",
+     "text_sq": "Vazhdon vëzhgimi për zjarret; rastet më problematike nisin kur fermerët djegin mbetjet në tokat pranë pyllit.",
+     "source_url": "https://akzm.gov.al/wp-content/uploads/2020/07/Buletini-Gusht-2022.pdf",
+     "confidence": "high",
+     "notes": "",
+     "verified": true,
+     "verification": "corrected"
+    }
+   ]
+  },
+  {
+   "month": 9,
+   "name_en": "September",
+   "name_sq": "Shtator",
+   "items": [
+    {
+     "type": "birds",
+     "text_en": "Autumn migration: the park is a resting area for birds travelling between Europe and Africa along the Adriatic flyway; travel guides recommend September–October for migrants.",
+     "text_sq": "Shtegtimi i vjeshtës: parku është vend pushimi për shpendët që udhëtojnë mes Evropës dhe Afrikës përgjatë rrugës së Adriatikut; guidat turistike rekomandojnë shtator–tetorin për shtegtarët.",
+     "source_url": "https://en.wikipedia.org/wiki/Divjak%C3%AB-Karavasta_National_Park",
+     "confidence": "low",
+     "notes": "Months only in commercial guides: https://www.albania-spirit.com/destinations/divjaka-karavasta/",
+     "verified": true,
+     "verification": "confirmed"
+    }
+   ]
+  },
+  {
+   "month": 10,
+   "name_en": "October",
+   "name_sq": "Tetor",
+   "items": [
+    {
+     "type": "event",
+     "text_en": "World Migratory Bird Day, second date: second Saturday of October (2026: 10 October).",
+     "text_sq": "Dita Botërore e Shpendëve Shtegtarë, data e dytë: e shtuna e dytë e tetorit (2026: 10 tetor).",
+     "source_url": "https://www.worldmigratorybirdday.org/",
+     "confidence": "high",
+     "notes": "No confirmed recurring Divjaka event. Verification: the WMBD site gives 10 October 2026; the 'second Saturday' rule is not stated on the page.",
+     "verified": true,
+     "verification": "confirmed"
+    },
+    {
+     "type": "birds",
+     "text_en": "Autumn passage (travel-guide advice: September–October is best for migration).",
+     "text_sq": "Shtegtimi i vjeshtës (këshillë e guidave turistike: shtator–tetori është periudha më e mirë për shtegtimin).",
+     "source_url": "https://www.albania-spirit.com/destinations/divjaka-karavasta/",
+     "confidence": "low",
+     "notes": "",
+     "verified": true,
+     "verification": "corrected"
+    }
+   ]
+  },
+  {
+   "month": 11,
+   "name_en": "November",
+   "name_sq": "Nëntor",
+   "items": [
+    {
+     "type": "birds",
+     "text_en": "Greater spotted eagles arrive for the winter (one seen early November 2020).",
+     "text_sq": "Mbërrin për dimër shqiponja e madhe e rosave (njëra u vrojtua në fillim të nëntorit 2020).",
+     "source_url": "https://aos-alb.org/the-greater-spotted-eagle-wintering-again-in-divjaka-karavasta-national-park/",
+     "confidence": "medium",
+     "notes": "",
+     "verified": true,
+     "verification": "confirmed"
+    },
+    {
+     "type": "birds",
+     "text_en": "Wintering waterbirds arrive for the season; the park can hold up to 84,000 wintering waterbirds.",
+     "text_sq": "Mbërrijnë shpendët e ujit për dimër; parku mund të strehojë deri në 84 000 shpendë uji dimërues.",
+     "source_url": "https://www.keybiodiversityareas.org/site/factsheet/2904",
+     "confidence": "medium",
+     "notes": "Verification: the KBA gives the winter maximum only; placing the build-up in November is editorial. The earlier 'January peak' wording was removed.",
+     "verified": true,
+     "verification": "corrected"
+    }
+   ]
+  },
+  {
+   "month": 12,
+   "name_en": "December",
+   "name_sq": "Dhjetor",
+   "items": [
+    {
+     "type": "birds",
+     "text_en": "Pelicans gather on Pelican Island and show breeding signs (orange-red pouch, curly feathers); the park and AOS prepare the nesting beds.",
+     "text_sq": "Pelikanët mblidhen në Ishullin e Pelikanit dhe shfaqin shenjat e folezimit (qese portokalli në të kuqe, pendë kaçurrele); parku dhe AOS përgatitin shtretërit e foleve.",
+     "source_url": "https://aos-alb.org/the-colony-of-the-dalmatian-pelicans-is-in-full-activity-in-divjaka-with-the-number-of-breeders-increasing-every-day/",
+     "confidence": "high",
+     "notes": "AP: pelicans spend December to June on the island. https://mynews13.com/fl/orlando/ap-online/2021/07/01/colony-of-shy-albanian-pelicans-flourishes-during-pandemic",
+     "verified": true,
+     "verification": "confirmed"
+    },
+    {
+     "type": "birds",
+     "text_en": "Large numbers of wintering waterbirds on the lagoon (up to 84,000 in winter).",
+     "text_sq": "Numër i madh shpendësh uji dimërues në lagunë (deri në 84 000 gjatë dimrit).",
+     "source_url": "https://www.keybiodiversityareas.org/site/factsheet/2904",
+     "confidence": "medium",
+     "notes": "Verification: the KBA factsheet does not single out ducks (earlier wording removed); in the 2020 national census coot, wigeon and teal were among Albania's commonest waterbirds.",
+     "verified": true,
+     "verification": "corrected"
+    }
+   ]
+  }
+ ],
+ "year_round": [
+  {
+   "type": "nature",
+   "text_en": "Walk or cycle the shaded paths of Albania's only natural coastal pine forest.",
+   "text_sq": "Ecni ose ngisni biçikletë në shtigjet me hije të të vetmit pyll natyror me pisha bregdetare në Shqipëri.",
+   "source_url": "https://akt.gov.al/en/attractions/Divjaka-coastal-pine-forest/",
+   "confidence": "high",
+   "notes": "",
+   "verified": true,
+   "verification": "confirmed"
+  },
+  {
+   "type": "nature",
+   "text_en": "360° view over forest, lagoon and sea from the 36 m panoramic tower, best at sunset.",
+   "text_sq": "Pamje 360° mbi pyllin, lagunën dhe detin nga kulla panoramike 36 m, më e bukura në perëndim të diellit.",
+   "source_url": "https://akt.gov.al/en/attractions/Divjake-Karavasta-National-Park/",
+   "confidence": "high",
+   "notes": "",
+   "verified": true,
+   "verification": "confirmed"
+  },
+  {
+   "type": "nature",
+   "text_en": "Boat trips on the lagoon's channels and reed islets (months and operators not specified).",
+   "text_sq": "Shëtitje me varkë në kanalet dhe ishujt me kallamishte të lagunës (muajt dhe operatorët nuk specifikohen).",
+   "source_url": "https://akt.gov.al/en/attractions/lagoon-of-karavasta/",
+   "confidence": "high",
+   "notes": "",
+   "verified": true,
+   "verification": "confirmed"
+  },
+  {
+   "type": "birds",
+   "text_en": "Flamingos can be seen in large numbers in Albanian wetlands throughout the year.",
+   "text_sq": "Flamingot vrojtohen në numër të madh në ligatinat e Shqipërisë gjatë gjithë vitit.",
+   "source_url": "https://al.boell.org/sites/default/files/2025-05/a4-flyer_270x194_pelikani-kacurrel-dhe-flamingo_shqip_final.pdf",
+   "confidence": "medium",
+   "notes": "Statement is for Albanian wetlands generally, not Karavasta specifically.",
+   "verified": true,
+   "verification": "confirmed"
+  },
+  {
+   "type": "practical",
+   "text_en": "Pelican Island is always closed to visitors; boats keep about 180 m away.",
+   "text_sq": "Ishulli i Pelikanit është gjithmonë i mbyllur për vizitorët; varkat qëndrojnë rreth 180 m larg.",
+   "source_url": "https://akt.gov.al/en/attractions/Pelican-Island/",
+   "confidence": "high",
+   "notes": "Distance from AP 2021.",
+   "verified": true,
+   "verification": "confirmed"
+  },
+  {
+   "type": "practical",
+   "text_en": "Hunting is forbidden in the park all year.",
+   "text_sq": "Gjuetia ndalohet në park gjatë gjithë vitit.",
+   "source_url": "https://ikmt.gov.al/wp-content/uploads/2024/03/LIGJ_Nr_81_2017_Per_zonat_e_mbrojtura_1.pdf",
+   "confidence": "high",
+   "notes": "",
+   "verified": true,
+   "verification": "confirmed"
+  }
+ ]
+}

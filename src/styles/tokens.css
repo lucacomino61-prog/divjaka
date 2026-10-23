@@ -1,0 +1,109 @@
+/* tokens.css — "Harta e Lagunës" (DESIGN §2). Loaded after base.css; maps its --c-* onto the
+   two colours. Components use the SEMANTIC tokens (--fg, --bg, --muted, --rule …) so any
+   `.on-ink` sheet inverts them without per-component dark styles. Light theme only. */
+:root {
+  /* the two colours */
+  --salt: #EDEAE0;          /* bleached chart paper */
+  --ink: #0E2B29;           /* lagoon ink */
+  /* derived — same two hues, never new colours */
+  --ink-70: color-mix(in oklch, var(--ink) 70%, var(--salt));   /* 5.2:1 on salt: secondary text */
+  --ink-40: color-mix(in oklch, var(--ink) 40%, var(--salt));   /* decoration only (2.3:1) */
+  --ink-12: color-mix(in oklch, var(--ink) 12%, var(--salt));   /* hairlines, hatch */
+  --salt-2: #E3DFD2;        /* aged stock for inset plates */
+  --ink-2: #163B38;         /* raised ink */
+  --salt-70: color-mix(in oklch, var(--salt) 70%, var(--ink));  /* 6.8:1 on ink */
+  --salt-40: color-mix(in oklch, var(--salt) 40%, var(--ink));
+  --salt-16: color-mix(in oklch, var(--salt) 16%, var(--ink));
+  /* the signal mark (≤ 3 % of a screen): live dot, focus, selected pin, sold-out stamp,
+     cart count, error underline, itinerary route. Text in it on salt uses --pouch-text. */
+  --pouch: #E2592A;
+  --pouch-text: #A83C15;    /* 5.25:1 on salt */
+
+  /* semantic (salt sheet) */
+  --bg: var(--salt);
+  --bg-2: var(--salt-2);
+  --fg: var(--ink);
+  --muted: var(--ink-70);
+  --faint: var(--ink-40);
+  --rule: var(--ink-12);
+  --rule-strong: var(--ink);
+  --signal-text: var(--pouch-text);
+  --press-fg: var(--salt);  /* text on a filled (fg-coloured) pill */
+
+  /* base.css bridge */
+  --c-ink: var(--ink);
+  --c-ink-2: var(--ink-70);
+  --c-paper: var(--salt);
+  --c-surface: var(--salt);
+  --c-line: var(--ink-12);
+  --c-brand: var(--ink);
+  --c-brand-2: var(--pouch);
+  --c-focus: var(--pouch);
+
+  /* type families */
+  --font-sans: "Bricolage Grotesque", "Bricolage Fallback", system-ui, sans-serif;
+  --font-poster: "Bricolage Grotesque", "Bricolage Poster Fallback", "Arial Narrow", sans-serif;
+  --font-serif:"Instrument Serif", "Instrument Fallback", Georgia, "Times New Roman", serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  /* type: body 17→19 px (DESIGN §2), Utopia 360→1440 */
+  --step--2: clamp(0.6875rem, 0.6701rem + 0.0772vw, 0.7396rem);  /* 11→11.8 mono labels */
+  --step--1: clamp(0.75rem, 0.7292rem + 0.0926vw, 0.8125rem);     /* 12→13 mono readings */
+  --step-0: clamp(1.0625rem, 1.0208rem + 0.1852vw, 1.1875rem);    /* 17→19 body */
+  --step-1: clamp(1.25rem, 1.1667rem + 0.3704vw, 1.5rem);
+  --step-2: clamp(1.5rem, 1.3667rem + 0.5926vw, 1.9rem);
+  --step-3: clamp(1.8rem, 1.5667rem + 1.037vw, 2.5rem);           /* card titles 29→40 */
+  --step-4: clamp(2.2rem, 1.8rem + 1.7778vw, 3.4rem);             /* section heads */
+  --step-5: clamp(2.6rem, 1.9333rem + 2.963vw, 4.6rem);
+  --step-display: clamp(3.5rem, 0.6667rem + 12.593vw, 12rem);
+  /* poster: fitted to the line by character count (see .poster), capped at 480 px */
+  --poster-max: 30rem;
+  --measure: 66ch;
+
+  /* space (base.css values kept) + layout */
+  --gutter: clamp(1rem, 0.6667rem + 1.4815vw, 2rem);         /* 16→32 */
+  --page-pad: max(16px, 4vw);
+  --page-max: 1440px;
+  --section-gap: clamp(4.5rem, 3rem + 6.6667vw, 9rem);
+  --header-h: 64px;
+  --ticker-h: 32px;
+  --pill-h: 48px;
+  --tap: 44px;
+
+  /* shape: rules, not panels */
+  --hair: 1px solid var(--rule);
+  --rule-2: 2px solid var(--rule-strong);
+  --radius-pill: 99px;    /* the only round things: pins, live dot, loader ring, pills */
+  --radius-s: 0; --radius-m: 0; --radius-l: 0;
+  --shadow-1: none; --shadow-2: none;
+  --print-shadow: 4px 4px 0 var(--fg);   /* the permit card only */
+
+  /* motion (DESIGN §7) */
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-press: 120ms;
+  --dur-fast: 150ms;
+  --dur-ui: 240ms;
+  --dur-slow: 300ms;
+  --dur-tide: 420ms;
+
+  --z-header: 40; --z-pill: 45; --z-toast: 60; --z-dialog: 80; --z-loader: 100;
+  color-scheme: light;
+}
+
+/* An ink sheet: every semantic token flips. */
+.on-ink {
+  --bg: var(--ink);
+  --bg-2: var(--ink-2);
+  --fg: var(--salt);
+  --muted: var(--salt-70);
+  --faint: var(--salt-40);
+  --rule: var(--salt-16);
+  --rule-strong: var(--salt);
+  /* pouch itself is only 4.08:1 on ink: text gets a salt-lifted pouch (5.2:1, AA at any size);
+     dots, pins and rules stay in --pouch */
+  --signal-text: color-mix(in oklch, var(--pouch) 80%, var(--salt));
+  --press-fg: var(--ink);
+  background: var(--bg);
+  color: var(--fg);
+}

@@ -1,0 +1,69 @@
+---
+/**
+ * Footer — ink sheet (DESIGN §3): link columns, the latest live reading, contact from the
+ * business settings (only confirmed values; placeholders stay hidden and are listed in
+ * NEEDS_VERIFICATION.md), data credits, legal, Stop switch, and the giant outlined wordmark
+ * drawn edge to edge as a line when it scrolls in.
+ */
+import Wordmark from './Wordmark.astro';
+import MotionSwitch from './MotionSwitch.astro';
+import LangSwitch from './LangSwitch.astro';
+import { FOOTER_COLS } from './nav';
+import { business, confirmed, social } from './site-data';
+import { t } from '../../i18n/ui';
+import { path, type Lang } from '../../i18n/routes';
+import { tirane } from '../../i18n/format';
+
+interface Props { lang: Lang; routeKey: string; params?: Record<string, string>; langHref?: string }
+const { lang, routeKey, params = {}, langHref } = Astro.props;
+const b = await business();
+const phone = confirmed(b, 'phone'), email = confirmed(b, 'email'), address = confirmed(b, lang === 'en' ? 'address_en' : 'address_sq') || confirmed(b, 'address'); // per-language form when the owner saved one
+const links = await social();
+const year = tirane().y;
+---
+<footer class="site-footer on-ink">
+  <div class="wrap site-footer__inner">
+    <div class="site-footer__grid">
+      <div class="site-footer__about">
+        <p class="site-footer__hotel title" translate="no">Hotel Pelikan</p>
+        <p class="muted">{t(lang, 'footer.about')}</p>
+        <address class="site-footer__contact mono">
+          {address && <span>{address}</span>}
+          {phone && <a href={`tel:${phone.replace(/[^+\d]/g, '')}`}>{phone}</a>}
+          {email && <a href={`mailto:${email}`}>{email}</a>}
+          {!phone && !email && <span class="muted mono-lc">{t(lang, 'footer.contactPending')}</span>}
+          <a href={path('contact', lang)}>{t(lang, 'footer.write')} →</a>
+        </address>
+        {Object.keys(links).length > 0 && (
+          <ul class="site-footer__social mono">
+            {Object.entries(links).map(([name, href]) => <li><a href={href} rel="noopener me">{name}</a></li>)}
+          </ul>
+        )}
+      </div>
+      <nav class="site-footer__nav" aria-label={t(lang, 'nav.footer')}>
+        {FOOTER_COLS.map((col) => (
+          <div class="site-footer__col">
+            <p class="mono muted">{t(lang, col.title)}</p>
+            <ul>{col.items.map((n) => <li><a href={path(n.key, lang)}>{t(lang, n.label)}</a></li>)}</ul>
+          </div>
+        ))}
+      </nav>
+      <div class="site-footer__live" data-live-block hidden>
+        <p class="mono muted">{t(lang, 'footer.reading')}</p>
+        <div data-live-reading></div>
+      </div>
+    </div>
+    <div class="site-footer__mark">
+      <Wordmark variant="outline" draw class="site-footer__wordmark" stroke={1} />
+    </div>
+    <div class="site-footer__base mono">
+      <p>{t(lang, 'footer.rights', { year })}</p>
+      <p>{t(lang, 'footer.data')}</p>
+      <div class="site-footer__tools">
+        <LangSwitch lang={lang} routeKey={routeKey} params={params} href={langHref} full />
+        <MotionSwitch lang={lang} />
+        <a href="#top" class="site-footer__top">{t(lang, 'footer.top')} ↑</a>
+      </div>
+    </div>
+  </div>
+</footer>

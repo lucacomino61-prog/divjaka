@@ -1,0 +1,14 @@
+---
+/**
+ * Pin — survey pin (DESIGN §3): 14 px ink ring with a salt core; selected = pouch core + one
+ * ripple ring (CSS transition, once). Optional mono label on a salt tag with a leader line.
+ * HTML version for use over plates and in lists; the chart draws its own SVG pins.
+ *   <Pin label="Kulla e vëzhgimit" selected />
+ */
+interface Props { label?: string; selected?: boolean; leader?: 'up' | 'right' | 'none'; class?: string; as?: 'span' | 'div' }
+const { label, selected = false, leader = 'right', class: cls, as: Tag = 'span' } = Astro.props;
+---
+<Tag class:list={['pin', selected && 'is-selected', label && `pin--leader-${leader}`, cls]}>
+  <span class="pin__dot" aria-hidden="true"></span>
+  {label && <span class="pin__tag mono">{label}</span>}
+</Tag>

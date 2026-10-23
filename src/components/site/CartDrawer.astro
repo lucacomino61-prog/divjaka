@@ -1,0 +1,51 @@
+---
+/**
+ * CartDrawer — <dialog id="cart-drawer"> sliding from the right. Lines, sums and states are
+ * rendered by scripts/drawer.ts from POST /api/quote. The empty state speaks the world's voice.
+ */
+import Pill from './Pill.astro';
+import { t } from '../../i18n/ui';
+import { path, type Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+---
+<dialog id="cart-drawer" class="drawer" aria-labelledby="cart-drawer-title" data-state="idle">
+  <div class="drawer__inner">
+    <div class="drawer__head">
+      <h2 id="cart-drawer-title" class="drawer__title mono">{t(lang, 'cart.title')} · <span data-drawer-count>00</span></h2>
+      <button type="button" class="pill pill--outline pill--s" data-close="cart-drawer" aria-label={t(lang, 'cart.close')}>
+        <span aria-hidden="true">{t(lang, 'menu.close')}</span>
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.5" fill="none" /></svg>
+      </button>
+    </div>
+    <div class="drawer__scroll" data-scroll data-lenis-prevent>
+      <p class="drawer__status mono" data-drawer-status role="status" aria-live="polite"></p>
+      <p class="visually-hidden" data-drawer-say role="status" aria-live="polite"></p>
+      <button type="button" class="pill pill--outline pill--s drawer__retry" data-drawer-retry>{t(lang, 'cart.retry')}</button>
+      <ul class="drawer__lines" data-drawer-lines></ul>
+      <div class="drawer__empty" data-drawer-empty hidden>
+        <svg class="drawer__empty-art" viewBox="0 0 160 90" aria-hidden="true">
+          <path d="M4 60 C 40 50, 70 70, 156 54" fill="none" stroke="currentColor" stroke-width="1.25" />
+          <path d="M14 70 C 48 62, 80 80, 146 66" fill="none" stroke="currentColor" stroke-width="0.75" opacity=".5" />
+          <circle cx="80" cy="28" r="9" fill="none" stroke="currentColor" stroke-width="1.5" />
+          <path d="M80 37v20" stroke="currentColor" stroke-width="1.5" />
+        </svg>
+        <p class="title">{t(lang, 'cart.empty.title')}</p>
+        <p class="muted">{t(lang, 'cart.empty.body')}</p>
+        <div class="cluster">
+          <Pill href={path('stay', lang)} arrow>{t(lang, 'cart.empty.stay')}</Pill>
+          <Pill href={path('shop', lang)} variant="outline">{t(lang, 'cart.empty.shop')}</Pill>
+        </div>
+      </div>
+    </div>
+    <div class="drawer__summary" data-drawer-summary hidden>
+      <div data-drawer-sums></div>
+      <p class="mono muted drawer__note">{t(lang, 'cart.payNote')}</p>
+      <div class="drawer__actions">
+        <Pill href={path('checkout', lang)} block arrow>{t(lang, 'cart.checkout')}</Pill>
+        <Pill href={path('cart', lang)} variant="outline" block>{t(lang, 'cart.view')}</Pill>
+      </div>
+    </div>
+  </div>
+</dialog>

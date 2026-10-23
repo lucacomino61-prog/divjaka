@@ -1,0 +1,10 @@
+---
+import Article from '../../../views/Article.astro';
+import NotFound from '../../../views/NotFound.astro';
+import { load } from '../../../views/article.load';
+
+const params = { slug: Astro.params.slug ?? '' };
+const data = await load(params, 'en');
+if (!data) Astro.response.status = 404;
+---
+{data ? <Article lang="en" params={params} data={data} /> : <NotFound lang="en" />}

@@ -1,0 +1,189 @@
+---
+/**
+ * Base — every public page. <html lang>, the head (title, description, canonical, hreflang
+ * sq/en/x-default from src/i18n/routes.ts, Open Graph + Twitter, theme-color, icons, Hotel +
+ * WebSite JSON-LD + the page's own, inline cross-document View Transition opt-in with the tide
+ * line, display-font preload, pre-paint script for html[data-motion] / html.js / loader), then
+ * Preloader (first, so its Skip is the first Tab stop), skip link, Ticker, Header, <main id="main">, Footer, Menu, CartDrawer,
+ * AssistantPill, toast region, and the one chrome script.
+ *
+ * Props: lang, title, description, routeKey, params?, image?, jsonld?, noindex?, bodyClass?,
+ *        hideTicker?, loader? (default false — Home passes it: a deep link to a product or the
+ *        checkout never sits behind an intro), clientKeys? (extra i18n prefixes for the browser),
+ *        langHref? (override the language-switch target, e.g. on 404).
+ */
+import '../styles/base.css';
+import '../styles/tokens.css';
+import '../styles/type.css';
+import '../styles/chrome.css';
+import Header from '../components/site/Header.astro';
+import Ticker from '../components/site/Ticker.astro';
+import Footer from '../components/site/Footer.astro';
+import Menu from '../components/site/Menu.astro';
+import CartDrawer from '../components/site/CartDrawer.astro';
+import AssistantPill from '../components/site/AssistantPill.astro';
+import Preloader from '../components/site/Preloader.astro';
+import { t, pick } from '../i18n/ui';
+import { path, ROUTES, type Lang, type RouteKey } from '../i18n/routes';
+import { business, confirmed, eurRate, hotelSpot, siteOriginOf } from '../components/site/site-data';
+
+export interface Props {
+  lang: Lang;
+  title: string;
+  description: string;
+  routeKey: string;
+  params?: Record<string, string>;
+  image?: string;
+  jsonld?: object | object[];
+  noindex?: boolean;
+  bodyClass?: string;
+  hideTicker?: boolean;
+  loader?: boolean;
+  clientKeys?: string[];
+  langHref?: string;
+}
+
+const {
+  lang, title, description, routeKey, params = {}, image, jsonld, noindex = false, bodyClass,
+  hideTicker = false, loader = false, clientKeys = [], langHref,
+} = Astro.props;
+
+const origin = await siteOriginOf(Astro.url, Astro.site);
+const known = routeKey in ROUTES;
+let alt: Record<Lang, string> | null = null;
+if (known) {
+  try { alt = { sq: path(routeKey as RouteKey, 'sq', params), en: path(routeKey as RouteKey, 'en', params) }; } catch { alt = null; }
+}
+const canonical = alt ? new URL(alt[lang], origin).href : null;
+const fullTitle = /hotel pelikan|divjaka/i.test(title) ? title : `${title} · Divjaka · Hotel Pelikan`;
+const ogImage = new URL(image ?? '/og-default.png', origin).href;
+const ogLocale = lang === 'sq' ? 'sq_AL' : 'en_GB';
+
+const spot = await hotelSpot();
+const rate = await eurRate();
+const b = await business();
+const hotelLd: Record<string, unknown> = {
+  '@context': 'https://schema.org',
+  '@type': 'Hotel',
+  '@id': `${origin}/#hotel`,
+  name: 'Hotel Pelikan',
+  url: new URL(path('home', lang), origin).href,
+  description: t(lang, 'footer.about'),
+  image: new URL('/og-default.png', origin).href,
+  address: { '@type': 'PostalAddress', addressLocality: 'Divjakë', addressCountry: 'AL', ...(confirmed(b, 'address') ? { streetAddress: confirmed(b, 'address') } : {}) },
+  ...(confirmed(b, 'phone') ? { telephone: confirmed(b, 'phone') } : {}),
+  ...(confirmed(b, 'email') ? { email: confirmed(b, 'email') } : {}),
+  ...(spot.verified ? { geo: { '@type': 'GeoCoordinates', latitude: spot.lat, longitude: spot.lon } } : {}),
+  amenityFeature: [{ '@type': 'LocationFeatureSpecification', name: lang === 'sq' ? 'Bar-restorant' : 'Bar-restaurant', value: true }],
+};
+const siteLd = {
+  '@context': 'https://schema.org', '@type': 'WebSite', '@id': `${origin}/#website`,
+  name: 'Divjaka · Hotel Pelikan', url: `${origin}/`, inLanguage: lang === 'sq' ? 'sq-AL' : 'en', publisher: { '@id': `${origin}/#hotel` },
+};
+const extra = jsonld ? (Array.isArray(jsonld) ? jsonld : [jsonld]) : [];
+const ld = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c');
+
+const clientStrings = pick(lang, ['cart.', 'live.', 'motion.', 'currency.', 'stamp.', 'price.', 'assistant.', 'loader.', ...clientKeys]);
+---
+<!doctype html>
+<html lang={lang} dir="ltr" data-loader={loader ? '' : undefined} data-eur-rate={rate || undefined} data-route={routeKey}>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>{fullTitle}</title>
+  <meta name="description" content={description} />
+  {noindex ? <meta name="robots" content="noindex, follow" /> : canonical && <link rel="canonical" href={canonical} />}
+  {alt && !noindex && (
+    <>
+      <link rel="alternate" hreflang="sq" href={new URL(alt.sq, origin).href} />
+      <link rel="alternate" hreflang="en" href={new URL(alt.en, origin).href} />
+      <link rel="alternate" hreflang="x-default" href={new URL(alt.sq, origin).href} />
+    </>
+  )}
+  <meta name="theme-color" content="#EDEAE0" />
+  <meta name="color-scheme" content="light" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="preload" href="/fonts/bricolage-grotesque-var-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fonts/geist-mono-var-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Divjaka · Hotel Pelikan" />
+  <meta property="og:title" content={fullTitle} />
+  <meta property="og:description" content={description} />
+  {canonical && <meta property="og:url" content={canonical} />}
+  <meta property="og:image" content={ogImage} />
+  {!image && <meta property="og:image:width" content="1200" />}
+  {!image && <meta property="og:image:height" content="630" />}
+  <meta property="og:locale" content={ogLocale} />
+  <meta property="og:locale:alternate" content={lang === 'sq' ? 'en_GB' : 'sq_AL'} />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={fullTitle} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content={ogImage} />
+  <style is:inline>@view-transition{navigation:auto}</style>
+  <style is:inline>
+    ::view-transition-group(root){animation-duration:420ms}
+    ::view-transition-old(root){animation:420ms cubic-bezier(.2,.7,.2,1) both dv-tide-out;z-index:1;mix-blend-mode:normal}
+    ::view-transition-new(root){animation:420ms cubic-bezier(.2,.7,.2,1) both dv-tide-in;mix-blend-mode:normal}
+    ::view-transition-group(chrome-top){animation:none}
+    ::view-transition-old(chrome-top){display:none}
+    ::view-transition-new(chrome-top){animation:none}
+    ::view-transition-group(tide){animation:none}
+    ::view-transition-old(tide){display:none}
+    ::view-transition-new(tide){animation:420ms cubic-bezier(.2,.7,.2,1) both dv-tide-line}
+    @keyframes dv-tide-out{from{clip-path:inset(0 0 0 0)}to{clip-path:inset(0 0 100% 0)}}
+    @keyframes dv-tide-line{from{transform:translateY(100vh)}to{transform:translateY(0)}}
+    @keyframes dv-tide-in{from{opacity:.4}to{opacity:1}}
+    @media (prefers-reduced-motion:reduce){@view-transition{navigation:none}}
+    html[data-motion="off"]::view-transition-group(*),html[data-motion="off"]::view-transition-old(*),html[data-motion="off"]::view-transition-new(*){animation:none!important}
+  </style>
+  <script is:inline>
+    (function () {
+      var h = document.documentElement, off = false, reduce = false, seen = '1';
+      h.classList.add('js');
+      try { off = localStorage.getItem('dv-motion') === 'off'; } catch (e) {}
+      try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+      if (off) h.setAttribute('data-motion', 'off');
+      try { var p = JSON.parse(localStorage.getItem('dv-prefs') || '{}'); if (p && p.currency === 'EUR') h.setAttribute('data-cur', 'EUR'); } catch (e) {}
+      if (!off && !reduce) {
+        h.classList.add('reveal-pending');
+        setTimeout(function () { if (h.classList.contains('reveal-pending')) { h.classList.remove('reveal-pending'); h.classList.add('reveal-failsafe'); } }, 2600);
+        try { seen = sessionStorage.getItem('dv-seen'); } catch (e) {}
+        if (!seen && h.hasAttribute('data-loader')) h.classList.add('loader-on');
+      }
+      addEventListener('pagereveal', function (e) {
+        if (e.viewTransition && (h.getAttribute('data-motion') === 'off' || matchMedia('(prefers-reduced-motion: reduce)').matches)) e.viewTransition.skipTransition();
+      });
+    })();
+  </script>
+  <script type="application/ld+json" set:html={ld(hotelLd)} />
+  <script type="application/ld+json" set:html={ld(siteLd)} />
+  {extra.map((o) => <script type="application/ld+json" set:html={ld(o)} />)}
+  <slot name="head" />
+</head>
+<body class={bodyClass} id="top">
+  {loader && <Preloader lang={lang} hotel={spot} />}
+  <a class="skip-link" href="#main">{t(lang, 'skip')}</a>
+  <div class="chrome-top">
+    {!hideTicker && <Ticker lang={lang} />}
+    <Header lang={lang} routeKey={routeKey} params={params} lat={spot.lat} langHref={langHref} />
+  </div>
+  <main id="main" tabindex="-1">
+    <slot />
+  </main>
+  <Footer lang={lang} routeKey={routeKey} params={params} langHref={langHref} />
+  <Menu lang={lang} routeKey={routeKey} params={params} hotel={spot} langHref={langHref} />
+  <CartDrawer lang={lang} />
+  <AssistantPill lang={lang} />
+  <div class="tide" aria-hidden="true"></div>
+  <div id="dv-toast" class="toast" role="status" aria-live="polite" data-state="closed" popover="manual">
+    <p class="toast__msg mono" data-toast-msg></p>
+    <button type="button" class="toast__action mono" data-toast-action hidden></button>
+  </div>
+  <script type="application/json" id="dv-i18n" set:html={JSON.stringify(clientStrings).replace(/</g, '\\u003c')} />
+  <script>
+    import '../scripts/chrome';
+  </script>
+</body>
+</html>

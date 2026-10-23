@@ -1,0 +1,1433 @@
+{
+  "meta": {
+    "researched": "2026-10-23",
+    "confidence_scale": {
+      "high": "two independent sources or an official one",
+      "medium": "one reputable source",
+      "low": "unclear/conflicting/weak"
+    },
+    "fx": {
+      "EUR_ALL": 90.64,
+      "USD_ALL": 80.73,
+      "GBP_ALL": 108.19,
+      "date": "2026-10-22",
+      "source": "https://www.bankofalbania.org/Markets/Official_exchange_rate/",
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "Page re-opened: 'Last update: 23.10.2026' shows EUR 90.74 (+0.10), USD 81.03 (+0.30), GBP 108.39 (+0.20); the deltas give the previous fixing 90.64 / 80.73 / 108.19 as recorded. Conversions keep the 22.10 rate (0.11% difference)."
+    },
+    "warnings": [
+      "Booking.com review snippets served to the automated browser look synthetic (Faker-style surnames, 'view over the bay', 'freestanding tub'): never quote Booking review text; aggregate scores are consistent with other sites.",
+      "albaniavisit.com/attractions/karavasta-lagoon has figures conflicting with official sources (pelican pairs, tower height, park founding year): use its price ranges only as low confidence.",
+      "Booking.com fake review snippets re-observed on 2026-10-23 (same Faker-style surnames on every load). Booking sub-scores (location 9.6, value 9.5 ...) also disagree with the Booking-fed sub-scores AlbaniaVisit showed in Aug 2026 (location 9.1, value 9.1 ...). Do not publish Booking sub-scores; the overall 9.5 is corroborated by AlbaniaVisit, Kayak and Travelmyth.",
+      "NAMESAKE: a different 'Hotel Pelikan' exists at Virpazar bb, Virpazar, Bar 81305, MONTENEGRO (trip.com hotel 6394818, 7.7/10 from 66 reviews; eDreams/Booking slug /hotel/me/pelikan). Never copy its photos, history, room count or reviews. The Divjake property is Booking hotelId 3683988, slug /hotel/al/pelikan-divjake.",
+      "Google Maps lists the hotel as 'Restorant Pelikan'; 'Divjaka Resort' (Google 4.1, 647 reviews, 0.1 mi away) is a different neighbouring business."
+    ],
+    "verification": {
+      "date": "2026-10-23",
+      "by": "adversarial verifier (second pass)",
+      "meaning_of_verified": "true = the verifier re-opened the cited source(s) on 2026-10-23 and the claim is stated there (and, for hotel data, the page is about the Divjake property). false = source could not be re-opened, claim not found as stated, or the item is derived/an absence that was not re-searched. 'verified' says nothing about legal sufficiency; 'confidence' still applies.",
+      "method": "WebFetch, curl and the Browser pane; Booking/Google/Kayak/RestaurantGuru read in the Browser pane",
+      "could_not_reopen": [
+        "https://www.wikiloc.com/bikepacking-trails/divjake-76313563 (Cloudflare challenge; not bypassed)",
+        "https://akzm.gov.al/wp-content/uploads/2020/07/Harta-e-Guides-se-Parkut-Kombetar-Divjake-Karavasta_Eng.pdf (connection refused/timeouts)",
+        "https://kpa.al/... Law 124/2024 PDF (unreachable; same law verified from the INSTAT copy instead)",
+        "https://www.konsultimipublik.gov.al/... RENJK_1001 and RENJK_842 docx (Incapsula bot wall)",
+        "PwC Albania legal alerts (HTTP 403)",
+        "https://developers.viber.com/docs/tools/deep-links (now renders the Developers Hub home page, no deep-link content)"
+      ]
+    }
+  },
+  "hotel": {
+    "name": {
+      "value": "Hotel Pelikan",
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+        "https://stay.albaniavisit.com/hotel-pelikan/",
+        "https://www.kayak.com/Divjake-Hotels.94469.hotel.ksp",
+        "https://www.travelmyth.co.uk/Divjake-Divjake/Hotels"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "Re-opened Booking, AlbaniaVisit, Kayak, Travelmyth: all 'Hotel Pelikan', Divjake. Booking structured data: hotelId 3683988, propertyName 'Hotel Pelikan'."
+    },
+    "name_on_google_maps": {
+      "value": "Restorant Pelikan (category: 3-star hotel)",
+      "sources": [
+        "https://www.google.com/maps/place/Restorant+Pelikan/@40.9722664,19.4799887,17z"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Google Maps (cid 14313264533210368404) re-opened: 'Restorant Pelikan', 4.7 (308), '3-star hotel', Agoda price feed attached, so the Google entity is the hotel, not only the restaurant."
+    },
+    "only_pelikan_hotel_in_albania_found": {
+      "value": true,
+      "note": "searches with Durres/Vlore/Shkoder/Golem returned only the Divjake property",
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Re-searched: still only the Divjake property in Albania. A namesake exists in Montenegro (Virpazar), see meta.warnings.",
+      "namesake_outside_albania": {
+        "name": "Hotel Pelikan",
+        "address": "Virpazar bb, Virpazar, Bar, 81305, Montenegro",
+        "source": "https://ph.trip.com/hotels/virpazar-hotel-detail-6394818/hotel-pelikan",
+        "use": "never"
+      }
+    },
+    "legal_entity": {
+      "value": "Pelikan-rr Shpk",
+      "address": "qender plazh, 9022 Divjake, Albania",
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html (See business details)"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Booking 'See business details' re-opened: 'Pelikan-rr Shpk, qender plazh, 9022 Divjake, Albania, Qendra kombetare e biznesit'. No second source (web search for the company name finds nothing); keep medium and confirm with owner."
+    },
+    "nipt": {
+      "value": "L64710402V",
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html (See business details: 'Trade register number')"
+      ],
+      "confidence": "medium",
+      "note": "QKB / opencorporates.al blocked by bot check; confirm with owner",
+      "verified": true,
+      "verification_note": "Booking 'Trade register number: L64710402V' re-opened. Exact-string web search returns no other page. Format check: by the NIPT scheme (first letter = decade, next digit = year) L6 points to an identifier assigned around 2016 (python-stdnum doc + lookuptax guide, both secondary). That does not disprove 'over 20 years' (the business may predate this company) but means the company itself cannot be cited as the 20-year proof.",
+      "nipt_format_sources": [
+        "https://arthurdejong.org/python-stdnum/doc/stdnum.al.nipt",
+        "https://lookuptax.com/docs/tax-identification-number/albania-tax-id-guide"
+      ]
+    },
+    "address": {
+      "value": "Divjake qender plazh 1, 9022 Divjakë, Albania",
+      "alt_google": "Plazh, Divjakë 9022, Albania; Plus Code XFCH+WX Divjakë",
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+        "https://stay.albaniavisit.com/hotel-pelikan/",
+        "https://www.google.com/maps/place/Restorant+Pelikan/@40.9722664,19.4799887,17z"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "Booking and AlbaniaVisit both show 'Divjake qender plazh 1, 9022 Divjakë, Albania'; Google shows 'Plazh, Divjakë 9022' + Plus Code XFCH+WX."
+    },
+    "coordinates": {
+      "lat": 40.972262,
+      "lng": 19.479574,
+      "google_pin": [
+        40.9722664,
+        19.4799887
+      ],
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+        "https://stay.albaniavisit.com/hotel-pelikan/",
+        "https://www.google.com/maps/place/Restorant+Pelikan/@40.9722664,19.4799887,17z"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "AlbaniaVisit schema.org geo 40.97226179, 19.47957385; Google pin 40.9722664, 19.4799887 (about 35 m apart)."
+    },
+    "phone": {
+      "value": "+355 68 504 3955",
+      "sources": [
+        "https://www.google.com/maps/place/Restorant+Pelikan/@40.9722664,19.4799887,17z",
+        "https://restaurantguru.com/Pelikani-Albania"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Google Maps panel re-opened: +355 68 504 3955. RestaurantGuru's Restorant Pelikan page shows the same number, but RestaurantGuru aggregates Google data, so it is not an independent source. Business phone published on the business's own Google listing; keep medium until the owner confirms."
+    },
+    "email": {
+      "value": null,
+      "note": "not found",
+      "verified": true,
+      "verification_note": "Still none on Google, Booking, RestaurantGuru or AlbaniaVisit."
+    },
+    "website": {
+      "value": null,
+      "note": "Google listing shows 'Add website'",
+      "sources": [
+        "https://www.google.com/maps/place/Restorant+Pelikan/@40.9722664,19.4799887,17z"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Google still shows 'Add website'. RestaurantGuru lists 'pelikan.divjake.hotels-al.com': a third-party hotels-al.com subdomain whose TLS certificate is for another domain (aapodx2.com) and which did not load. Treat as not official; ask the owner.",
+      "third_party_domain_seen": {
+        "value": "pelikan.divjake.hotels-al.com",
+        "source": "https://restaurantguru.com/Pelikani-Albania",
+        "status": "unreachable, certificate mismatch, not official"
+      }
+    },
+    "social": {
+      "value": null,
+      "note": "no Facebook/Instagram/TikTok/TripAdvisor page found; TripAdvisor bot wall; Meta domains unreachable from this machine",
+      "confidence": "low",
+      "verified": false,
+      "verification_note": "Not found. RestaurantGuru aggregates 'Facebook (2/5) 2' and 'Trip (4.5/5) 39' for Restorant Pelikan, which suggests Facebook and TripAdvisor pages exist; URLs not found (Meta and TripAdvisor unreachable/bot wall). Ask owner.",
+      "leads": {
+        "facebook_rating_seen_on_restaurantguru": "2/5 from 2",
+        "tripadvisor_rating_seen_on_restaurantguru": "4.5/5 from 39",
+        "source": "https://restaurantguru.com/Pelikani-Albania"
+      }
+    },
+    "stars": {
+      "value": 3,
+      "sources": [
+        "https://www.google.com/maps/place/Restorant+Pelikan/@40.9722664,19.4799887,17z",
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html (page state 'stars':3; 'three-star hotel like this')"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "Google '3-star hotel' and Booking page data 'stars':3 (two sources). Neither is an official Albanian classification register."
+    },
+    "setting": {
+      "value": "inside / at edge of Divjakë-Karavasta National Park (distance 0 m)",
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+        "https://stay.albaniavisit.com/hotel-pelikan/",
+        "https://albaniatravelguide.net/durres/divjake-karavasta/"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "Booking 'Parku Kombëtar Divjakë-Karavasta 0 yd'; AlbaniaVisit 'Divjake-Karavasta National Park 0 m'; ATG 'on the edge of Divjakë-Karavasta National Park'."
+    },
+    "beach_distance": {
+      "value": "right by the beach (qualitative); metres not published",
+      "sources": [
+        "https://albaniatravelguide.net/durres/divjake-karavasta/",
+        "https://www.travelmyth.co.uk/Divjake-Divjake/Hotels"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "ATG: 'A small hotel with a restaurant right by the beach in Divjakë'. Travelmyth AI summary: 'easy access to the beach'. AlbaniaVisit 'Spille Beach 10 km' is a different beach. No metres anywhere."
+    },
+    "airport_distance": {
+      "value": "Tirana TIA 85 km (53 mi) by Booking; AlbaniaVisit says both 85 km and 51 km; Vlora Intl 38 mi",
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+        "https://stay.albaniavisit.com/hotel-pelikan/"
+      ],
+      "confidence": "low",
+      "verified": true,
+      "verification_note": "Booking 'Closest Airports': Tirana 53 mi, Vlora 38 mi; Booking description says '54 mi'. AlbaniaVisit text '85 km', sidebar '51 km'. Derived (verifier): great-circle distance from the hotel coordinates to TIA is about 53 km, so 51 km is a straight-line figure and 85 km (53 mi) is the road figure. Use 'about 85 km by road'."
+    },
+    "room_types": {
+      "value": [
+        {
+          "name": "Deluxe Room",
+          "beds": "1 queen",
+          "size_ft2": 183,
+          "size_m2_approx": 17,
+          "features": [
+            "balcony",
+            "view",
+            "air conditioning",
+            "private bathroom",
+            "flat-screen TV",
+            "soundproofing",
+            "minibar",
+            "free WiFi"
+          ]
+        },
+        {
+          "name": "Deluxe Triple Room",
+          "beds": "1 twin + 1 full",
+          "size_ft2": 269,
+          "size_m2_approx": 25,
+          "features": [
+            "balcony",
+            "terrace",
+            "view",
+            "air conditioning",
+            "private bathroom",
+            "flat-screen TV",
+            "soundproofing",
+            "minibar",
+            "free WiFi"
+          ]
+        },
+        {
+          "name": "Deluxe Quadruple Room",
+          "beds": "1 bunk + 1 queen",
+          "sleeps": 4,
+          "size_ft2": 269,
+          "size_m2_approx": 25,
+          "features": [
+            "balcony",
+            "terrace",
+            "view",
+            "air conditioning",
+            "private bathroom",
+            "flat-screen TV",
+            "soundproofing",
+            "minibar",
+            "free WiFi"
+          ]
+        },
+        {
+          "name": "Double Room",
+          "beds": "1 full",
+          "note": "listed, not offered for 6-7 Nov 2026",
+          "confidence": "medium"
+        }
+      ],
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+        "https://stay.albaniavisit.com/hotel-pelikan/"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "Booking 6-7 Nov 2026: Deluxe Room (1 queen, 183 ft², balcony, view), Deluxe Triple (1 twin + 1 full, 269 ft², balcony + terrace), Deluxe Quadruple (1 bunk + 1 queen, 269 ft², max 4 shown on the 20-22 Jul 2027 grid). 'Double Room (1 full bed)' appears on the 20-22 Jul 2027 grid. AlbaniaVisit lists the three Deluxe types."
+    },
+    "total_rooms": {
+      "value": null,
+      "note": "not published",
+      "verified": true,
+      "verification_note": "Still not published on any page re-opened."
+    },
+    "facilities": {
+      "value": [
+        "restaurant",
+        "bar",
+        "garden",
+        "free private parking on site",
+        "24-hour front desk",
+        "24-hour security",
+        "daily housekeeping",
+        "currency exchange",
+        "family rooms",
+        "non-smoking rooms",
+        "free WiFi in all areas",
+        "air conditioning"
+      ],
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+        "https://stay.albaniavisit.com/hotel-pelikan/"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "Booking text: restaurant, bar, garden, free on-site private parking, 24-hour front desk, daily housekeeping, full-day security, family rooms, non-smoking rooms, free WiFi throughout. AlbaniaVisit schema amenityFeature adds currency exchange and confirms the rest. '(no reservation needed)' was not seen again and was removed."
+    },
+    "restaurant": {
+      "value": "local and international cuisine; fish, eel and local specialities; RestaurantGuru 4.8 (349 votes), Mediterranean/Healthy/Seafood, open until 22:00",
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+        "https://albaniatravelguide.net/durres/divjake-karavasta/",
+        "https://restaurantguru.com/Divjake",
+        "https://restaurantguru.com/Pelikani-Albania"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "RestaurantGuru Divjake list: 'Restorant Pelikan 4.8, 349 votes'. Detail page: 'Mediterranean, Healthy food, Seafood', price per person 'ALL 810 - ALL 2,000', open 7:30AM-10PM (Friday shown), '#1 of 44 restaurants in Divjakë'. ATG: 'restaurant serving fish, eel and other local specialities'. Booking: 'restaurant serving local and international cuisines'.",
+      "price_per_person_all": [
+        810,
+        2000
+      ],
+      "hours_seen": "07:30-22:00 (Friday, RestaurantGuru)"
+    },
+    "breakfast": {
+      "value": "included in observed rates; 07:30-11:00; a la carte",
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Booking: 'Excellent breakfast included' on all 6-7 Nov rates; 'Served daily 07:30 to 11:00'; 'À la carte'."
+    },
+    "airport_shuttle": {
+      "value": "paid",
+      "sources": [
+        "https://stay.albaniavisit.com/hotel-pelikan/",
+        "https://www.google.com/maps?cid=14313264533210368404"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "AlbaniaVisit: 'paid airport shuttle service'. Google amenities list 'Airport shuttle' (no price)."
+    },
+    "pets": {
+      "value": "allowed on request, charges may apply",
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+        "https://www.kayak.com/Divjake-Hotels.94469.hotel.ksp",
+        "https://www.google.com/maps?cid=14313264533210368404"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "Booking: 'Pets are allowed on request. Charges may apply.' Kayak 'Pet friendly'; Google 'Pet-friendly'."
+    },
+    "children_policy": {
+      "value": "all ages welcome; children 4+ charged as adults; no cribs or extra beds",
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Booking: 'Children of all ages are welcome. Children 4 and above will be charged as adults'; 'Cribs and extra beds aren't available'."
+    },
+    "pool": {
+      "value": "CONFLICT",
+      "note": "Google amenities list 'Pool' and also 'Fitness centre'; Booking (visible facilities and popular-facilities list) and AlbaniaVisit (schema amenityFeature) list neither. Do not advertise a pool or gym.",
+      "sources": [
+        "https://www.google.com/maps/place/Restorant+Pelikan/@40.9722664,19.4799887,17z",
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html"
+      ],
+      "confidence": "low",
+      "verified": true,
+      "verification_note": "Conflict confirmed on re-open."
+    },
+    "playground": {
+      "value": "large playground (AI review summary)",
+      "sources": [
+        "https://www.travelmyth.co.uk/Divjake-Divjake/Hotels",
+        "https://restaurantguru.com/Pelikani-Albania (a Google review shown there mentions an 'outdoor playground')"
+      ],
+      "confidence": "low",
+      "verified": true,
+      "verification_note": "Travelmyth AI summary: 'family rooms and a large playground'. A guest review (Google, shown on RestaurantGuru) mentions an 'outdoor playground'. Both review-derived; keep low, ask owner."
+    },
+    "languages": {
+      "value": [
+        "English",
+        "Italian"
+      ],
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Booking page data languagesSpoken.languageCodes ['en','it']."
+    },
+    "check_in": {
+      "value": "13:00-23:30",
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Booking: 'Check-in From 1:00 PM to 11:30 PM'."
+    },
+    "check_out": {
+      "value": "until 11:00",
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Booking: 'Check-out Until 11:00 AM'."
+    },
+    "payment_at_property": {
+      "value": "cash only; no prepayment; pay at the property",
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html"
+      ],
+      "confidence": "medium",
+      "conflict": {
+        "value": "RestaurantGuru lists 'Credit cards accepted' for Restorant Pelikan (aggregated, may be outdated or restaurant-only)",
+        "source": "https://restaurantguru.com/Pelikani-Albania"
+      },
+      "verified": true,
+      "verification_note": "Booking house rules: 'Cash only. This property only accepts cash payments.' Rates: 'No prepayment needed – pay at the property', 'No credit card needed'. Conflicts with RestaurantGuru 'Credit cards accepted'; ask owner."
+    },
+    "ratings": {
+      "value": [
+        {
+          "site": "Booking.com",
+          "score": 9.5,
+          "scale": 10,
+          "count": 601,
+          "subscores": {
+            "location": 9.6,
+            "staff": 9.6,
+            "cleanliness": 9.4,
+            "comfort": 9.4,
+            "value": 9.5,
+            "facilities": 9.0,
+            "wifi": 8.6
+          },
+          "source": "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+          "verified": true,
+          "verification_note": "9.5 'Exceptional', 601 reviews re-observed. Sub-scores re-observed but CONFLICT with AlbaniaVisit's Booking-fed sub-scores of Aug 2026; do not publish sub-scores."
+        },
+        {
+          "site": "AlbaniaVisit (Booking feed, checked 2026-08-23)",
+          "score": 9.5,
+          "scale": 10,
+          "count": 644,
+          "source": "https://stay.albaniavisit.com/hotel-pelikan/",
+          "verified": true,
+          "subscores_aug_2026": {
+            "location": 9.1,
+            "cleanliness": 9.3,
+            "comfort": 9.1,
+            "facilities": 9.0,
+            "staff": 9.4,
+            "value": 9.1,
+            "wifi": 8.9
+          },
+          "verification_note": "9.5 'Outstanding', 644 reviews, 'Checked 23 August 2026'."
+        },
+        {
+          "site": "Kayak",
+          "score": 9.5,
+          "scale": 10,
+          "count": 880,
+          "source": "https://www.kayak.com/Divjake-Hotels.94469.hotel.ksp",
+          "verified": true,
+          "verification_note": "Hotel Pelikan 9.5 'Wonderful' (880), $57 for Oct 24-25."
+        },
+        {
+          "site": "Travelmyth",
+          "score": 9.5,
+          "scale": 10,
+          "count": null,
+          "source": "https://www.travelmyth.co.uk/Divjake-Divjake/Hotels",
+          "verified": true,
+          "verification_note": "9.5 'Excellent', 'From £34'."
+        },
+        {
+          "site": "Google Maps",
+          "score": 4.7,
+          "scale": 5,
+          "count": 308,
+          "source": "https://www.google.com/maps/place/Restorant+Pelikan/@40.9722664,19.4799887,17z",
+          "verified": true,
+          "verification_note": "4.7 (308); Google states 'Reviews aren't verified'."
+        },
+        {
+          "site": "RestaurantGuru (restaurant)",
+          "score": 4.8,
+          "scale": 5,
+          "count": 349,
+          "source": "https://restaurantguru.com/Divjake",
+          "verified": true,
+          "verification_note": "Restaurant rating, not hotel."
+        }
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "Overall ~9.5/10 corroborated by four sites; Booking sub-scores disputed."
+    },
+    "years_in_business": {
+      "value": "over 20 years (client claim only)",
+      "sources": [
+        "research/SPEC.md"
+      ],
+      "confidence": "low",
+      "note": "Client claim only. The NIPT L64710402V pattern points to a company identifier assigned around 2016 (see nipt.verification_note); ask the owner for the founding year and any earlier legal form.",
+      "verified": false,
+      "verification_note": "No public source; NIPT pattern does not support it for the current company."
+    },
+    "photos_do_not_download": {
+      "value": {
+        "booking": "+40 photos on https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+        "google": "256 photos on the Google Maps listing",
+        "albaniavisit_mirror": [
+          "https://media.albaniavisit.com/media/accommodation/hotel/max1024x768/465684866.jpg",
+          "https://media.albaniavisit.com/media/accommodation/hotel/max1024x768/203867156.jpg",
+          "https://media.albaniavisit.com/media/accommodation/hotel/max1024x768/203867857.jpg",
+          "https://media.albaniavisit.com/media/accommodation/hotel/max1024x768/465684916.jpg",
+          "https://media.albaniavisit.com/media/accommodation/hotel/max1024x768/202956324.jpg",
+          "https://media.albaniavisit.com/media/accommodation/hotel/max1024x768/890082307.jpg",
+          "https://media.albaniavisit.com/media/accommodation/hotel/max1024x768/465728554.jpg",
+          "https://media.albaniavisit.com/media/accommodation/hotel/max1024x768/465684941.jpg",
+          "https://media.albaniavisit.com/media/accommodation/hotel/max1024x768/465684899.jpg",
+          "https://media.albaniavisit.com/media/accommodation/hotel/max1024x768/465684886.jpg",
+          "https://media.albaniavisit.com/media/accommodation/hotel/max1024x768/203867844.jpg"
+        ]
+      },
+      "note": "copyrighted; ask owner for originals",
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "AlbaniaVisit schema lists the same 11 media.albaniavisit.com images with '© 2026 AlbaniaVisit' licence notice; Booking '+40 photos'. Google photo count not re-checked."
+    }
+  },
+  "services": [
+    {
+      "id": "boat-trip",
+      "name_en": "Lagoon boat trip",
+      "name_sq": "Shëtitje me varkë në lagunë",
+      "status": "documented",
+      "detail": "~30 min ride from channel 1 km east of the visitor centre; official AKT mentions boat trips to canals and islands; AKZM map legend 'Lagoon Boat Trips'",
+      "sources": [
+        "https://akt.gov.al/en/attractions/lagoon-of-karavasta/",
+        "https://akzm.gov.al/wp-content/uploads/2020/07/Harta-e-Guides-se-Parkut-Kombetar-Divjake-Karavasta_Eng.pdf",
+        "https://albaniatravelguide.net/durres/divjake-karavasta/"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "AKT lagoon page: 'Boat trips through its calm waters take you to hidden canals, small islands...'. ATG: ride starts 'one kilometre east of the visitors centre', ~30 min. AKZM map PDF could not be re-opened."
+    },
+    {
+      "id": "pelican-island-landing",
+      "name_en": "Landing on Pelican Island",
+      "status": "NOT SELLABLE",
+      "detail": "island closed to the public; view from towers/boats; nesting Jan-Jun",
+      "sources": [
+        "https://akt.gov.al/en/attractions/Pelican-Island/"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "AKT: island closed to visitors; view 'from observation towers and nearby boat tours'; nests January to June."
+    },
+    {
+      "id": "birdwatching-guided",
+      "name_en": "Guided birdwatching / nature tour",
+      "name_sq": "Tur i guiduar për vëzhgimin e shpendëve",
+      "status": "documented",
+      "detail": "AKT 'guided tours with nature specialists'; trails 4-6 overlook pelican site; Albania Rafting Group packages",
+      "sources": [
+        "https://akt.gov.al/en/attractions/Divjake-Karavasta-National-Park/",
+        "https://akzm.gov.al/wp-content/uploads/2020/07/Harta-e-Guides-se-Parkut-Kombetar-Divjake-Karavasta_Eng.pdf",
+        "https://www.pelago.com/en-GB/activity/p187p3473-albania-birdwatching-kayaking-bicycle-national-park-divjaka-karavasta-arg-tirana/"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "AKT park page: 'guided tours with nature specialists'; Pelago ARG birdwatching/kayak/bicycle package re-opened. AKZM PDF not re-opened."
+    },
+    {
+      "id": "towers-visitor-centre",
+      "name_en": "Observation towers and Visitor Centre",
+      "status": "documented",
+      "detail": "36 m panoramic tower (AKT) / 35 m lookout tower at the Visitor Centre (ATG); towers at Skela e Pirgut, First Lagoon channel, north beach (AKZM); tower ticket price conflicting",
+      "sources": [
+        "https://akt.gov.al/en/attractions/Divjake-Karavasta-National-Park/",
+        "https://albaniatravelguide.net/durres/divjake-karavasta/",
+        "https://akzm.gov.al/wp-content/uploads/2020/07/Harta-e-Guides-se-Parkut-Kombetar-Divjake-Karavasta_Eng.pdf"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "AKT: '36-meter-high panoramic tower'; ATG: Visitor Centre 'with a 35-metre high lookout tower (entrance 100 lek)', about 4 km west of Divjakë village. AKZM PDF tower list not re-opened."
+    },
+    {
+      "id": "hiking-trails",
+      "name_en": "Marked hiking trails (7, 2.7-22.4 km)",
+      "status": "documented",
+      "sources": [
+        "https://akzm.gov.al/wp-content/uploads/2020/07/Harta-e-Guides-se-Parkut-Kombetar-Divjake-Karavasta_Eng.pdf"
+      ],
+      "confidence": "high",
+      "verified": false,
+      "verification_note": "Only source is the AKZM map PDF, which could not be re-opened (connection refused/timeouts)."
+    },
+    {
+      "id": "bike-rental",
+      "name_en": "Bike rental",
+      "name_sq": "Biçikleta me qira",
+      "status": "documented",
+      "detail": "rented at the visitor/info centre; 200 ALL/hour in June 2021",
+      "sources": [
+        "https://albaniatravelguide.net/durres/divjake-karavasta/",
+        "https://www.wikiloc.com/bikepacking-trails/divjake-76313563"
+      ],
+      "confidence": "high",
+      "price_confidence": "low",
+      "verified": true,
+      "verification_note": "ATG: bicycle 'can be rented in the visitor's centre'. Price (Wikiloc 200 ALL/h, 2021) NOT re-verified: Cloudflare challenge.",
+      "price_verified": false
+    },
+    {
+      "id": "kayak-tour",
+      "name_en": "Lagoon kayaking day tour",
+      "status": "documented",
+      "operator": "Albania Rafting Group (publicly listed)",
+      "detail": "EUR 60; Mar-Nov; optional bicycle EUR 30 pp, SUV safari EUR 40 pp; meets at 'Divjake Karavasta Tourists Office'",
+      "sources": [
+        "https://albrafting.org/tour/kayaking-national-park-divjaka-karavasta-day-tour-top-10-albania-tours",
+        "https://www.pelago.com/en-GB/activity/p187p3473-albania-birdwatching-kayaking-bicycle-national-park-divjaka-karavasta-arg-tirana/"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "albrafting.org: 'Karavasta Lagoon Kayaking Tour', 60.00€, Mar-Nov, meeting 'Divjakë–Karavasta Tourist Office at 10:00 a.m.'; base price not explicitly 'per person'. Pelago: optional bicycle 30 Eur/person, SUV safari 40 Eur/person."
+    },
+    {
+      "id": "horse-riding",
+      "name_en": "Horse riding",
+      "status": "plausible-only",
+      "detail": "AKT lists Divjaka among riding districts; no operator found; AKZM zoning restricts walking with horses by zone",
+      "sources": [
+        "https://akt.gov.al/en/adventure/horse-riding/",
+        "https://akzm.gov.al/wp-content/uploads/2020/07/Harta-e-Guides-se-Parkut-Kombetar-Divjake-Karavasta_Eng.pdf"
+      ],
+      "confidence": "low",
+      "verified": true,
+      "verification_note": "AKT: riding 'practiced mainly in districts that have quality horse breeding centers', list includes Divjaka. Still no operator. AKZM zoning not re-opened."
+    },
+    {
+      "id": "recreational-fishing",
+      "name_en": "Recreational fishing",
+      "status": "do-not-sell",
+      "detail": "zone-restricted activity in the park; local fisheries cooperative; 2023 paper warns of overfishing/collapse risk",
+      "sources": [
+        "https://akzm.gov.al/wp-content/uploads/2020/07/Harta-e-Guides-se-Parkut-Kombetar-Divjake-Karavasta_Eng.pdf",
+        "https://en.wikipedia.org/wiki/Divjak%C3%AB-Karavasta_National_Park",
+        "https://koreascience.kr/article/JAKO202317843241828.do"
+      ],
+      "confidence": "low",
+      "verified": true,
+      "verification_note": "KoreaScience article title: 'Overfishing and recent risk for collapse of fishery in coastal Mediterranean lagoon ecosystem (Karavasta lagoon...)'; Wikipedia: fish 'exploited by a local fisheries cooperative'. AKZM zoning table not re-opened."
+    },
+    {
+      "id": "traditional-fishing-viewing",
+      "name_en": "Seeing traditional fishing (fish traps in channels)",
+      "status": "documented",
+      "sources": [
+        "https://akzm.gov.al/wp-content/uploads/2020/07/Harta-e-Guides-se-Parkut-Kombetar-Divjake-Karavasta_Eng.pdf"
+      ],
+      "confidence": "high",
+      "verified": false,
+      "verification_note": "Only source is the AKZM map PDF, not re-opened."
+    },
+    {
+      "id": "lagoon-fish-dining",
+      "name_en": "Restaurant meals with lagoon fish (eel, sea bass, mullet, gilthead bream, shrimp)",
+      "status": "documented",
+      "sources": [
+        "https://akt.gov.al/en/attractions/lagoon-of-karavasta/",
+        "https://akt.gov.al/en/culinary/the-culinary-delights-of-the-Divjakas/",
+        "https://akzm.gov.al/parku-kombetar-divjake-karavasta/",
+        "https://koreascience.kr/article/JAKO202317843241828.do"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "AKT lagoon: 'special dishes with eels, sea bass or blue shrimp'; AKT culinary: 'eel, sea bass, and shrimp'; AKZM page: 'Ngjala, Kocja, Levreku, Qefulli'; KoreaScience: European eel, Mugilidae, Seabream, Seabass."
+    },
+    {
+      "id": "local-restaurants",
+      "name_en": "Named local restaurants (public listings)",
+      "status": "documented",
+      "detail": "Divjaka Fish 4.8 (1380), Restorant 'Ali Kali' 4.8 (1209), Restorant BERTI 4.8 (463), Restorant Pelikan 4.8 (349), Due Gemelli, The Fisherman's House, Taverna Divjaka",
+      "sources": [
+        "https://restaurantguru.com/Divjake"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "RestaurantGuru Divjake list re-opened: Divjaka Fish 4.8 (1380), Restorant 'Ali Kali' 4.8 (1209), Restorant BERTI 4.8 (463), Restorant Pelikan 4.8 (349), Due Gemelli 4.5 (22), The Fisherman's House 3.5 (26), Taverna Divjaka 3.7 (42)."
+    },
+    {
+      "id": "cultural-7-churches",
+      "name_en": "7 Churches of Karavasta (18th c.)",
+      "status": "documented",
+      "sources": [
+        "https://akt.gov.al/en/attractions/The-7-churches-of-Karavasta/"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "AKT: 'built in the 18th century', village 'Karavasta e Re'."
+    },
+    {
+      "id": "cultural-ardenica",
+      "name_en": "Ardenica Monastery",
+      "status": "documented (listed under Divjakë on AKT; page not opened)",
+      "sources": [
+        "https://akt.gov.al/en/attractions/lagoon-of-karavasta/"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "AKT lagoon page lists 'Attraction Ardenica Monastery' under 'Similar posts in: Divjakë'. Ardenica page itself not opened."
+    },
+    {
+      "id": "beach-swimming",
+      "name_en": "Beach / swim area",
+      "status": "documented",
+      "sources": [
+        "https://akzm.gov.al/wp-content/uploads/2020/07/Harta-e-Guides-se-Parkut-Kombetar-Divjake-Karavasta_Eng.pdf",
+        "https://akt.gov.al/en/attractions/Divjake-Karavasta-National-Park/"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "AKT park page: 'golden sandy beaches'. AKZM 'Swim Area' legend not re-opened."
+    },
+    {
+      "id": "product-watermelon",
+      "name_en": "Divjakë watermelon (seasonal)",
+      "status": "documented local crop",
+      "detail": "6 ALL/kg farm price, 3 Aug 2025; fits breakfast/menus, not shipping",
+      "sources": [
+        "https://shqiptarja.com/lajm/cmimi-i-shalqirit-bie-ne-6-lekekg-ne-divjake-brace-blijeni-te-shpetojme-bujqit"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Shqiptarja 3 Gusht 2025: 'Çmimi i shalqirit në Divjakë ka zbritur në 6 lekë për kilogram'; an MP urged hotels, restaurants and beach bars to put it on menus."
+    },
+    {
+      "id": "product-dairy",
+      "name_en": "Local farm milk / cheese; water buffalo bred in park",
+      "status": "documented generically, no producer named",
+      "sources": [
+        "https://akt.gov.al/en/culinary/the-culinary-delights-of-the-Divjakas/",
+        "https://akzm.gov.al/parku-kombetar-divjake-karavasta/"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "AKT culinary: 'products of local farms and livestock, such as milk, cheese'. AKZM: 'mbarështohet Buallica (Bubalus bubalis) një lloj i mbrojtur në Shqipëri' = the buffalo is a PROTECTED species in Albania: do not sell buffalo products without the owner confirming legality."
+    },
+    {
+      "id": "product-honey-oil-wine-salt-crafts",
+      "name_en": "Honey, olive oil, wine, salt, handicrafts",
+      "status": "NOT documented for Divjakë",
+      "confidence": "low",
+      "verified": false,
+      "verification_note": "Absence not re-searched in this pass."
+    }
+  ],
+  "prices": [
+    {
+      "item": "Pelikan Deluxe Room (double), breakfast incl.",
+      "season": "low",
+      "dates": "2026-11-06/07",
+      "eur": 45,
+      "all": 4079,
+      "source": "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Booking 6-7 Nov 2026: '€ 45 ... Includes taxes and fees ... Excellent breakfast included'."
+    },
+    {
+      "item": "Pelikan Deluxe Triple",
+      "season": "low",
+      "dates": "2026-11-06/07",
+      "eur": 55,
+      "all": 4985,
+      "source": "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Booking 6-7 Nov 2026: € 55."
+    },
+    {
+      "item": "Pelikan Deluxe Quadruple",
+      "season": "low",
+      "dates": "2026-11-06/07",
+      "eur": 65,
+      "all": 5892,
+      "source": "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Booking 6-7 Nov 2026: € 65."
+    },
+    {
+      "item": "Pelikan via Google/Agoda, free breakfast",
+      "season": "low",
+      "dates": "2026-11-03/04",
+      "all": 4065,
+      "eur_approx": 44.8,
+      "source": "https://www.google.com/maps/place/Restorant+Pelikan/@40.9722664,19.4799887,17z",
+      "confidence": "medium",
+      "previous_observation": {
+        "gbp": 38,
+        "all": 4111,
+        "note": "researcher's reading"
+      },
+      "verified": true,
+      "verification_note": "Google Maps re-opened: 'Agoda ALL 4,065, Free breakfast' for Tue 3 - Wed 4 Nov, 2 guests (shown in ALL this time). Live price, changes daily."
+    },
+    {
+      "item": "Pelikan via Kayak",
+      "season": "shoulder",
+      "dates": "2026-10-24/25",
+      "usd": 57,
+      "all": 4602,
+      "eur_approx": 50.8,
+      "source": "https://www.kayak.com/Divjake-Hotels.94469.hotel.ksp",
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Kayak: 'Hotel Pelikan ... 9.5 Wonderful (880) ... $57', 'best prices for Oct 24 - 25'."
+    },
+    {
+      "item": "Pelikan 'from' price (checked 2026-08-23)",
+      "season": "unknown",
+      "eur": 43,
+      "all": 3898,
+      "source": "https://stay.albaniavisit.com/hotel-pelikan/",
+      "confidence": "low",
+      "verified": true,
+      "verification_note": "AlbaniaVisit: 'From €43 per night, Checked 23 August 2026'."
+    },
+    {
+      "item": "Pelikan Travelmyth 'from'",
+      "gbp": 34,
+      "all": 3678,
+      "eur_approx": 40.6,
+      "source": "https://www.travelmyth.co.uk/Divjake-Divjake/Hotels",
+      "confidence": "low",
+      "verified": true,
+      "verification_note": "Travelmyth: 'From £34'."
+    },
+    {
+      "item": "Divjakë average weeknight (Kayak)",
+      "usd": 64,
+      "all": 5167,
+      "eur_approx": 57.0,
+      "note": "Kayak labels August as low and October as high season (implausible)",
+      "source": "https://www.kayak.com/Divjake-Hotels.94469.hotel.ksp",
+      "confidence": "low",
+      "verified": true,
+      "verification_note": "Kayak: '$64' 'Average Sun - Thu price over the last 2 weeks'; low season August, high season October."
+    },
+    {
+      "item": "Pelikan high season (Jul-Aug)",
+      "value": null,
+      "note": "summer 2027 not yet bookable; ask owner",
+      "source": "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+      "confidence": "low",
+      "verified": true,
+      "verification_note": "Booking 20-22 Jul 2027: 'We have no availability on our site for this property'; page data for 10-11 Aug 2027: 'isSoldOut': true. Summer price still unknown."
+    },
+    {
+      "item": "Albanian coastal hotels shown as 'similar' by Booking",
+      "season": "high",
+      "dates": "2027-08-10/11",
+      "eur_range": [
+        60,
+        124
+      ],
+      "all_range": [
+        5438,
+        11239
+      ],
+      "source": "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+      "confidence": "low",
+      "verified": false,
+      "verification_note": "The 'similar properties' list with these prices was not re-observed in this pass."
+    },
+    {
+      "item": "Divjakë town small hotels/guesthouses",
+      "eur_range": [
+        20,
+        40
+      ],
+      "all_range": [
+        1813,
+        3626
+      ],
+      "source": "https://albaniavisit.com/attractions/karavasta-lagoon/",
+      "confidence": "low",
+      "verified": true,
+      "verification_note": "AlbaniaVisit lagoon: 'Divjakë town has several small hotels and guesthouses (€20-40 per night)'."
+    },
+    {
+      "item": "Lagoon boat ride ~30 min",
+      "all": 1500,
+      "unit": "per boat, 1-5 people",
+      "alt": {
+        "all": 300,
+        "unit": "per person, 6-10 people"
+      },
+      "eur_approx": 16.55,
+      "source": "https://albaniatravelguide.net/durres/divjake-karavasta/",
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "ATG: 'An around 30-minute-ride cost 1500 lek (for group of 1-5 persons) or 300 lek per person (for group of 6-10 people).'"
+    },
+    {
+      "item": "Guided boat tour / birdwatching tour",
+      "eur_range_boat": [
+        10,
+        20
+      ],
+      "eur_range_birding": [
+        15,
+        30
+      ],
+      "all_range_birding": [
+        1360,
+        2719
+      ],
+      "source": "https://albaniavisit.com/attractions/karavasta-lagoon/",
+      "confidence": "low",
+      "verified": true,
+      "verification_note": "AlbaniaVisit lagoon: 'guided boat tours €10-20; birdwatching tours €15-30'; boat tours need 'minimum numbers (usually 4-6 people)'."
+    },
+    {
+      "item": "Kayak day tour (Albania Rafting Group)",
+      "eur": 60,
+      "all": 5438,
+      "source": "https://albrafting.org/tour/kayaking-national-park-divjaka-karavasta-day-tour-top-10-albania-tours",
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "albrafting.org: '60.00€'; the page does not say 'per person' for the base price (add-ons are per person)."
+    },
+    {
+      "item": "Bicycle tour ~3 h / SUV lagoon safari (ARG optional)",
+      "eur": [
+        30,
+        40
+      ],
+      "all": [
+        2719,
+        3626
+      ],
+      "pelago_from_gbp": [
+        46.35,
+        51.63
+      ],
+      "source": "https://www.pelago.com/en-GB/activity/p187p3473-albania-birdwatching-kayaking-bicycle-national-park-divjaka-karavasta-arg-tirana/",
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Pelago: 'Bicycle' from GBP 46.35, 'Safari (SUV) into the lagoon' from GBP 51.63 (were 46.33/51.62); itinerary: 'Bicycle ... (30 Eur/ person)', 'Safari (SUV) ... (40 Eur/ person)'."
+    },
+    {
+      "item": "Bike hire at park info centre",
+      "all": 200,
+      "unit": "per hour",
+      "date": "2021-06",
+      "eur_approx": 2.21,
+      "source": "https://www.wikiloc.com/bikepacking-trails/divjake-76313563",
+      "confidence": "low",
+      "verified": false,
+      "verification_note": "Wikiloc behind a Cloudflare challenge; not re-opened. ATG confirms bikes are rented at the visitor centre but gives no price."
+    },
+    {
+      "item": "Bike hire per day (Shkodër, Albania)",
+      "usd_range": [
+        5,
+        10
+      ],
+      "all_range": [
+        404,
+        807
+      ],
+      "source": "https://www.tripbase.com/destinations/shkoder-albania/getting-around/",
+      "confidence": "low",
+      "verified": true,
+      "verification_note": "Tripbase: 'Bike rental shops near the center charge $5-10/day' (Shkodër, not Divjakë)."
+    },
+    {
+      "item": "Park / tower ticket",
+      "value": "CONFLICT",
+      "candidates_all": {
+        "tower_ATG": 100,
+        "park_entry_albaniavisit": 300
+      },
+      "sources": [
+        "https://albaniatravelguide.net/durres/divjake-karavasta/",
+        "https://albaniavisit.com/attractions/karavasta-lagoon/"
+      ],
+      "confidence": "low",
+      "verified": true,
+      "verification_note": "Both candidates re-opened: ATG tower '(entrance 100 lek)'; AlbaniaVisit 'Park entry: 300 LEK (~€3) per person'. The 50/150 lek figure came from a search snippet only. Conflict stands."
+    },
+    {
+      "item": "Restaurant lunch, one dish (Lushnjë)",
+      "eur": 8.7,
+      "all": 789,
+      "albania_avg_all": 799,
+      "updated": "2026-10-23",
+      "source": "https://www.combien-coute.net/restaurant/albanie/lushnje/",
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "combien-coute Lushnjë: 'Déjeuner à Lushnje 8,7 €'; Albania average 8,8 € ≈ 799 lek; updated 23/10/2026."
+    },
+    {
+      "item": "3-course dinner per person",
+      "eur_albania": 19,
+      "all_albania_stated": 1747,
+      "eur_durres": 17,
+      "all_durres": 1541,
+      "sources": [
+        "https://www.combien-coute.net/restaurant/albanie/lushnje/",
+        "https://www.combien-coute.net/restaurant-menu/albanie/durres/"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "'Dîner 3 plats en Albanie 19 €'; '1 747 Lek' (Albania) shown on the Durrës page; 'Dîner 3 plats à Durrës 17 €' (1,541 ALL is a conversion, not stated)."
+    },
+    {
+      "item": "SUGGESTED DEMO VALUES (derived, label as demo)",
+      "double_low_all": [
+        4000,
+        4500
+      ],
+      "double_high_all_unverified": [
+        5500,
+        7500
+      ],
+      "boat_pp_all": 300,
+      "boat_per_boat_all": 1500,
+      "guided_birding_all": [
+        1500,
+        2700
+      ],
+      "kayak_day_all": 5400,
+      "bike_hour_all": 200,
+      "bike_day_all_extrapolated": [
+        800,
+        1000
+      ],
+      "fish_meal_all": [
+        800,
+        1800
+      ],
+      "confidence": "low",
+      "verified": false,
+      "verification_note": "Derived values, not sourced facts; label as demo."
+    },
+    {
+      "item": "Restorant Pelikan price per person (RestaurantGuru)",
+      "all_range": [
+        810,
+        2000
+      ],
+      "source": "https://restaurantguru.com/Pelikani-Albania",
+      "confidence": "low",
+      "verified": true,
+      "verification_note": "Aggregator figure 'Price range per person ALL 810 - ALL 2,000'."
+    }
+  ],
+  "payments": [
+    {
+      "method": "Pay at property (cash)",
+      "status": "current practice on Booking: 'cash only', 'no prepayment needed'",
+      "source": "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Booking: 'Cash only'; conflicts with RestaurantGuru 'Credit cards accepted' (see hotel.payment_at_property)."
+    },
+    {
+      "method": "BKT Virtual POS",
+      "status": "available",
+      "features": [
+        "Visa/Mastercard debit+credit",
+        "EUR/LEK or both",
+        "3-D Secure included",
+        "installments",
+        "SSL required"
+      ],
+      "fees": {
+        "implementation_eur": 170,
+        "annual_maintenance_eur": 110,
+        "per_transaction": "not published"
+      },
+      "requirements": [
+        "account at BKT",
+        "KSHBB003 + KSHBI011",
+        "NIPT",
+        "QKB extract (e-Albania)",
+        "statute",
+        "founding act",
+        "shareholder declaration if >1"
+      ],
+      "website_rules": [
+        "contact info",
+        "prices",
+        "exchange rate if foreign currency",
+        "trade name, country, address",
+        "privacy, security, cancellation-return policy, distance sales contract / T&C, jurisdiction",
+        "card logos",
+        "catalogue + cart",
+        "all links working"
+      ],
+      "source": "https://www.bkt.com.al/en/business/daily-operations/virtual-pos-services/virtual-pos",
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "Re-opened: Visa/Mastercard debit+credit, EUR/LEK/both, 3D Secure included, installments in e-commerce, SSL; 170 EUR one-time before implementation, 110 EUR/year after go-live; no per-transaction rate shown; documents and Visa/MC website rules as recorded (also customer-service phone + e-mail, delivery info, payment page with card option)."
+    },
+    {
+      "method": "Raiffeisen Bank Albania e-commerce",
+      "status": "available",
+      "features": [
+        "3-D Secure",
+        "recurring payments",
+        "payment links"
+      ],
+      "fees": {
+        "ecommerce_pct_range": [
+          0.5,
+          3.5
+        ],
+        "one_time_all": 9500,
+        "monthly_maintenance_all": 2000,
+        "monthly_no_usage_all": 4500,
+        "negotiable": true,
+        "note": "undated PDF; its EUR equivalents imply an old ~136 ALL/EUR rate",
+        "pdf_created": "2020-06-03 (PDF metadata)"
+      },
+      "sources": [
+        "https://www.raiffeisen.al/content/dam/rbi/retail/eu/al/corporate/terms-and-conditions/TandC_POS_EC.pdf.coredownload.pdf",
+        "https://www.raiffeisen.al/en/sme-businesses/products-and-services/se-business/pos-and-e-commerce-service.html"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "PDF re-downloaded: e-commerce 0.50%-3.50%; one-time 9.500 LEK (70 EUR); maintenance 2.000 LEK (15 EUR)/month; no-usage 4.500 LEK (30 EUR)/month; 'Bank holds the right to negotiate'. PDF metadata creation date 2020-06-03, so fees are old. Web page: 3D Secure, 'Recurring payments on demand', 'Link generation payment option'; hotels named only in the general intro ('car rent, hotels, restaurants')."
+    },
+    {
+      "method": "POK (pokpay.io)",
+      "status": "available",
+      "features": [
+        "Visa/Mastercard + POK app users",
+        "ready-to-use checkout",
+        "API & SDK",
+        "pay by link",
+        "booking-system use case"
+      ],
+      "fees": "not published",
+      "source": "https://pokpay.io/en/business/acquire",
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "Re-opened: 'Accept payments via Visa/Mastercard, as well as from POK app users'; 'Ready-to-use Checkout'; 'API & SDK'; section 'For Booking Systems' (vehicles, rooms, venues, properties). Pay-by-link appears only as the menu item 'Pagesa me Link'. No merchant fees published."
+    },
+    {
+      "method": "Paysera Albania (Paysera Checkout)",
+      "status": "available",
+      "features": [
+        "Visa, Mastercard, Maestro credit and debit cards",
+        "e-banking via Payment Initiation Service (PIS) and Bank Link",
+        "free plugins for ~20 platforms incl. WooCommerce, PrestaShop, OpenCart, Magento, Shopify, Ecwid"
+      ],
+      "licence": "EMI licence from the Bank of Albania, announced 19 April 2021",
+      "fees": "not shown on pages opened",
+      "sources": [
+        "https://paysera.lt/v2/en-LT/blog/paysera-albania-emi",
+        "https://www.paysera.al/v2/sq-AL/porta-e-pagesave-arka"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "paysera.lt blog dated 'April 19, 2021': 'The Central Bank of Albania has issued an electronic money institution (EMI) licence to Paysera Albania'. paysera.al checkout page re-opened; no fee figures."
+    },
+    {
+      "method": "PayPal",
+      "status": "unclear for Albanian merchants",
+      "detail": "AL user agreement exists (updated 28 May 2026, PayPal Pte. Ltd.); receiving 'where available', check by logging in",
+      "source": "https://www.paypal.com/al/legalhub/paypal/useragreement-full",
+      "confidence": "low",
+      "verified": true,
+      "verification_note": "'Last updated on 28 May 2026'; contract with 'PayPal Pte. Ltd., a Singaporean company'; 'where available, to receive payments ... You can see what services are available in your country/region by logging into your PayPal account'."
+    },
+    {
+      "method": "Stripe",
+      "status": "NOT available (Albania not on global list)",
+      "source": "https://stripe.com/global",
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "stripe.com/global re-opened: Albania absent from supported, extended-network and preview lists."
+    },
+    {
+      "method": "Bank transfer",
+      "status": "generic option; not researched",
+      "confidence": "low",
+      "verified": false,
+      "verification_note": "No source."
+    },
+    {
+      "method": "Mastercard POSÍ programme",
+      "status": "physical POS only (free RaiPOS 12 months, 0% commission up to a limit from 2025-05-01); not online",
+      "sources": [
+        "https://www.raiffeisen.al/en/sme-businesses/products-and-services/se-business/pos-and-e-commerce-service.html",
+        "https://www.bkt.com.al/en/business/daily-operations/virtual-pos-services/virtual-pos"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Raiffeisen page: Mastercard POSÍ for SMEs with physical stores, RaiPOS free for 12 months, 0% commission up to an annual limit by sector, from May 1, 2025."
+    }
+  ],
+  "channels": [
+    {
+      "channel": "Booking.com",
+      "free_method": "deep link to existing listing https://www.booking.com/hotel/al/pelikan-divjake.html",
+      "paid": "commission % per booking, set by agreement/country/property type; extra for Preferred/Visibility programmes",
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+        "https://partner.booking.com/en-gb/help/payments-payouts-invoices/invoices/understanding-your-commission"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "Partner help re-opened: 'a set percentage of the total booking amount'; 'depends on your country, property type and the accommodation agreement'; Preferred Partner / Visibility Booster raise it; invoice sent once a month."
+    },
+    {
+      "channel": "Airbnb",
+      "free_method": "profile link (no Pelikan listing verified)",
+      "paid": "host-only fee mandatory for hotels; most hosts 15.5%",
+      "source": "https://www.airbnb.com/help/article/1857",
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "'mandatory for most hosts, including traditional hospitality listings (e.g., hotels, serviced apartments, etc.)'; 'Most hosts pay 15.5%'."
+    },
+    {
+      "channel": "Google Business Profile / Maps",
+      "free_method": "claim existing listing ('Restorant Pelikan'), add website link",
+      "paid": "prices/free booking links require a connectivity partner (CRS/IBE/channel manager/PMS); direct integration unavailable",
+      "sources": [
+        "https://www.google.com/maps/place/Restorant+Pelikan/@40.9722664,19.4799887,17z",
+        "https://support.google.com/hotelprices/answer/11946931?hl=en",
+        "https://support.google.com/hotelprices/answer/11947460?hl=en"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "support.google.com/hotelprices/answer/11946931: 'Direct integration with Google is currently unavailable due to high demand' and share prices 'with a connectivity partner'. Answer 11947460 did not render the relevant text this time."
+    },
+    {
+      "channel": "Google structured data",
+      "free_method": "schema.org LocalBusiness (most specific subtype); required: name, address",
+      "source": "https://developers.google.com/search/docs/appearance/structured-data/local-business",
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "Required: address, name; 'Use the most specific LocalBusiness sub-type possible'."
+    },
+    {
+      "channel": "Channel manager",
+      "paid": "example Channex: USD 130/month platform + USD 7 per hotel property (for software builders)",
+      "source": "https://channex.io/pricing/",
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "Channex: '$130' platform fee per month + '$7 / property'; 'For teams that build hotel software'."
+    },
+    {
+      "channel": "WhatsApp",
+      "free_method": "https://wa.me/<digits>?text=<urlencoded> (prefill only, nothing auto-sent)",
+      "source": "https://bird.com/explained/whatsapp/what-is-a-whatsapp-click-to-chat-link",
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "bird.com: number after https://wa.me/ 'using digits without the plus sign, brackets or dashes'; '?text=urlencodedtext'; 'It does not send a message automatically'. Vendor source, not WhatsApp's own FAQ."
+    },
+    {
+      "channel": "Viber",
+      "free_method": "viber://chat?number= only in vendor blogs; official deep-link page documents no chat-by-number link; test before use",
+      "source": "https://developers.viber.com/docs/tools/deep-links",
+      "confidence": "low",
+      "verified": false,
+      "verification_note": "The official URL now renders the Viber Developers Hub home page with no deep-link content; claim cannot be re-checked."
+    },
+    {
+      "channel": "Facebook / Instagram / TikTok",
+      "free_method": "profile links",
+      "note": "hotel accounts not found; Meta domains unreachable from this machine",
+      "confidence": "low",
+      "verified": false,
+      "verification_note": "Hotel accounts still not found; RestaurantGuru shows aggregated Facebook reviews (2), so a page may exist."
+    }
+  ],
+  "legal": [
+    {
+      "topic": "E-commerce law",
+      "value": "Law No. 10128, dated 11.5.2009 'Për tregtinë elektronike', as amended",
+      "sources": [
+        "https://www.uet.edu.al/wp-content/uploads/2021/12/Shkendi_Cili.pdf",
+        "https://www.konsultimipublik.gov.al/documents/RENJK_1001_Njoftimi-per-konsultim-publik-eksperte..docx"
+      ],
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "UET thesis re-downloaded: 'ligji nr. 10128, datë 11.05.2009 \"Për tregtinë elektronike\"' cited repeatedly (one TOC typo says 10129). konsultimipublik docx not re-opened (Incapsula)."
+    },
+    {
+      "topic": "Provider info on site",
+      "value": "trade name; seat address; e-mail/fast contact; trade-register data incl. unique identification number; supervising authority if licensed; NIPT",
+      "sources": [
+        "https://www.uet.edu.al/wp-content/uploads/2021/12/Shkendi_Cili.pdf",
+        "https://www.bkt.com.al/en/business/daily-operations/virtual-pos-services/virtual-pos"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "UET thesis quotes Neni 3 of Law 10128: a) trade name, b) seat address, c) e-mail or other fast contact, d) trade-register data 'sidomos numrin unik të identifikimit', e) supervising authority if licensed, f-i) regulated professions, j) 'numrin unik të identifikimit të subjektit apo NIPT-in'. BKT page also requires company info, contact phone and e-mail."
+    },
+    {
+      "topic": "Pending e-commerce amendment",
+      "value": "public consultation (2026) on a draft amending Law 10128: anti-geoblocking, non-discrimination, digital markets",
+      "source": "https://www.konsultimipublik.gov.al/documents/RENJK_1001_Njoftimi-per-konsultim-publik-eksperte..docx",
+      "confidence": "high",
+      "verified": false,
+      "verification_note": "RENJK_1001 documents behind Incapsula, not re-opened. Search snippets of the portal say the draft (Ministry of Infrastructure and Energy) on anti-geoblocking/non-discrimination/digital markets went to consultation from 29 June 2026 for 20 working days; adoption unknown."
+    },
+    {
+      "topic": "Consumer protection",
+      "value": "Law No. 9902, dated 17.4.2008 'Për mbrojtjen e konsumatorëve', as amended; new draft law 'Për mbrojtjen e konsumatorit' in consultation from 2.7.2025 (adoption status unknown)",
+      "sources": [
+        "https://www.uet.edu.al/wp-content/uploads/2021/12/Shkendi_Cili.pdf",
+        "https://konsultimipublik.gov.al/documents/RENJK_842_RENJK-Dokumenti-konsultativ.docx"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Law 9902/2008 confirmed in the UET thesis. The new draft law part is NOT re-opened (Incapsula); search snippets of the portal give consultation 02.07.2025-30.07.2025 and an impact assessment dated 10.12.2025; adoption status still unknown."
+    },
+    {
+      "topic": "14-day withdrawal (distance sales)",
+      "value": "reported for Law No. 50/2025 (CEFTA e-commerce decision) in a PwC alert seen only as a search snippet; accommodation exception unverified",
+      "confidence": "low",
+      "verified": false,
+      "verification_note": "PwC alerts return HTTP 403; still unverified."
+    },
+    {
+      "topic": "Personal data protection",
+      "value": "Law No. 124/2024 'Për mbrojtjen e të dhënave personale': adopted 19.12.2024, decree 5 of 15.1.2025, Fletorja Zyrtare 2025/9, in force 15 days after publication (arts 29(3),31,32,35,36,64,65,67(2,3,5) after 2 years); repeals Law 9887/2008; GDPR-aligned; breach notice 72h; fines up to ALL 1bn/2% or ALL 2bn/4%",
+      "source": "https://kpa.al/wp-content/uploads/2025/02/Ligj-nr.-124-2024-Per-mbrojtjen-e-te-dhenave-personale-1_.pdf",
+      "confidence": "high",
+      "sources_verified": [
+        "https://www.instat.gov.al/media/04phlcjc/ligj-2024-12-19-124-korrigjuar.pdf"
+      ],
+      "verified": true,
+      "verification_note": "kpa.al copy unreachable today; verified against the INSTAT-hosted text (ligj-2024-12-19-124-korrigjuar.pdf): art. 101(1) in force 15 days after publication; 101(2) arts 29(3), 31, 32, 35, 36, 64, 65, 67(2,3,5) after 2 years; 'Miratuar në datën 19.12.2024', decree no. 5 of 15.1.2025; art. 99 repeals Law 9887/2008; art. 29(1) breach notice within 72 hours; art. 94 fines up to 1 000 000 000 lek or 2%, and up to 2 000 000 000 lek or 4%. 'Fletorja Zyrtare 2025 nr. 9' seen only in a search snippet of the kpa.al copy."
+    },
+    {
+      "topic": "Regulator",
+      "value": "Komisioneri për të Drejtën e Informimit dhe Mbrojtjen e të Dhënave Personale (IDP)",
+      "source": "https://www.instat.gov.al/media/04phlcjc/ligj-2024-12-19-124-korrigjuar.pdf",
+      "confidence": "high",
+      "verified": true,
+      "verification_note": "Art. 3(7): 'Komisioneri për të Drejtën e Informimit dhe Mbrojtjen e të Dhënave Personale', the independent authority."
+    },
+    {
+      "topic": "Cookie banner for cookieless first-party stats",
+      "value": "no Albanian cookie-specific rule found; Law 124/2024 has no cookie/terminal-device article; Law 54/2024 (electronic communications) not readable (bot wall). Cookieless, no-personal-data stats probably need no banner: UNVERIFIED; disclose in privacy notice",
+      "sources": [
+        "https://kpa.al/wp-content/uploads/2025/02/Ligj-nr.-124-2024-Per-mbrojtjen-e-te-dhenave-personale-1_.pdf",
+        "https://www.consentstack.io/regulations/al-law124"
+      ],
+      "confidence": "low",
+      "verified": true,
+      "verification_note": "Absence re-confirmed: no 'cookie' and no terminal-equipment ('pajisje fundore') wording in the Law 124/2024 text; ConsentStack's Albania section has no cookie rule (its cookie text is about GDPR/PECR/ePrivacy). The no-banner conclusion remains a LEGAL ASSUMPTION, not verified; Law 54/2024 still unread."
+    },
+    {
+      "topic": "Direct marketing",
+      "value": "Law 124/2024 art. 46: direct marketing may rely on legitimate interest (46(2)); sensitive data needs explicit consent (46(3)); the data subject may object at any time (46(4), with art. 19(2)).",
+      "source": "https://www.instat.gov.al/media/04phlcjc/ligj-2024-12-19-124-korrigjuar.pdf",
+      "confidence": "high",
+      "conflict": {
+        "value": "ConsentStack summary says 'Direct electronic marketing requires prior explicit informed consent'; Law 124 art. 46(2) allows legitimate interest. E-mail/SMS marketing consent may come from another law (e.g. electronic communications, Law 54/2024, unread). Use opt-in for newsletters to be safe.",
+        "source": "https://www.consentstack.io/regulations/al-law124"
+      },
+      "verified": true,
+      "verification_note": "Art. 46 read in full; conflict with the ConsentStack summary recorded."
+    },
+    {
+      "topic": "Fiscal invoices",
+      "value": "Law No. 87/2019: no turnover threshold; card payments count as cash transactions; B2C from 1 Sep 2021; certified software; NIVF from tax administration",
+      "source": "https://www.vatupdate.com/2026/08/27/albania-clarifies-nine-common-misstatements-about-its-fiscalisation-regime/",
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "VATupdate (citing fature.al): 'Law No. 87/2019 ... without a turnover threshold'; 'Card payments are classified as cash transactions'; cash/B2C from 1 September 2021; certified software; tax administration returns the NIVF. Secondary source."
+    },
+    {
+      "topic": "Business identifiers to show",
+      "value": "Pelikan-rr Shpk, NIPT L64710402V, seat address (confirm with owner first)",
+      "sources": [
+        "https://www.booking.com/hotel/al/pelikan-divjake.en-gb.html",
+        "https://www.uet.edu.al/wp-content/uploads/2021/12/Shkendi_Cili.pdf"
+      ],
+      "confidence": "medium",
+      "verified": true,
+      "verification_note": "Values re-observed on Booking; must be confirmed by the owner before publishing."
+    }
+  ],
+  "ask_owner": [
+    "Confirm legal name Pelikan-rr Shpk and NIPT L64710402V; QKB registration date",
+    "Founding year behind 'over 20 years'",
+    "Official phone/e-mail/WhatsApp/Viber (only +355 68 504 3955 from Google found)",
+    "Facebook/Instagram/TikTok/TripAdvisor pages",
+    "Total rooms; does 'Double Room' exist in summer",
+    "Pool yes/no (Google says yes, Booking/AlbaniaVisit no)",
+    "Playground",
+    "Distance to beach and to Visitor Centre",
+    "Summer prices and opening season",
+    "Bank (BKT/Raiffeisen/other), POK or Paysera account; current 'cash only'",
+    "Which tours the hotel runs/resells, partners, prices, commission",
+    "Own bikes? daily price",
+    "Current park/tower ticket price",
+    "Local producers for shop products (none documented except watermelon)",
+    "Eel/fish as sale product: licensing and protected-species status",
+    "Booking commission and rate-parity terms for direct prices",
+    "Fiscal invoicing software in use",
+    "Lawyer check: accommodation withdrawal exception, cookie rule under Law 54/2024, new consumer law status",
+    "Pool and fitness centre: Google lists both; Booking/AlbaniaVisit list neither",
+    "Card payments: Booking says 'cash only', RestaurantGuru says 'credit cards accepted'",
+    "Company registration year: NIPT L64710402V pattern suggests ~2016; what backs 'over 20 years' (earlier owner/legal form)?",
+    "Is pelikan.divjake.hotels-al.com (listed on RestaurantGuru) yours? It is unreachable",
+    "Facebook and TripAdvisor page URLs (RestaurantGuru aggregates ratings from both)",
+    "Buffalo products: AKZM says the water buffalo is a protected species in Albania"
+  ]
+}

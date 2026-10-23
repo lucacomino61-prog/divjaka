@@ -1,0 +1,59 @@
+---
+/**
+ * NotFound view — 404, PLACEHOLDER-PLUS from T2 (T7 owns and may restyle it). "A pin dropped
+ * in the open sea" (DESIGN §5, Don't Board Me). Bilingual: the requested language first, the
+ * other language as a second line. Search goes to the shop's ?q= filter; back to the chart.
+ */
+import Base from '../layouts/Base.astro';
+import Pill from '../components/site/Pill.astro';
+import { t } from '../i18n/ui';
+import { path, type Lang } from '../i18n/routes';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const other: Lang = lang === 'sq' ? 'en' : 'sq';
+---
+<Base lang={lang} title={t(lang, 'page.notfound.title')} description={t(lang, 'notfound.body')} routeKey="notfound" noindex langHref={path('home', other)}>
+  <section class="wrap nf">
+    <p class="nf__code mono">{t(lang, 'notfound.code')}</p>
+    <div class="nf__sea" aria-hidden="true">
+      <svg viewBox="0 0 1200 360" preserveAspectRatio="none">
+        {Array.from({ length: 8 }, (_, i) => <path d={`M0 ${50 + i * 40} C 300 ${30 + i * 40}, 800 ${80 + i * 40}, 1200 ${44 + i * 40}`} fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke" opacity={0.9 - i * 0.09} />)}
+      </svg>
+      <span class="nf__pin"><span class="nf__dot"></span><span class="nf__ring"></span><span class="nf__tag mono">?°??′N ?°??′E</span></span>
+    </div>
+    <h1 class="nf__title heading">{t(lang, 'notfound.title')}</h1>
+    <p class="lede">{t(lang, 'notfound.body')}</p>
+    <p class="nf__other serif-i" lang={other}>{t(other, 'notfound.title')} — {t(other, 'notfound.body')}</p>
+    <form class="nf__search" action={path('shop', lang)} method="get" role="search">
+      <label class="label" for="nf-q">{t(lang, 'search.label')}</label>
+      <div class="nf__row">
+        <input id="nf-q" name="q" type="search" placeholder={t(lang, 'search.placeholder')} autocomplete="off" enterkeyhint="search" />
+        <Pill type="submit">{t(lang, 'search.submit')}</Pill>
+      </div>
+    </form>
+    <div class="cluster">
+      <Pill href={path('home', lang)} arrow>{t(lang, 'notfound.back')}</Pill>
+      <Pill href={path('contact', lang)} variant="outline">{t(lang, 'nav.contact')}</Pill>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .nf { display: grid; gap: clamp(16px, 2.4vw, 28px); padding-block-start: clamp(24px, 4vw, 56px); }
+  .nf__code { font-size: var(--step--2); padding-block-start: 10px; border-block-start: var(--rule-2); }
+  .nf__sea { position: relative; aspect-ratio: 10 / 3; color: var(--ink); border-block: 1px solid var(--ink); background: var(--salt-2); }
+  .nf__sea svg { inline-size: 100%; block-size: 100%; }
+  .nf__pin { position: absolute; inset-inline-start: 62%; inset-block-start: 44%; display: flex; align-items: center; }
+  .nf__dot { inline-size: 16px; block-size: 16px; border-radius: 99px; background: var(--pouch); border: 2px solid var(--ink); }
+  .nf__ring { position: absolute; inset-inline-start: 0; inline-size: 16px; block-size: 16px; border-radius: 99px; border: 1px solid var(--pouch); animation: nf-ripple 1.2s var(--ease-out) 600ms 1 both; }
+  @keyframes nf-ripple { from { transform: scale(1); opacity: 1; } to { transform: scale(3.5); opacity: 0; } }
+  .nf__tag { margin-inline-start: 26px; background: var(--salt); border: 1px solid var(--ink); padding: 3px 8px; font-size: var(--step--2); position: relative; }
+  .nf__tag::before { content: ""; position: absolute; inset-inline-end: 100%; inset-block-start: 50%; inline-size: 10px; block-size: 1px; background: var(--ink); }
+  .nf__title { max-inline-size: 18ch; }
+  .nf__other { color: var(--muted); font-size: var(--step-1); max-inline-size: 60ch; }
+  .nf__search { display: grid; gap: 8px; max-inline-size: 640px; }
+  .nf__row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .nf__row input { flex: 1 1 240px; min-block-size: 48px; padding: 0 16px; border: 1px solid var(--ink); border-radius: 0; background: var(--salt); color: var(--ink); }
+  .nf__row input::placeholder { color: var(--muted); }
+</style>

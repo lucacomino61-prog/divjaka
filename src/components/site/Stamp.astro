@@ -1,0 +1,13 @@
+---
+/**
+ * Stamp — "OFERTË", "MBARUAR", "TEST", "DEMO" (DESIGN §3): rotated −4°, double-ring border,
+ * mono caps; pouch-text on salt, pouch on ink. Text comes from the caller (or `kind` → dict).
+ *   <Stamp kind="soldout" lang={lang} />   <Stamp>Test</Stamp>
+ */
+import { t } from '../../i18n/ui';
+import type { Lang } from '../../i18n/routes';
+
+interface Props { kind?: 'demo' | 'test' | 'offer' | 'soldout' | 'closed'; lang?: Lang; tone?: 'signal' | 'ink'; class?: string; tilt?: boolean }
+const { kind, lang = 'sq', tone = 'signal', class: cls, tilt = true } = Astro.props;
+---
+<span class:list={['stamp', `stamp--${tone}`, !tilt && 'stamp--flat', cls]}>{kind ? t(lang, `stamp.${kind}`) : <slot />}</span>

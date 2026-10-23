@@ -1,0 +1,96 @@
+---
+/**
+ * Home view — FIRST-SCREEN SKELETON from T2 so the chrome can be judged (DESIGN §6 Home).
+ * T3 replaces this file with the real home + the signature chart ("Laguna vizatohet").
+ * At rest: ticker · header · sheet row · poster wordmark (outline → ink fill) · the line ·
+ * two ways in · the lagoon plate (LCP when research/photos.json has one).
+ */
+import Base from '../layouts/Base.astro';
+import Wordmark from '../components/site/Wordmark.astro';
+import Pill from '../components/site/Pill.astro';
+import Photo from '../components/site/Photo.astro';
+import SectionHead from '../components/site/SectionHead.astro';
+import MiniChart from '../components/site/MiniChart.astro';
+import { findPhoto, hotelSpot } from '../components/site/site-data';
+import { t } from '../i18n/ui';
+import { path, type Lang } from '../i18n/routes';
+import { coords } from '../i18n/format';
+
+interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
+const { lang } = Astro.props;
+const spot = await hotelSpot();
+const plate = findPhoto(['karavasta', 'lagoon', 'lagun', 'pelican', 'pelikan', 'divjak']);
+---
+<Base lang={lang} title={t(lang, 'page.home.title')} description={t(lang, 'site.description')} routeKey="home" loader>
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap hero__sheet">
+      <p class="hero__row mono">
+        <span>{lang === 'sq' ? 'Fleta 01 · Harta e lagunës' : 'Sheet 01 · The lagoon chart'}</span>
+        <span class="hero__coords">{coords(spot.lat, spot.lon)}</span>
+      </p>
+      <h1 id="hero-title" class="hero__title">
+        <span class="visually-hidden">Divjaka — {t(lang, 'site.hotel')}</span>
+        <Wordmark variant="poster" enter class="hero__wordmark" />
+      </h1>
+      <div class="hero__lead">
+        <p class="hero__line">{t(lang, 'site.tagline')}</p>
+        <div class="hero__ctas">
+          <Pill href={path('stay', lang)} arrow>{t(lang, 'cta.stay')}</Pill>
+          <Pill href="#harta" variant="outline">{t(lang, 'cta.chart')}</Pill>
+        </div>
+      </div>
+    </div>
+    <div class="hero__plate">
+      {plate ? (
+        <Photo slug={plate.slug} lang={lang} sizes="100vw" priority mat={false} parallax>
+          <p class="hero__label wrap"><span class="water">{t(lang, 'water.lagoon')}</span></p>
+        </Photo>
+      ) : (
+        <div class="hero__water" aria-hidden="true">
+          <svg viewBox="0 0 1440 420" preserveAspectRatio="none">
+            {Array.from({ length: 9 }, (_, i) => <path d={`M0 ${60 + i * 40} C 360 ${40 + i * 40}, 900 ${90 + i * 40}, 1440 ${50 + i * 41}`} fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke" opacity={1 - i * 0.08} />)}
+          </svg>
+          <p class="hero__label wrap"><span class="water">{t(lang, 'water.lagoon')}</span></p>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <section id="harta" class="wrap sheet home-chart" aria-labelledby="harta-h">
+    <SectionHead id="harta-h" title={lang === 'sq' ? 'Laguna vizatohet' : 'The lagoon draws itself'} index="01" kicker={lang === 'sq' ? 'Harta e lagunës' : 'The lagoon chart'} reveal />
+    <div class="home-chart__grid">
+      <p class="lede" data-reveal="lines">{t(lang, 'placeholder.body')}</p>
+      <MiniChart lang={lang} hotel={spot} />
+    </div>
+  </section>
+</Base>
+
+<style>
+  .hero { display: grid; gap: clamp(20px, 3vw, 40px); padding-block-start: clamp(12px, 2vw, 24px); }
+  .hero__sheet { display: grid; gap: clamp(14px, 2vw, 28px); }
+  .hero__row { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: var(--step--2); padding-block-start: 10px; border-block-start: 3px solid var(--ink); position: relative; }
+  .hero__row::before { content: ""; position: absolute; inset-inline: 0; inset-block-start: 3px; block-size: 1px; background: var(--ink); margin-block-start: 3px; }
+  .hero__coords { color: var(--muted); }
+  .hero__title { margin: 0; line-height: 0; }
+  .hero__wordmark { inline-size: 100%; block-size: auto; color: var(--ink); }
+  .hero__lead { display: grid; gap: 20px; align-items: end; }
+  .hero__line { font-size: clamp(1.75rem, 1.2rem + 1.6vw, 3rem); font-weight: 600; font-stretch: 85%; font-variation-settings: "opsz" 48; line-height: 1.04; letter-spacing: -0.025em; max-inline-size: 22ch; text-wrap: balance; }
+  .hero__ctas { display: flex; flex-wrap: wrap; gap: 10px; }
+  @media (min-width: 900px) {
+    .hero__lead { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+    .hero__ctas { justify-content: flex-end; }
+  }
+  .hero__plate { position: relative; }
+  /* the frame's ratio is set here (Photo's inline style is overridden), phones get 4:3 below */
+  .hero__plate :global(.plate__frame) { aspect-ratio: 21 / 9 !important; max-block-size: 70svh; inline-size: 100%; }
+  .hero__water { position: relative; aspect-ratio: 21 / 9; max-block-size: 60svh; inline-size: 100%; color: var(--ink); background: var(--salt-2); border-block: 1px solid var(--ink); }
+  .hero__water svg { inline-size: 100%; block-size: 100%; }
+  .hero__label { position: absolute; inset-block-end: 16px; inset-inline: 0; pointer-events: none; }
+  .hero__label .water { background: var(--salt); padding: 2px 10px 4px; font-size: var(--step-2); }
+  @media (max-width: 599px) {
+    .hero__plate :global(.plate__frame), .hero__water { aspect-ratio: 4 / 3 !important; }
+  }
+  .home-chart__grid { display: grid; gap: var(--gutter); margin-block-start: 32px; }
+  @media (min-width: 900px) { .home-chart__grid { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); align-items: start; } }
+  .home-chart :global(.minichart svg) { max-block-size: 60vh; }
+</style>

@@ -1,0 +1,1 @@
+-- Migrations: NNN-name.sql (NNN > 1), applied once in order by src/lib/db/index.ts and scripts/seed.mjs.

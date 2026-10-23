@@ -1,0 +1,34 @@
+---
+/**
+ * SourceList — the sources behind the facts on a page (PLAN §2: every number or date carries
+ * its source). Items: [{ title, url, publisher?, accessed? 'YYYY-MM-DD', note? }]. Numbered so
+ * prose can point at them with <sup>[1]</sup>. Renders nothing when empty.
+ */
+import { t } from '../../i18n/ui';
+import { formatDate } from '../../i18n/format';
+import type { Lang } from '../../i18n/routes';
+
+export interface Source { title: string; url: string; publisher?: string; accessed?: string; note?: string }
+interface Props { lang: Lang; items: Source[]; title?: string; id?: string; class?: string }
+const { lang, items, title, id = 'burimet', class: cls } = Astro.props;
+const seen = new Set<string>();
+const list = items.filter((s) => s?.url && !seen.has(s.url) && seen.add(s.url));
+const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
+---
+{list.length > 0 && (
+  <section class:list={['sources', cls]} aria-labelledby={`${id}-h`} id={id}>
+    <h2 id={`${id}-h`} class="sources__title mono">{title ?? t(lang, 'sources.title')}</h2>
+    <ol class="sources__list">
+      {list.map((s, i) => (
+        <li class="sources__item">
+          <span class="sources__n mono">{String(i + 1).padStart(2, '0')}</span>
+          <span class="sources__body">
+            <a href={s.url} rel="noopener">{s.title}</a>
+            <span class="mono muted"> · {s.publisher || host(s.url)}{s.accessed && ` · ${t(lang, 'sources.accessed', { date: formatDate(s.accessed, lang, 'medium') })}`}</span>
+            {s.note && <span class="sources__note muted">{s.note}</span>}
+          </span>
+        </li>
+      ))}
+    </ol>
+  </section>
+)}

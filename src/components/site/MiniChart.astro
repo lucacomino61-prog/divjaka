@@ -1,0 +1,150 @@
+---
+/**
+ * MiniChart — a small SVG chart of the lagoon for the menu (and anywhere a thumbnail map is
+ * useful). Reads research/geo.json: its projected `viewBox` (1000 × 1360), `paths.coast` and
+ * `paths.lagoon` as SVG `d` strings (OSM, ODbL) and `pois[]` with x/y in the same space.
+ * Without geo.json it draws only the survey grid and the hotel pin — never an invented coast.
+ * T3 builds the full <Chart> (components/chart/) for the signature.
+ * Pins carry data-pin (hotel, tower, island, heritage, lagoon — each a distinct place, see
+ * nav.ts LEGEND); menu.ts adds .is-active to drop a pin + draw its leader line and tagged label. Phones show it as a strip centred on the hotel
+ * (--strip-y, see .menu__chart in chrome.css).
+ */
+import { readResearch } from './site-data';
+import { coords as fmtCoords } from '../../i18n/format';
+import { t } from '../../i18n/ui';
+import type { Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang; hotel: { lat: number; lon: number }; class?: string }
+const { lang, hotel, class: cls } = Astro.props;
+
+type Raw = Record<string, any>;
+const geo = readResearch<Raw>('geo.json');
+const str = (v: unknown) => (typeof v === 'string' ? v : '');
+const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+
+const vb = str(geo?.viewBox).split(/\s+/).map(Number);
+const hasMap = !!geo?.paths && vb.length === 4 && vb.every(Number.isFinite) && typeof geo.paths.coast === 'string' && typeof geo.paths.lagoon === 'string';
+const [VX, VY, W, H] = hasMap ? vb : [0, 0, 600, 720];
+const coast: string = hasMap ? geo!.paths.coast : '';
+const lagoon: string = hasMap ? geo!.paths.lagoon : '';
+const pois: Raw[] = hasMap && Array.isArray(geo!.pois) ? geo!.pois.filter((p: Raw) => num(p.x) != null && num(p.y) != null && p.in_view !== false) : [];
+
+// lagoon label point: the centre of the outer shore (subpath 1)
+const lagoonCentre = (() => {
+  const nums = (lagoon.split(/(?=M)/)[0] ?? '').match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+  if (nums.length < 4) return null;
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (let i = 0; i + 1 < nums.length; i += 2) { x0 = Math.min(x0, nums[i]); x1 = Math.max(x1, nums[i]); y0 = Math.min(y0, nums[i + 1]); y1 = Math.max(y1, nums[i + 1]); }
+  return { x: (x0 + x1) / 2, y: (y0 + y1) / 2 };
+})();
+
+const nameOf = (p: Raw) => str(p[`name_${lang}`]) || str(p.name_sq) || str(p.name);
+const byKind = (kind: string) => pois.find((p) => p.kind === kind);
+const byId = (id: string) => pois.find((p) => p.id === id || p.slug === id);
+const hotelPoi = byKind('hotel');
+// one pin per legend place, each somewhere else on the chart (the beach and visitor centre sit
+// within a few px of the hotel at this scale, so they are not legend pins)
+const pinAt = (key: string, p: Raw | undefined) => (p ? { key, name: nameOf(p), x: p.x as number, y: p.y as number } : null);
+const pins = [
+  { key: 'hotel', name: t(lang, 'site.hotel'), x: num(hotelPoi?.x) ?? W / 2, y: num(hotelPoi?.y) ?? H / 2 },
+  ...(hasMap ? [
+    pinAt('tower', byId('pelican-tower') ?? byKind('observation_tower')),
+    pinAt('island', byId('pelican-island')),
+    pinAt('heritage', byId('st-cosmas-monastery') ?? byKind('monastery')),
+    lagoonCentre ? { key: 'lagoon', name: t(lang, 'water.lagoon'), ...lagoonCentre } : null,
+  ] : []),
+].filter(Boolean) as { key: string; name: string; x: number; y: number }[];
+
+// sizes in chart units: the chart is drawn at ~0.45–0.55 px per unit in the menu
+const U = W / 1000;
+const R = 12 * U, CORE = 5 * U, LABEL = 26 * U, LEAD = 80 * U, RISE = 50 * U;
+const CHAR = LABEL * 0.66; // Geist Mono advance + .06em tracking
+const MAXLINES = 3;
+function wrap(text: string, max: number): string[] {
+  const words = text.toUpperCase().split(/\s+/);
+  const lines: string[] = [];
+  for (const w of words) {
+    const last = lines.at(-1);
+    if (last != null && (last + ' ' + w).length <= max) lines[lines.length - 1] = `${last} ${w}`;
+    else lines.push(w);
+  }
+  if (lines.length > MAXLINES) { lines.length = MAXLINES; lines[MAXLINES - 1] += '…'; }
+  return lines;
+}
+const placed = pins.map((p) => {
+  const room = (side: 'r' | 'l') => (side === 'r' ? W - (p.x + LEAD) - 8 * U : p.x - LEAD - 8 * U);
+  const widest = Math.max(...wrap(p.name, 99).map((l) => l.length)) * CHAR;
+  // label right of the pin unless it would run past the chart edge (then left, the roomier side)
+  const right = p.x + LEAD + widest <= W - 8 * U || room('r') >= room('l');
+  const lines = wrap(p.name, Math.max(6, Math.floor(room(right ? 'r' : 'l') / CHAR)));
+  const lx = right ? LEAD : -LEAD;
+  const tx = lx + (right ? 6 * U : -6 * U);
+  // the salt tag behind the label (DESIGN §3 Pins): on ink an ink tag with a 1 px salt rule,
+  // so the coast and lagoon strokes never run through the letters
+  const tw = Math.max(...lines.map((l) => l.length)) * CHAR + 12 * U;
+  const base = -RISE + LABEL * 0.35;
+  const tag = { x: right ? tx - 6 * U : tx - tw + 6 * U, y: base - LABEL * 0.95, w: tw, h: LABEL * 1.3 + (lines.length - 1) * LABEL * 1.15 };
+  return { ...p, right, lines, lx, tx, tag };
+});
+
+// the frame grows (never shrinks) until every pin, its rise + tag and a margin sit inside the
+// grid: a POI at the edge of geo.json's box (St Cosmas, near the bottom) must not touch the frame
+const PAD = 48 * U;
+let bx0 = VX, by0 = VY, bx1 = VX + W, by1 = VY + H;
+for (const p of placed) {
+  bx0 = Math.min(bx0, p.x - R - PAD, p.x + p.tag.x - PAD);
+  bx1 = Math.max(bx1, p.x + R + PAD, p.x + p.tag.x + p.tag.w + PAD);
+  by0 = Math.min(by0, p.y + p.tag.y - PAD);
+  by1 = Math.max(by1, p.y + R + PAD);
+}
+const BX = bx0, BY = by0, BW = bx1 - bx0, BH = by1 - by0;
+
+// phone strip: shift the portrait chart so the hotel sits mid-strip (3:1 strip)
+const STRIP = 3;
+const fy = (pins[0].y - BY) / BH;
+const visible = BW / (STRIP * BH);               // strip height as a fraction of the chart height
+const stripY = Math.min(Math.max(fy - visible / 2, 0), 1 - visible);
+
+const uid = `mc${Math.random().toString(36).slice(2, 7)}`;
+const grid = Array.from({ length: 7 }, (_, i) => i);
+---
+<div class:list={['minichart', !hasMap && 'minichart--nodata', cls]} data-minichart style={`--strip-y:${(-stripY * 100).toFixed(2)}%`}>
+  <div class="minichart__frame">
+    <svg viewBox={`${BX.toFixed(1)} ${BY.toFixed(1)} ${BW.toFixed(1)} ${BH.toFixed(1)}`} role="img" aria-label={`${t(lang, 'menu.title')} · ${t(lang, 'site.hotel')} · ${fmtCoords(hotel.lat, hotel.lon)}`}>
+      <defs>
+        <pattern id={`${uid}-water`} width={10 * U} height={10 * U} patternUnits="userSpaceOnUse">
+          <path d={`M0 ${5 * U}h${10 * U}`} stroke="currentColor" stroke-width="0.6" opacity="0.45" vector-effect="non-scaling-stroke" />
+        </pattern>
+      </defs>
+      <g class="minichart__grid" aria-hidden="true">
+        {grid.map((i) => <path d={`M${(BX + (BW / 6) * i).toFixed(1)} ${BY.toFixed(1)}V${(BY + BH).toFixed(1)}`} />)}
+        {grid.map((i) => <path d={`M${BX.toFixed(1)} ${(BY + (BH / 6) * i).toFixed(1)}H${(BX + BW).toFixed(1)}`} />)}
+      </g>
+      {hasMap && (
+        <g class="minichart__map" aria-hidden="true">
+          <path class="minichart__water" d={lagoon} fill={`url(#${uid}-water)`} fill-rule="evenodd" />
+          <path class="minichart__line minichart__line--lagoon" d={lagoon} fill-rule="evenodd" />
+          <path class="minichart__line minichart__line--coast" d={coast} />
+        </g>
+      )}
+      <g class="minichart__pins" aria-hidden="true">
+        {placed.map((p) => (
+          <g class:list={['mpin', p.key === 'hotel' && 'mpin--home']} data-pin={p.key} transform={`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`}>
+            <path class="mpin__leader" d={`M0 0L${(p.lx * 0.55).toFixed(1)} ${-RISE}H${p.lx.toFixed(1)}`} pathLength="1" />
+            <circle class="mpin__ripple" r={R} />
+            <circle class="mpin__ring" r={R} />
+            <circle class="mpin__core" r={CORE} />
+            <rect class="mpin__tag" x={p.tag.x.toFixed(1)} y={p.tag.y.toFixed(1)} width={p.tag.w.toFixed(1)} height={p.tag.h.toFixed(1)} />
+            <text class="mpin__label" x={p.tx.toFixed(1)} y={(-RISE + LABEL * 0.35).toFixed(1)} text-anchor={p.right ? 'start' : 'end'} font-size={LABEL.toFixed(1)}>
+              {p.lines.map((l, i) => <tspan x={p.tx.toFixed(1)} dy={i ? '1.15em' : undefined}>{l}</tspan>)}
+            </text>
+          </g>
+        ))}
+      </g>
+    </svg>
+  </div>
+  <p class="minichart__legend mono">
+    <span>{fmtCoords(hotel.lat, hotel.lon)}</span>
+    {hasMap ? <a href="https://www.openstreetmap.org/copyright" class="minichart__osm">© OpenStreetMap</a> :<span class="muted">{t(lang, 'site.hotel')} · {t(lang, 'site.place')}</span>}
+  </p>
+</div>

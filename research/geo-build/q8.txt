@@ -1,0 +1,8 @@
+[out:json][timeout:60];
+(
+  way["bridge"](40.86,19.40,41.02,19.54);
+  way["highway"~"footway|path|track|unclassified|residential|service"]["name"](40.86,19.40,41.02,19.54);
+  way["route"](40.86,19.40,41.02,19.54);
+  relation["route"~"hiking|foot|bicycle|boat|ferry"](40.86,19.40,41.02,19.54);
+);
+out geom;

@@ -1,0 +1,15 @@
+---
+/**
+ * CurrencySwitch — LEK / EUR display preference (prefs.currency). Lek is what is charged;
+ * EUR shows "≈" amounts from the admin's rate. Two pressed-state buttons in a group.
+ */
+import { t } from '../../i18n/ui';
+import type { Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang; class?: string }
+const { lang, class: cls } = Astro.props;
+---
+<div class:list={['currency-switch', cls]} role="group" aria-label={t(lang, 'currency.label')} title={t(lang, 'currency.note')}>
+  <button type="button" class="currency-switch__opt mono" data-currency="ALL" aria-pressed="true">{t(lang, 'currency.ALL')}</button>
+  <button type="button" class="currency-switch__opt mono" data-currency="EUR" aria-pressed="false">{t(lang, 'currency.EUR')}</button>
+</div>
