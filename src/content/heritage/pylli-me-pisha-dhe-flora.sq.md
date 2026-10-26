@@ -3,7 +3,7 @@ slug: pylli-me-pisha-dhe-flora
 lang: sq
 title: Pylli me pisha dhe flora
 description: I vetmi pyll natyror me pisha bregdetare në Shqipëri: pishat, shkurret, dunat, salepi endemik dhe si ta ruani nga zjarri.
-updated: 2026-10-23
+updated: 2026-10-26
 order: 4
 topic: flora
 kicker: Flora
@@ -16,7 +16,7 @@ Pylli bregdetar me pisha i Divjakës është i vetmi pyll natyror me pisha bregd
 
 ## Dy pisha
 
-Pylli është pyll vendas me pishë të butë (*Pinus pinea*), i vetmi i këtij lloji përgjatë bregdetit shqiptar. Pisha e egër (*Pinus halepensis*) u soll nga Italia në fillim të shekullit XX dhe disa pjesë të pyllit i ka bërë gjysmë natyrore.[^flora-01] Burimet nuk pajtohen plotësisht: fleta e Zonës Kyçe të Biodiversitetit përmend edhe *Pinus pinaster*.[^lagoon-07]
+Pylli është pyll vendas me pishë të butë (*Pinus pinea*), i vetmi i këtij lloji përgjatë bregdetit shqiptar. Pisha e Alepit (*Pinus halepensis*) u soll nga Italia në fillim të shekullit XX dhe disa pjesë të pyllit i ka bërë gjysmë natyrore.[^flora-01] Burimet nuk pajtohen plotësisht: [fleta e Zonës Kyçe të Biodiversitetit](https://www.keybiodiversityareas.org/site/factsheet/2904) përmend edhe *Pinus pinaster*.
 
 Sa i madh është pylli? Vendimi i vitit 1994 shënon 1 162 ha; burime të tjera japin nga rreth 1 100 deri në 1 250 ha.[^flora-03]
 
@@ -24,7 +24,7 @@ Sa i madh është pylli? Vendimi i vitit 1994 shënon 1 162 ha; burime të tjera
 
 ## Nën pisha
 
-Pisha e butë rritet bashkë me mërsinën (*Myrtus communis*), me shkozën (*Carpinus orientalis*) dhe me shqopën (*Erica arborea*); pisha e egër bashkë me dëllinjën, *Phillyrea angustifolia* dhe shkurre të tjera.[^flora-05] Në park janë regjistruar edhe lisi (*Quercus robur*), panja e fushës dhe frashëri me gjethe të ngushta.[^flora-06]
+Pisha e butë rritet bashkë me mërsinën (*Myrtus communis*), me shkozën (*Carpinus orientalis*) dhe me shqopën (*Erica arborea*); pisha e Alepit bashkë me dëllinjën, *Phillyrea angustifolia* dhe shkurre të tjera.[^flora-05] Në park janë regjistruar edhe lisi (*Quercus robur*), panja e fushës dhe frashëri me gjethe të ngushta.[^flora-06]
 
 ## Bimë që rriten vetëm këtu
 

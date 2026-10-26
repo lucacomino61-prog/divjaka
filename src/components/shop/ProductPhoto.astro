@@ -1,0 +1,69 @@
+---
+/**
+ * ProductPhoto (T5) — one product image on the shop card and the product page.
+ * A research photo (images[].slug) goes through T2's <Photo> (credits, LQIP, AVIF/WebP/JPEG).
+ * An owner upload (images[].src, no slug — HANDOFF 2026-10-26 T6) is drawn here as the same
+ * mounted plate (global .plate classes from chrome.css), from the /media variants that
+ * lib/media.ts storeImage() writes: a WebP set is stored as an extension-less base
+ * (`/media/2026/<id>` → `-480/-960/-1600.webp`), a JPEG set as its largest file
+ * (`/media/2026/<id>-1600.jpg` → the same three widths in .jpg). Any other URL is used as is.
+ * The frame keeps the given ratio, so the late image never shifts the layout. No credit line:
+ * the owner's own photo needs no attribution.
+ */
+import Photo from '../site/Photo.astro';
+import type { Lang } from '../../i18n/routes';
+
+interface Props {
+  slug?: string | null;
+  src?: string | null;
+  lang: Lang;
+  alt?: string;
+  ratio: string;
+  sizes: string;
+  priority?: boolean;
+  caption?: boolean;
+  class?: string;
+}
+const { slug, src, lang, alt, ratio, sizes, priority = false, caption = false, class: cls } = Astro.props;
+
+const WIDTHS = [480, 960, 1600] as const;
+let set = '';
+let fallback = '';
+let type: string | undefined;
+if (!slug && src) {
+  const base = /^\/media\/\d{4}\/[a-f0-9]{8,32}$/.exec(src);
+  const jpg = /^(\/media\/\d{4}\/[a-f0-9]{8,32})-(?:480|960|1600)\.jpg$/.exec(src);
+  if (base) {
+    set = WIDTHS.map((w) => `${src}-${w}.webp ${w}w`).join(', ');
+    fallback = `${src}-960.webp`;
+    type = 'image/webp';
+  } else if (jpg) {
+    set = WIDTHS.map((w) => `${jpg[1]}-${w}.jpg ${w}w`).join(', ');
+    fallback = `${jpg[1]}-960.jpg`;
+  } else if (/^(\/(?!\/)|https:\/\/)/.test(src)) {
+    fallback = src;
+  }
+}
+---
+{slug || !fallback ? (
+  <Photo slug={slug ?? null} lang={lang} ratio={ratio} sizes={sizes} priority={priority} alt={alt} caption={caption} class={cls} />
+) : (
+  <figure class:list={['plate', 'plate--mat', cls]}>
+    <div class="plate__frame" style={`aspect-ratio:${ratio}`}>
+      <picture>
+        {type && set && <source type={type} srcset={set} sizes={sizes} />}
+        <img
+          src={fallback}
+          srcset={!type && set ? set : undefined}
+          sizes={!type && set ? sizes : undefined}
+          width="1600"
+          height="1200"
+          alt={alt ?? ''}
+          loading={priority ? 'eager' : 'lazy'}
+          fetchpriority={priority ? 'high' : undefined}
+          decoding={priority ? 'sync' : 'async'}
+        />
+      </picture>
+    </div>
+  </figure>
+)}

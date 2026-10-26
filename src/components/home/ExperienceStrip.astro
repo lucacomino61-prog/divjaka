@@ -3,8 +3,9 @@
  * ExperienceStrip — "03 · Eksperienca" (Bécane lineup, DESIGN §5): the activity packages as
  * specimen tags on a horizontal survey strip ordered by distance from the hotel (research/geo.json,
  * straight line). Each tag: catalogue number, distance, plate, name, length, price per person and
- * the next open session with its real free places (lib/catalog → sessions table; nothing shown
- * when there is none). Swipe on phones; on pointer devices the strip scrolls with the wheel and
+ * the next open session with its free places (lib/catalog → sessions table; nothing shown
+ * when there is none). Seat counts only for products the owner has verified (demo = 0): a demo
+ * schedule's numbers are not facts (PLAN §2), so a demo product shows its next date alone. Swipe on phones; on pointer devices the strip scrolls with the wheel and
  * the arrow buttons. A plain list view is one click away (the experiences index, ?pamja=liste).
  */
 import SectionHead from '../site/SectionHead.astro';
@@ -28,6 +29,8 @@ const dur = (m: number | null) => {
   return [h ? `${h} h` : '', r ? `${r} min` : ''].filter(Boolean).join(' ');
 };
 const nextLabel = (iso: string) => `${relativeDay(iso.slice(0, 10), lang)}, ${iso.slice(11, 16)}`;
+// the calendar sentence only when a tag actually shows a free-place count (verified products)
+const anySeats = items.some((p) => !p.demo && p.next && p.left != null && p.left > 0);
 const listHref = `${path('experiences', lang)}?pamja=liste`;
 ---
 <section class="exp sheet" aria-labelledby="exp-h">
@@ -36,7 +39,7 @@ const listHref = `${path('experiences', lang)}?pamja=liste`;
       <a slot="aside" href={listHref} class="exp__list-link">{t(lang, 'home.exp.list')}</a>
     </SectionHead>
     <div class="exp__bar">
-      <p class="exp__lead">{t(lang, 'home.exp.lead')}</p>
+      <p class="exp__lead">{t(lang, 'home.exp.lead')}{anySeats && <Fragment> {t(lang, 'home.exp.lead.seats')}</Fragment>}</p>
       <div class="exp__nav" data-strip-nav hidden>
         <button type="button" class="exp__btn" data-strip-prev aria-label={t(lang, 'recommend.prev')}><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M14 8H3M7 4 3 8l4 4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></button>
         <button type="button" class="exp__btn" data-strip-next aria-label={t(lang, 'recommend.next')}><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></button>
@@ -62,7 +65,7 @@ const listHref = `${path('experiences', lang)}?pamja=liste`;
               {p.next ? (
                 <Fragment>
                   <span>{t(lang, 'home.exp.next', { date: nextLabel(p.next) })}</span>
-                  {p.left != null && p.left > 0 && <span class="tag__seats">{p.left === 1 ? t(lang, 'home.exp.seats.one') : t(lang, 'home.exp.seats', { n: String(p.left) })}</span>}
+                  {!p.demo && p.left != null && p.left > 0 && <span class="tag__seats">{p.left === 1 ? t(lang, 'home.exp.seats.one') : t(lang, 'home.exp.seats', { n: String(p.left) })}</span>}
                 </Fragment>
               ) : <span class="muted">{t(lang, 'home.exp.none')}</span>}
             </p>
@@ -82,7 +85,9 @@ const listHref = `${path('experiences', lang)}?pamja=liste`;
 </section>
 
 <style>
-  .exp__list-link { font-family: var(--font-mono); font-size: var(--step--2); text-transform: uppercase; letter-spacing: 0.06em; min-block-size: 24px; display: inline-flex; align-items: center; }
+  /* the poster line box reaches up over the rule row: it must never take the list link's taps */
+  .exp :global(.poster), .exp :global(.poster__line) { pointer-events: none; }
+  .exp__list-link { position: relative; z-index: 1; font-family: var(--font-mono); font-size: var(--step--2); text-transform: uppercase; letter-spacing: 0.06em; min-block-size: 24px; display: inline-flex; align-items: center; }
   @media (pointer: coarse) { .exp__list-link { min-block-size: 44px; } }
   .exp__bar { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; margin-block: 18px 22px; }
   .exp__lead { max-inline-size: 46ch; color: var(--muted); }

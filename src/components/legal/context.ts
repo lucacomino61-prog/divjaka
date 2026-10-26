@@ -17,7 +17,12 @@ export async function legalContext(lang: 'sq' | 'en' = 'sq'): Promise<LegalConte
   const asst = getSetting('assistant');
   return {
     controller: { name: b.name || 'Hotel Pelikan', legal: ok('legal_name'), nipt: ok('nipt'), address: ok(lang === 'en' ? 'address_en' : 'address_sq') || ok('address') },
-    privacy: { events_days: priv.events_days ?? 180, messages_days: priv.messages_days ?? 730, orders_days: priv.orders_days ?? 90 },
+    // the values lib/retention.ts really applies: events at least 30 days (0 → 180), messages and
+    // dead orders 0 = kept (null here), dead orders at least 30 days
+    privacy: (() => {
+      const ev = Number(priv.events_days) || 180, msg = Number(priv.messages_days) || 0, ord = Number(priv.orders_days) || 0;
+      return { events_days: Math.max(30, ev), messages_days: msg > 0 ? msg : null, orders_days: ord > 0 ? Math.max(30, ord) : null };
+    })(),
     holds: { card_min: pay.card_hold_minutes ?? 30, bank_h: pay.bank_hold_hours ?? 72, hotel_h: pay.hotel_hold_hours ?? 24, short_h: inv.short_hold_hours ?? 2 },
     // the same rule as /api/config: what checkout really offers right now
     methods: (() => { const a = paymentAvailability(); return { hotel: !!a.hotel, bank: !!a.bank, card: !!a.card }; })(),

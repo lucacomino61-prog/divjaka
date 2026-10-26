@@ -6,7 +6,7 @@
  * (interesa=a,b) and tracks the step.
  */
 import type { PlanInput } from './engine';
-import { HORIZON_DAYS } from './engine';
+import { horizonDays } from './engine';
 import { INTEREST_VALUE, type Interest } from './places';
 import { t } from '../../i18n/ui';
 import { addDays } from '../../i18n/format';
@@ -35,7 +35,7 @@ const moves = [['makine', 'car'], ['biciklete', 'bike'], ['kembe', 'foot']] as c
   <div class="pf__row">
     <div class="pf__field">
       <label class="pf__legend mono" for="pf-date"><span>02</span>{t(lang, 'itinerary.arrival')}</label>
-      <input id="pf-date" class="pf__input" type="date" name="mberritja" value={input.arrival ?? ''} min={today} max={addDays(today, HORIZON_DAYS)} aria-describedby="pf-date-hint" />
+      <input id="pf-date" class="pf__input" type="date" name="mberritja" value={input.arrival ?? ''} min={today} max={addDays(today, horizonDays())} aria-describedby="pf-date-hint" />
       <p id="pf-date-hint" class="pf__hint">{t(lang, 'itinerary.arrival.hint')}</p>
     </div>
     <div class="pf__field pf__field--s">

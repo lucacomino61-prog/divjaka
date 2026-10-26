@@ -11,6 +11,7 @@ const { lang } = Astro.props;
 const rows = DISTANCE_FACTS.filter((d) => fact(d.fact));
 ---
 <div class="dist">
+  <div class="dist__scroll" role="region" tabindex="0" aria-label={t(lang, 'dist.from')}>
   <table class="dist__table">
     <caption class="dist__cap mono">{t(lang, 'dist.from')}</caption>
     <thead><tr><th scope="col" class="mono">{t(lang, 'dist.to')}</th><th scope="col" class="mono dist__num">{t(lang, 'dist.km')}</th><th scope="col" class="mono dist__num">{t(lang, 'dist.time')}</th></tr></thead>
@@ -24,6 +25,7 @@ const rows = DISTANCE_FACTS.filter((d) => fact(d.fact));
       ))}
     </tbody>
   </table>
+  </div>
   <p class="dist__note mono">{t(lang, 'dist.note')}</p>
 </div>
 
@@ -36,5 +38,10 @@ const rows = DISTANCE_FACTS.filter((d) => fact(d.fact));
   .dist__table td { padding: 12px 0; font-size: var(--step--1); }
   .dist__table tbody tr { border-block-end: 1px solid var(--rule); }
   .dist__num { text-align: end !important; white-space: nowrap; padding-inline-start: 12px !important; }
+  /* the column heads wrap ("Time without traffic" must not widen a 320 px page); a last-resort scroll box */
+  .dist__table thead .dist__num { white-space: normal; }
+  .dist__scroll { overflow-x: auto; }
+  .dist__scroll:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  @media (max-width: 400px) { .dist__table tbody th { padding-inline-end: 8px; } .dist__num { padding-inline-start: 8px !important; } }
   .dist__note { font-size: var(--step--2); color: var(--muted); margin-block-start: 10px; text-transform: none; letter-spacing: 0; max-inline-size: 66ch; }
 </style>

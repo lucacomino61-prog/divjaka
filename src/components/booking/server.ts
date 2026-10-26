@@ -12,7 +12,7 @@ import { all, get } from '../../lib/db/index';
 import { roomMonth, roomNights, sessionsMonth, nextSessions, type SessionInfo } from '../../lib/availability';
 import { getSetting } from '../../lib/db/repo/settings';
 import { listProducts, type Product } from '../../lib/db/repo/products';
-import { addDays, tirane } from '../../lib/time';
+import { addDays, isDate, tirane } from '../../lib/time';
 import { daysBetween } from '../../i18n/format';
 
 export type DayStatus = 'past' | 'open' | 'full' | 'closed' | 'none' | 'far';
@@ -111,6 +111,18 @@ export function experienceMonth(p: Product, ym: string): { days: DayCell[]; sess
 /** Only the light-linked keys are public; staff free-text notes never reach the page. */
 const lightNote = (n: string | null) => (n === 'sunrise' || n === 'sunset' ? n : null);
 
+/**
+ * Every upcoming light-linked session of a product, by id ({ 12: 'sunrise' }). The month API
+ * (T1) sends no note, so the page seeds these and the client merges them into fetched months.
+ */
+export function lightNotes(p: Product): Record<number, 'sunrise' | 'sunset'> {
+  const out: Record<number, 'sunrise' | 'sunset'> = {};
+  for (const r of all<{ id: number; note: string }>("SELECT id, note FROM sessions WHERE product_id = ? AND note IN ('sunrise', 'sunset') AND starts_at >= ? AND status != 'cancelled'", p.id, todayLocal())) {
+    out[r.id] = r.note as 'sunrise' | 'sunset';
+  }
+  return out;
+}
+
 /** The month of the last session on sale (experience calendars stop there). */
 export function lastSessionMonth(p: Product): string {
   const r = get<{ m: string | null }>("SELECT MAX(starts_at) AS m FROM sessions WHERE product_id = ? AND status = 'open'", p.id);
@@ -153,10 +165,31 @@ export function tiraneOffset(localDateTime: string): string {
   return '+01:00';
 }
 
+/**
+ * Why a ?nga=&deri= link cannot be used, as a dict key + values, or null when it can (or when
+ * there is no range in the URL at all). With a room: also a taken night or the room's minimum.
+ * The page then clears the dates and says why, instead of pricing a stay nobody can book.
+ */
+export function rangeProblem(
+  from: string | null, to: string | null, room?: Product | null,
+): { key: string; vars?: Record<string, string | number> } | null {
+  if (!from && !to) return null;
+  if (!isDate(from) || !isDate(to) || to <= from) return { key: 'booking.range.url.bad' };
+  if (from < todayLocal()) return { key: 'booking.range.url.past' };
+  if (from > horizonDate()) return { key: 'booking.range.url.far', vars: { date: horizonDate() } };
+  if (daysBetween(from, to) > maxNights) return { key: 'booking.range.url.long', vars: { n: maxNights } };
+  if (room) {
+    const min = Math.max(1, Number(room.options?.min_nights ?? 1));
+    if (daysBetween(from, to) < min) return { key: 'booking.range.url.min', vars: { n: min } };
+    if (roomNights(room, from, to).some((n) => n.left < 1 || n.closed)) return { key: 'booking.range.url.taken' };
+  }
+  return null;
+}
+
 /** Valid stay range from URL params (nga/deri), else null. */
 export function rangeFromParams(from: string | null, to: string | null): { from: string; to: string } | null {
-  const re = /^\d{4}-\d{2}-\d{2}$/;
-  if (!from || !to || !re.test(from) || !re.test(to) || to <= from) return null;
+  // isDate round-trips the date, so 2026-11-31 or 2026-02-30 is refused like a malformed one
+  if (!isDate(from) || !isDate(to) || to <= from) return null;
   if (from < todayLocal() || from > horizonDate() || daysBetween(from, to) > maxNights) return null;
   return { from, to };
 }

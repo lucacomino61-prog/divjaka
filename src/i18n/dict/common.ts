@@ -94,7 +94,7 @@ const sq = {
   'cart.loading': 'Po llogaritim çmimet…',
   'cart.error': 'Çmimet nuk u ngarkuan. Shporta juaj mbetet e ruajtur.',
   'cart.retry': 'Provo sërish',
-  'cart.payNote': 'Paguani në lekë. Çmimet llogariten nga hoteli në çast.',
+  'cart.payNote': 'Çmimet i llogarit hoteli në çast.',
   'cart.saving': 'Kurseni {amount}',
   'cart.lines': '{n} rreshta',
 
@@ -186,7 +186,7 @@ const sq = {
   'page.checkout.description': 'Përfundoni porosinë: të dhënat, pagesa, konfirmimi.',
   'page.order.title': 'Porosia',
   'page.account.title': 'Rezervimet e mia',
-  'page.account.description': 'Gjeni rezervimin me kodin dhe emailin, interesat tuaja dhe faqet e para së fundmi.',
+  'page.account.description': 'Gjeni rezervimin me kodin dhe emailin, interesat tuaja dhe faqet që keni parë së fundi.',
   'page.itinerary.title': 'Itinerari juaj në Divjakë',
   'page.itinerary.description': 'Zgjidhni ditët, interesat dhe ritmin — plani vizatohet si rrugë mbi hartën e lagunës.',
   'page.heritage.title': 'Trashëgimia natyrore dhe kulturore',
@@ -294,7 +294,7 @@ const en: Record<keyof typeof sq, string> = {
   'cart.loading': 'Working out prices…',
   'cart.error': 'Prices did not load. Your cart is still saved.',
   'cart.retry': 'Try again',
-  'cart.payNote': 'You pay in lek. The hotel prices everything live.',
+  'cart.payNote': 'The hotel prices everything live.',
   'cart.saving': 'You save {amount}',
   'cart.lines': '{n} lines',
 

@@ -20,7 +20,7 @@ import { photoSrc } from '../components/site/photo-url';
 
 type Lang = 'sq' | 'en';
 interface Link { label: string; url: string }
-interface Product { slug: string; kind: string; name: string; url: string; image: string | null; price: number; left?: number | null; total?: number; when?: string }
+interface Product { slug: string; kind: string; name: string; url: string; image: string | null; price: number; left?: number | null; total?: number; when?: string; per?: 'person'; party?: number }
 interface Reply { reply: string; chips: string[]; links: Link[]; products: Product[]; intent: string; handoff: boolean }
 interface Msg { role: 'user' | 'assistant'; text: string; links?: Link[]; products?: Product[]; handoff?: boolean; error?: boolean; at: string }
 interface Store { v: 1; lang: Lang; msgs: Msg[] }
@@ -32,6 +32,10 @@ let handle: ModalHandle | null = null;
 let dlg: HTMLDialogElement;
 let store: Store;
 let busy = false;
+/** a hand-off POST in flight: a second press or Enter is ignored, so staff never get it twice */
+let sending = false;
+/** when the hand-off form opened (time trap, as on the contact form) */
+let hoOpenedAt = 0;
 
 const $ = <T extends Element = HTMLElement>(sel: string) => dlg.querySelector<T>(sel)!;
 const nowHm = () => new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Tirane', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date());
@@ -89,7 +93,12 @@ function renderMsg(m: Msg): HTMLLIElement {
       body.append(el('span', 'acard__name', x.name));
       const meta = el('span', 'acard__meta mono');
       if (x.when) meta.append(el('span', '', x.when));
-      meta.append(el('span', '', priceText(x.total ?? x.price, store.lang)));
+      // experiences: the price per person, or the party's total with its size (rooms: the stay's total)
+      meta.append(el('span', '', x.per === 'person'
+        ? (x.total != null && x.party
+          ? tc('assistant.party', { price: priceText(x.total, store.lang), n: number(x.party, store.lang) })
+          : tc('assistant.perPerson', { price: priceText(x.price, store.lang) }))
+        : priceText(x.total ?? x.price, store.lang)));
       if (x.left != null) meta.append(el('span', '', x.left === 1 ? tc('assistant.seat') : tc('assistant.seats', { n: number(x.left, store.lang) })));
       body.append(meta);
       a.append(body);
@@ -149,7 +158,8 @@ function setLang(l: Lang, persist = true) {
   store.lang = l;
   dlg.querySelectorAll<HTMLElement>('[data-greeting] [data-for-lang]').forEach((p) => { p.hidden = p.dataset.forLang !== l; });
   dlg.querySelectorAll<HTMLButtonElement>('[data-asst-lang]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.asstLang === l ? 'true' : 'false'));
-  if (!dlg.querySelector('[data-asst-chips] [data-dyn]')) setChips(null);
+  // a language switch drops the last reply's chips (they are in the other language)
+  if (persist || !dlg.querySelector('[data-asst-chips] [data-dyn]')) setChips(null);
   if (persist) save();
 }
 
@@ -213,11 +223,17 @@ async function ask(text: string) {
 
 /* ---------------- hand-off form ---------------- */
 
+/** "I want to talk to the staff" is the request for the form, not the question for the staff (same words as the engine's HANDOFF_WORDS). */
+const HANDOFF_RE = /\b(flas me|staf|njeri real|me nje njeri\b|njeri te stafit|njeri nga stafi|operator|human|person real|real person|call me|me telefononi|me merrni|contact me|me kontaktoni|talk to)/;
+const foldText = (x: string) => x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
 function openHandoff(prefill?: string) {
   const f = $<HTMLFormElement>('[data-asst-handoff]');
+  if (f.hidden) hoOpenedAt = performance.now();
   f.hidden = false;
   const q = f.elements.namedItem('question') as HTMLTextAreaElement;
-  if (prefill && !q.value) q.value = prefill;
+  // the visitor's last question, on its own line, so what they type next starts below it
+  if (prefill && !q.value && !HANDOFF_RE.test(foldText(prefill))) q.value = `${prefill}\n`;
   const first = f.elements.namedItem('name') as HTMLInputElement;
   first.focus();
   f.scrollIntoView({ block: 'nearest' });
@@ -231,6 +247,7 @@ function fieldError(f: HTMLFormElement, name: string, msg: string) {
 }
 
 async function sendHandoff(f: HTMLFormElement) {
+  if (sending) return;
   const v = (n: string) => ((f.elements.namedItem(n) as HTMLInputElement).value || '').trim();
   const name = v('name'), email = v('email'), phone = v('phone'), question = v('question');
   ['name', 'email', 'question', 'form'].forEach((n) => fieldError(f, n, ''));
@@ -243,8 +260,14 @@ async function sendHandoff(f: HTMLFormElement) {
   if (first) { (f.elements.namedItem(first) as HTMLElement).focus(); return; }
   const btn = f.querySelector<HTMLButtonElement>('[type="submit"]')!;
   btn.setAttribute('aria-busy', 'true');
-  const r = await post({ lang: store.lang, message: question.slice(0, 600), context: context(), contact: { name, ...(email ? { email } : {}), ...(phone ? { phone } : {}), question: question.slice(0, 1000) } });
-  btn.removeAttribute('aria-busy');
+  sending = true;
+  let r: Awaited<ReturnType<typeof post>>;
+  try {
+    r = await post({ lang: store.lang, message: question.slice(0, 600), context: context(), contact: { name, ...(email ? { email } : {}), ...(phone ? { phone } : {}), question: question.slice(0, 1000), website: v('hp_web_x'), elapsed_ms: Math.max(0, Math.round(performance.now() - hoOpenedAt)) } });
+  } finally {
+    sending = false;
+    btn.removeAttribute('aria-busy');
+  }
   if (!r.ok || r.data.intent !== 'contact') {
     fieldError(f, 'form', r.ok ? r.data.reply : r.status === 429 ? tc('assistant.rate') : tc('assistant.error'));
     return;
@@ -277,6 +300,8 @@ function init() {
 
   $('[data-asst-form]').addEventListener('submit', (e) => {
     e.preventDefault();
+    // an answer is still on its way: keep the text in the field (it is sent with the next Enter)
+    if (busy) return;
     const input = $('#asst-input') as HTMLInputElement;
     const text = input.value;
     input.value = '';
@@ -306,7 +331,14 @@ function init() {
     const a = t.closest<HTMLAnchorElement>('a[href]');
     if (a && sameSite(a.getAttribute('href') || '')) handle?.close();
   });
-  $('[data-asst-handoff]').addEventListener('submit', (e) => { e.preventDefault(); sendHandoff(e.currentTarget as HTMLFormElement); });
+  const ho = $<HTMLFormElement>('[data-asst-handoff]');
+  ho.addEventListener('submit', (e) => { e.preventDefault(); sendHandoff(e.currentTarget as HTMLFormElement); });
+  // clear a field's error as soon as it is corrected (as the contact form does)
+  ho.addEventListener('input', (e) => {
+    const n = (e.target as HTMLInputElement).name;
+    if (n === 'phone') fieldError(ho, 'email', '');
+    else if (n) fieldError(ho, n, '');
+  });
 }
 
 /** a short idle without requestAnimationFrame (GSAP's ticker is the only rAF owner) */

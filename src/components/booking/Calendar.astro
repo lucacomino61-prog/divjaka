@@ -22,8 +22,10 @@ interface Props {
   lang: Lang; id: string; mode: 'night' | 'stay' | 'seats'; ym: string; days: DayCell[];
   min: string; max: string; hrefFor: (ym: string) => string;
   selected?: { from?: string | null; to?: string | null; date?: string | null };
+  /** seats mode for a demo schedule: open days are marked, their counts are not printed */
+  noSeats?: boolean;
 }
-const { lang, id, mode, ym, days, min, max, hrefFor, selected = {} } = Astro.props;
+const { lang, id, mode, ym, days, min, max, hrefFor, selected = {}, noSeats = false } = Astro.props;
 const rate = await eurRate();
 const byDate = new Map(days.map((d) => [d.date, d]));
 const weeks = monthWeeks(ym);
@@ -32,7 +34,10 @@ const monthLabel = `${MONTHS[lang][m - 1]} ${y}`;
 const prev = addMonths(ym, -1), next = addMonths(ym, 1);
 const today = todayLocal();
 const firstOpen = days.find((d) => d.status === 'open')?.date;
-const focusDate = selected.date ?? selected.from ?? (firstOpen && firstOpen.startsWith(ym) ? firstOpen : days.find((d) => d.date >= today)?.date ?? days[0]?.date);
+// the one tab stop of the grid: the selected day when it is in this month, else the first open
+// day, else today or the first day (never a date outside the grid → no tab stop at all)
+const inMonth = (d?: string | null) => (d && d.startsWith(ym) ? d : null);
+const focusDate = inMonth(selected.date) ?? inMonth(selected.from) ?? inMonth(firstOpen) ?? days.find((d) => d.date >= today)?.date ?? days[0]?.date ?? `${ym}-01`;
 const { from, to, date: single } = selected;
 
 const statusWord: Record<string, string> = {
@@ -44,7 +49,8 @@ function label(c: DayCell): string {
   const d = formatDate(c.date, lang, 'long');
   let s = d;
   if (c.status === 'open' && c.price != null) s = t(lang, 'booking.cal.dayNight', { date: d, price: money(c.price, lang) });
-  else if (c.status === 'open' && c.seats != null) s = t(lang, 'booking.cal.daySeats', { date: d, seats: c.seats === 1 ? (lang === 'sq' ? '1 vend' : '1 place') : (lang === 'sq' ? `${c.seats} vende` : `${c.seats} places`) });
+  else if (c.status === 'open' && c.seats != null && noSeats) s = t(lang, 'booking.cal.dayOpen', { date: d });
+  else if (c.status === 'open' && c.seats != null) s = t(lang, 'booking.cal.daySeats', { date: d, seats: c.seats === 1 ? t(lang, 'booking.seats1') : t(lang, 'booking.seats', { n: number(c.seats, lang) }) });
   else if (statusWord[c.status]) s = `${d}, ${statusWord[c.status]}`;
   if (c.date === today) s += `, ${t(lang, 'booking.cal.today')}`;
   if (from && c.date === from) s += `, ${t(lang, 'booking.cal.selectedIn')}`;
@@ -59,7 +65,7 @@ const mark = (date: string) => {
   return '';
 };
 ---
-<div class:list={['cal', `cal--${mode}`]} id={id} data-cal data-mode={mode} data-ym={ym} data-min={min} data-max={max} data-today={today} data-horizon={horizonDate()}>
+<div class:list={['cal', `cal--${mode}`]} id={id} data-cal data-mode={mode} data-ym={ym} data-min={min} data-max={max} data-today={today} data-horizon={horizonDate()} data-noseats={noSeats ? '' : undefined}>
   <script type="application/json" data-cal-data set:html={JSON.stringify(days).replace(/</g, '\\u003c')} />
   <div class="cal__head">
     <a class="cal__nav" href={hrefFor(prev)} data-cal-prev aria-label={t(lang, 'booking.cal.prev')} aria-disabled={prev < min ? 'true' : undefined} rel="nofollow">
@@ -80,7 +86,7 @@ const mark = (date: string) => {
           {week.map((date) => {
             if (!date) return <td class="cal__pad"></td>;
             const c = byDate.get(date) ?? { date, status: date < today ? 'past' : 'none' } as DayCell;
-            const val = c.status === 'open' ? (c.price != null ? number(c.price, lang) : c.seats != null ? String(c.seats) : '') : '';
+            const val = c.status === 'open' ? (c.price != null ? number(c.price, lang) : c.seats != null && !noSeats ? String(c.seats) : '') : '';
             const mk = mark(date);
             return (
               <td class="cal__cell" data-mark={mk || undefined}>
@@ -111,7 +117,7 @@ const mark = (date: string) => {
   </table>
   <p class="cal__legend mono">
     {mode === 'seats' ? (
-      <span>{t(lang, 'booking.cal.legend.seats')}</span>
+      <span class:list={[noSeats && 'cal__legend-open']}>{t(lang, noSeats ? 'booking.cal.legend.open' : 'booking.cal.legend.seats')}</span>
     ) : (
       <>
         <span data-cur-all>{t(lang, mode === 'stay' ? 'booking.cal.legend.nightFrom' : 'booking.cal.legend.night')}</span>
@@ -119,6 +125,7 @@ const mark = (date: string) => {
       </>
     )}
     <span class="cal__legend-full"><s aria-hidden="true">12</s> {t(lang, 'booking.cal.legend.full')}</span>
+    <span class="cal__legend-closed"><span class="cal__legend-x" aria-hidden="true">12</span> {t(lang, 'booking.cal.legend.closed')}</span>
     <span id={`${id}-keys`} class="visually-hidden">{t(lang, 'booking.cal.keys')}</span>
   </p>
   <p class="cal__status mono" data-cal-status role="status"></p>

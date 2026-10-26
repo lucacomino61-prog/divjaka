@@ -313,8 +313,8 @@ export function loginResult(ip: string, email: string, ok: boolean): 'ok' | 'fir
   return f.n === 1 ? 'first_fail' : 'fail';
 }
 
-const OPEN_METEO = 'https://api.open-meteo.com https://marine-api.open-meteo.com https://air-quality-api.open-meteo.com';
-
+// T7 2026-10-26: no browser request leaves the site any more (weather, sea and air are fetched by
+// lib/live.ts on the server; the free Open-Meteo API is non-commercial), so connect-src is 'self'.
 export function buildCsp(opts: { dev: boolean; scriptHashes?: string[]; https: boolean }): string {
   if (opts.dev) {
     // Vite HMR needs inline module scripts, eval-free websockets and blob workers.
@@ -324,7 +324,7 @@ export function buildCsp(opts: { dev: boolean; scriptHashes?: string[]; https: b
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
-      `connect-src 'self' ws: wss: ${OPEN_METEO}`,
+      "connect-src 'self' ws: wss:",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -338,7 +338,7 @@ export function buildCsp(opts: { dev: boolean; scriptHashes?: string[]; https: b
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self'",
-    `connect-src 'self' ${OPEN_METEO}`,
+    "connect-src 'self'",
     "manifest-src 'self'",
     "worker-src 'self' blob:",
     "frame-ancestors 'none'",

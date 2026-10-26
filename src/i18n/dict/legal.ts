@@ -11,7 +11,7 @@ export default {
     'legal.draft.note': 'Ky tekst është skicë dhe pret konfirmimin e hotelit dhe të një juristi. Ajo që përshkruan sajtin është e saktë; kushtet që i vendos hoteli shënohen si të tilla.',
     'legal.updated': 'Versioni i {date}',
     'legal.toc': 'Përmbajtja',
-    'legal.contact': 'Pyetje? Shkruani hotelit',
+    'legal.contact': 'Pyetje? Shkruajini hotelit',
     'legal.other.privacy': 'Lexoni edhe kushtet e rezervimit',
     'legal.other.terms': 'Lexoni edhe njoftimin e privatësisë',
   },

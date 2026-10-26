@@ -37,7 +37,7 @@ const countLabel = (key: string, n: number) => t(lang, key === 'orders' ? 'admin
           <a class="adm-nav__link" href={s.href} aria-current={here ? 'page' : undefined}>
             <span class="adm-nav__nr mono">{String(i + 1).padStart(2, '0')}</span>
             <span class="adm-nav__label">{t(lang, `admin.nav.${s.key}`)}</span>
-            {n > 0 && <span class="adm-nav__count mono" title={countLabel(s.key, n)}><span class="adm-nav__dot" aria-hidden="true"></span>{n}<span class="visually-hidden"> · {countLabel(s.key, n)}</span></span>}
+            {n > 0 && <span class="adm-nav__count mono" title={countLabel(s.key, n)} data-count={s.key}><span class="adm-nav__dot" aria-hidden="true"></span><span data-count-n>{n}</span><span class="visually-hidden"> · <span data-count-label>{countLabel(s.key, n)}</span></span></span>}
           </a>
         </li>
       );

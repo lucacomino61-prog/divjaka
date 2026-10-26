@@ -6,6 +6,9 @@
  *   together   co-purchase: bought in the same order as the cart/viewed  (4 × share of co-orders)
  *   season     the product's months include the current month           (1.5; no months listed → 0.3)
  *   popular    distinct tabs that viewed / added it + its orders, 30 days (log scale, ≤ 2)
+ *   picked     no signal at all: a neutral label ("chosen by the hotel"), never a popularity claim
+ * Demo rows never count: events with sid 'demo-%' and orders with demo = 1 are left out (PLAN §2:
+ * no invented popularity). 'season' is only the label when the product's months include this one.
  * Only real orders count (not TEST, confirmed/completed or paid — never an unverified pending
  * one), and views/adds count distinct browsing tabs, so a script cannot steer "popular" or
  * "bought together" with fake checkouts or a flood of events. The order/event part is cached
@@ -19,9 +22,9 @@ import { addDays, tirane } from './time';
 import { productUrl, type Lang } from './urls';
 
 /** An order that really happened: not TEST, and paid or confirmed by staff. */
-const REAL_ORDER = "o.test = 0 AND (o.status IN ('confirmed','completed') OR o.payment_status = 'paid') AND o.status != 'cancelled'";
+const REAL_ORDER = "o.test = 0 AND o.demo = 0 AND (o.status IN ('confirmed','completed') OR o.payment_status = 'paid') AND o.status != 'cancelled'";
 
-export type Reason = 'interests' | 'history' | 'together' | 'season' | 'popular';
+export type Reason = 'interests' | 'history' | 'together' | 'season' | 'popular' | 'picked';
 export interface RecItem { slug: string; kind: Kind; name: string; url: string; price: number; image: string | null; reason: Reason; score?: number }
 
 const TTL = 60_000;
@@ -57,7 +60,8 @@ function popularity(): Map<number, number> {
   const pop = new Map<number, number>();
   for (const r of all<{ product_id: number; n: number }>(
     `SELECT product_id, COUNT(DISTINCT CASE WHEN type = 'product_view' THEN sid END) + 3 * COUNT(DISTINCT CASE WHEN type = 'add_to_cart' THEN sid END) AS n
-     FROM events WHERE day >= ? AND product_id IS NOT NULL AND type IN ('product_view','add_to_cart') GROUP BY product_id`,
+     FROM events WHERE day >= ? AND product_id IS NOT NULL AND type IN ('product_view','add_to_cart')
+       AND sid IS NOT NULL AND sid NOT LIKE 'demo-%' GROUP BY product_id`,
     since,
   )) pop.set(r.product_id, Number(r.n));
   for (const r of all<{ product_id: number; n: number }>(
@@ -74,7 +78,10 @@ export function recommend(o: { lang: Lang; interests?: string[]; viewed?: string
   const interests = new Set((o.interests ?? []).map((s) => s.toLowerCase()));
   const viewed = (o.viewed ?? []).slice(0, 30);
   const cart = new Set(o.cart ?? []);
+  // what the visitor has already seen is not "recommended" back to them (it has its own
+  // "Parë së fundi" place); kept only if the catalogue would otherwise run short
   const exclude = new Set([...(o.exclude ?? []), ...cart]);
+  const seen = new Set((o.viewed ?? []).slice(0, 30));
   const products = listProducts();
   const bySlug = new Map(products.map((p) => [p.slug, p]));
   const month = tirane().month;
@@ -97,10 +104,13 @@ export function recommend(o: { lang: Lang; interests?: string[]; viewed?: string
 
   const pop = popularity();
 
-  const scored = products
-    .filter((p) => !exclude.has(p.slug) && (!o.kinds?.length || o.kinds.includes(p.kind)))
+  const want = Math.min(24, Math.max(1, o.limit ?? 6));
+  const pool0 = products.filter((p) => !exclude.has(p.slug) && (!o.kinds?.length || o.kinds.includes(p.kind)));
+  const fresh = pool0.filter((p) => !seen.has(p.slug));
+  const pool = fresh.length >= want ? fresh : pool0;
+  const scoredRaw = pool
     .map((p) => {
-      const parts: Record<Reason, number> = {
+      const parts: Record<Exclude<Reason, 'picked'>, number> = {
         interests: p.tags.filter((t) => interests.has(t)).length * 3,
         history: p.tags.reduce((s, t) => s + (histTags.get(t) ?? 0) * 1.2, 0) + (p.category && histCats.has(p.category) ? 1 : 0),
         together: (together.get(p.id) ?? 0) * 4,
@@ -110,12 +120,29 @@ export function recommend(o: { lang: Lang; interests?: string[]; viewed?: string
       let score = Object.values(parts).reduce((a, b) => a + b, 0) + (p.featured ? 0.4 : 0);
       if (viewed.includes(p.slug)) score -= 1.5;
       if (p.seasons.length && !p.seasons.includes(month)) score -= 1;
-      const reason = (Object.entries(parts) as [Reason, number][]).sort((a, b) => b[1] - a[1])[0];
-      return { p, score, reason: reason[1] > 0 ? reason[0] : ('popular' as Reason) };
+      return { p, score, parts };
+    });
+  // "Based on what you viewed" only on the cards the views really pulled in: the ones in this
+  // top list that would not be in it without the history signal (never on a viewed item). Every
+  // other card is labelled by its strongest other signal, so one label is not on every card.
+  const byScore = (a: { p: Product; score: number }, b: { p: Product; score: number }) => b.score - a.score || a.p.sort - b.p.sort;
+  const withoutHistory = new Set(
+    scoredRaw.map((x) => ({ p: x.p, score: x.score - x.parts.history })).sort(byScore).slice(0, want).map((x) => x.p.slug),
+  );
+  const scored = scoredRaw
+    .map(({ p, score, parts }) => {
+      // the label: the strongest real signal; a year-round product's small season bonus is not one
+      const labelled = {
+        ...parts,
+        season: p.seasons.includes(month) ? parts.season : 0,
+        history: !seen.has(p.slug) && !withoutHistory.has(p.slug) && parts.history > 0 ? Number.MAX_VALUE : 0,
+      };
+      const reason = (Object.entries(labelled) as [Reason, number][]).sort((a, b) => b[1] - a[1])[0];
+      return { p, score, reason: reason[1] > 0 ? reason[0] : ('picked' as Reason) };
     })
     .sort((a, b) => b.score - a.score || a.p.sort - b.p.sort);
 
-  return scored.slice(0, Math.min(24, Math.max(1, o.limit ?? 6))).map(({ p, score, reason }) => toItem(p, lang, reason, score));
+  return scored.slice(0, want).map(({ p, score, reason }) => toItem(p, lang, reason, score));
 }
 
 function toItem(p: Product, lang: Lang, reason: Reason, score: number): RecItem {

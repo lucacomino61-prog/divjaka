@@ -14,5 +14,7 @@ export const POST: APIRoute = handle(async (ctx) => {
   rateLimit('assistant', ip, 30, 60_000);
   const body = await readJson(ctx.request, zAssistantBody, 16 * 1024);
   if (body.contact) rateLimit('assistant-contact', ip, 5, 10 * 60_000);
-  return json(await answer(body, { ua: ctx.request.headers.get('user-agent'), ip }));
+  // The admin's test box (T6) marks its questions; only honoured for a signed-in admin session.
+  const noTrack = !!ctx.locals.admin && ctx.request.headers.get('x-dv-admin-test') === '1';
+  return json(await answer(body, { ua: ctx.request.headers.get('user-agent'), ip, noTrack }));
 });

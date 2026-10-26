@@ -20,23 +20,32 @@ import type { DayCell } from './server';
 
 interface Props {
   lang: Lang; rooms: Product[]; ym: string; days: DayCell[]; min: string; max: string; hrefFor: (ym: string) => string;
-  from?: string | null; to?: string | null; guests: number; bestRate: boolean;
+  from?: string | null; to?: string | null; note?: string | null; guests: number; bestRate: boolean;
 }
-const { lang, rooms, ym, days, min, max, hrefFor, from = null, to = null, guests, bestRate } = Astro.props;
+const { lang, rooms, ym, days, min, max, hrefFor, from = null, to = null, note = null, guests, bestRate } = Astro.props;
+/** rooms of one type per line: the room page's max and T1's max_units_per_unconfirmed_order */
+const MAX_ROOMS = 5;
 const rate = await eurRate();
 const maxCap = Math.max(1, ...rooms.map((r) => r.capacity ?? 2));
 
-interface Row { slug: string; name: string; url: string; cap: number; qty: number; ok: boolean; total: number; compare: number | null; offer: string | null; problem: string | null }
+interface Row { slug: string; name: string; url: string; cap: number; qty: number; ok: boolean; many: boolean; total: number; compare: number | null; offer: string | null; problem: string | null }
 let rows: Row[] = [];
 if (from && to) {
   rows = rooms.map((r) => {
     const cap = Math.max(1, r.capacity ?? 2);
-    const qty = Math.max(1, Math.ceil(guests / cap));
+    const need = Math.max(1, Math.ceil(guests / cap));
+    const name = lang === 'en' ? r.name_en : r.name_sq;
+    // a type that would need more than MAX_ROOMS rooms is marked, not quoted
+    if (need > MAX_ROOMS) return { slug: r.slug, name, url: '', cap, qty: MAX_ROOMS, ok: false, many: true, total: 0, compare: null, offer: null, problem: t(lang, 'stay.search.tooMany', { n: guests, max: MAX_ROOMS }) };
+    const qty = need;
     const q = quote({ lang, items: [{ key: r.slug, slug: r.slug, kind: 'room', qty, from, to, guests }] });
     const l = q.lines[0];
+    // the hotel has fewer rooms of this type than the party needs: marked like the case above (no
+    // price, no "taken on these dates", no unit count), as booking.ts does after a search
+    if (l.problem?.code === 'rooms') return { slug: r.slug, name, url: '', cap, qty, ok: false, many: true, total: 0, compare: null, offer: null, problem: t(lang, 'stay.search.notEnough', { n: guests }) };
     return {
       slug: r.slug, name: lang === 'en' ? r.name_en : r.name_sq, url: path('room', lang, { slug: r.slug }) + `?nga=${from}&deri=${to}&persona=${guests}&dhoma=${qty}`,
-      cap, qty, ok: !l.problem, total: l.line_total, compare: l.compare_total && l.compare_total > l.line_total ? l.compare_total : null,
+      cap, qty, ok: !l.problem, many: false, total: l.line_total, compare: l.compare_total && l.compare_total > l.line_total ? l.compare_total : null,
       offer: l.offer?.name ?? null, problem: l.problem?.message ?? null,
     };
   });
@@ -44,7 +53,7 @@ if (from && to) {
 const free = rows.filter((r) => r.ok).length;
 const both = (lek: number) => (rate > 0 ? { all: money(lek, lang), eur: money(lek, lang, { currency: 'EUR', rate }) } : { all: money(lek, lang), eur: '' });
 const idp = 'bk-stay';
-const roomWord = (n: number) => (lang === 'sq' ? (n === 1 ? '1 dhomë' : `${n} dhoma`) : n === 1 ? '1 room' : `${n} rooms`);
+const roomWord = (n: number) => (n === 1 ? t(lang, 'booking.rooms.n1') : t(lang, 'booking.rooms.n', { n }));
 ---
 <section class="bk bk--stay"
   data-booking="stay" data-rooms={JSON.stringify(rooms.map((r) => ({ slug: r.slug, name: lang === 'en' ? r.name_en : r.name_sq, cap: r.capacity ?? 2, url: path('room', lang, { slug: r.slug }) })))}
@@ -54,24 +63,25 @@ const roomWord = (n: number) => (lang === 'sq' ? (n === 1 ? '1 dhomë' : `${n} d
   <div class="bk__head">
     <h2 class="bk__title" id={`${idp}-t`}>{t(lang, 'stay.search.title')}</h2>
   </div>
-  <RangePicker lang={lang} id={idp} mode="stay" ym={ym} days={days} min={min} max={max} hrefFor={hrefFor} from={from} to={to} collapsible />
+  <RangePicker lang={lang} id={idp} mode="stay" ym={ym} days={days} min={min} max={max} hrefFor={hrefFor} from={from} to={to} note={note} collapsible />
   <GuestStepper id={`${idp}-guests`} name="guests" label={t(lang, 'booking.guests')} value={guests} min={1} max={maxCap * 5} less={t(lang, 'booking.guests.less')} more={t(lang, 'booking.guests.more')} />
   <Pill data-bk-search block arrow>{t(lang, 'stay.search.go')}</Pill>
   <Fragment slot="stub">
     <div data-bk-results aria-live="polite">
       {from && to ? (
         <Fragment>
+          <p class="sr__stale mono">{t(lang, 'stay.search.stale')} <button type="button" data-sr-again>{t(lang, 'stay.search.again')}</button></p>
           <p class="sr__head mono">{nightsLabel(daysBetween(from, to), lang)} · {formatRange(from, to, lang)} · {free === 1 ? t(lang, 'stay.search.result1') : t(lang, 'stay.search.result', { n: free })}</p>
           {free === 0 && <p class="bk-msg">{t(lang, 'stay.search.none')}</p>}
           <ol class="sr">
             {rows.map((r) => (
               <li class:list={['sr__row', !r.ok && 'sr__row--full']} data-slug={r.slug}>
-                <p class="sr__name"><a href={r.url}>{r.name}</a></p>
-                <p class="sr__meta mono">{roomWord(r.qty)} · {t(lang, 'stay.search.cap', { n: r.cap })} · {r.ok ? t(lang, 'stay.search.free') : t(lang, 'stay.search.full')}</p>
+                <p class="sr__name">{r.many ? r.name : <a href={r.url}>{r.name}</a>}</p>
+                <p class="sr__meta mono">{r.many ? t(lang, 'stay.search.cap', { n: r.cap }) : `${roomWord(r.qty)} · ${t(lang, 'stay.search.cap', { n: r.cap })} · ${r.ok ? t(lang, 'stay.search.free') : t(lang, 'stay.search.full')}`}</p>
                 <div class="sr__price">
-                  <span class="sr__total">
+                  {!r.many && <span class="sr__total">
                     {r.compare && <s class="bk__sum-was"><span data-cur-all>{both(r.compare).all}</span>{rate > 0 && <span data-cur-eur>{both(r.compare).eur}</span>}</s>} <span data-cur-all>{both(r.total).all}</span>{rate > 0 && <span data-cur-eur>{both(r.total).eur}</span>}
-                  </span>
+                  </span>}
                   {r.ok && <button type="button" class="pill pill--outline sr__add" data-sr-add={r.slug} data-qty={r.qty}>{t(lang, 'booking.add')}</button>}
                 </div>
                 {r.offer && r.ok && <p class="sr__problem bk__offer mono">{t(lang, 'booking.total.offer', { name: r.offer })}</p>}
@@ -85,7 +95,7 @@ const roomWord = (n: number) => (lang === 'sq' ? (n === 1 ? '1 dhomë' : `${n} d
       )}
     </div>
     <p class="bk-msg" data-bk-msg role="alert" hidden></p>
-    <p class="bk__done mono" data-bk-done hidden>
+    <p class="bk__done mono" data-bk-done role="status" hidden>
       <span data-bk-done-text></span>
       <a href={path('cart', lang)} data-cart-open>{t(lang, 'booking.viewCart')}</a>
     </p>

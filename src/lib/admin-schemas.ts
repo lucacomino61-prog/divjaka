@@ -55,7 +55,30 @@ export const zProduct = z.object({
   sort: z.coerce.number().int().optional(),
   bundle_items: z.array(z.object({ product_id: z.number().int().positive(), qty: z.number().int().min(1).max(99) })).max(20).optional(),
 });
-export const zProductPatch = zProduct.partial();
+/**
+ * options.amount_presets (T6 fix round 3, 2026-10-26): the gift card's suggested amounts. At most
+ * 8 whole amounts inside the card's own limits (the same defaults as shop-data giftLimits():
+ * 1000 / 200000 / 100) and on its step counted from the minimum; anything else → 400 with the field.
+ * `options` is the product's whole options object after the save (PATCH replaces it).
+ */
+export function checkGiftPresets(options: Record<string, unknown> | undefined): void {
+  const v = options?.amount_presets;
+  if (v === undefined || v === null) return;
+  const lim = (k: string, d: number) => { const n = Number(options?.[k] ?? d); return Number.isFinite(n) ? n : d; };
+  const min = lim('amount_min', 1000), max = lim('amount_max', 200000), step = Math.max(1, lim('amount_step', 100));
+  const ok = Array.isArray(v) && v.length <= 8
+    && v.every((x) => typeof x === 'number' && Number.isInteger(x) && x >= min && x <= max && (x - min) % step === 0);
+  if (!ok) {
+    throw E.bad(
+      `Shumat e propozuara: deri në 8 shuma të plota midis ${min} dhe ${max} lekë, me hap ${step} lekë.`,
+      `Suggested amounts: up to 8 whole amounts between ${min} and ${max} lek, on the ${step} lek step.`,
+      { fields: [{ path: 'options.amount_presets', message: 'invalid_presets' }] },
+    );
+  }
+}
+
+/** verify_demo (T6, 2026-10-26): the owner ticks "these values are real"; only then is the DEMO flag cleared. */
+export const zProductPatch = zProduct.partial().extend({ verify_demo: z.boolean().optional() });
 
 export const zSession = z.object({
   product_id: z.number().int().positive(),

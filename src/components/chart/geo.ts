@@ -367,9 +367,34 @@ function waterlinesFrom(rings: Ring[], levels: number[], step = 1.5, eps = 1.25,
   return out;
 }
 
+/** The centre of the widest horizontal stretch of water, averaged over a 24-unit band (a label sits there clear of every shore). */
+function widestRun(rings: Ring[]): (Pt & { w: number }) | null {
+  const [, y0, , y1] = bboxOf(rings);
+  const runs: { y: number; a: number; b: number }[] = [];
+  for (let y = Math.ceil(y0) + 1; y < y1; y += 2) {
+    const xs: number[] = [];
+    for (const r of rings) for (let i = 0, k = r.length - 1; i < r.length; k = i++) {
+      const [xi, yi] = r[i], [xk, yk] = r[k];
+      if ((yi > y) !== (yk > y)) xs.push(((xk - xi) * (y - yi)) / (yk - yi) + xi);
+    }
+    xs.sort((a, b) => a - b);
+    let best = { y, a: 0, b: 0 };
+    for (let i = 0; i + 1 < xs.length; i += 2) if (xs[i + 1] - xs[i] > best.b - best.a) best = { y, a: xs[i], b: xs[i + 1] };
+    runs.push(best);
+  }
+  // the band of 13 rows (24 units) whose narrowest run is widest: the text box fits in it
+  let pick: { y: number; a: number; b: number } | null = null, pickW = 0;
+  for (let i = 6; i + 6 < runs.length; i++) {
+    const band = runs.slice(i - 6, i + 7);
+    const a = Math.max(...band.map((r) => r.a)), b = Math.min(...band.map((r) => r.b));
+    if (b - a > pickW) { pickW = b - a; pick = { y: runs[i].y, a, b }; }
+  }
+  return pick ? { x: (pick.a + pick.b) / 2, y: pick.y, w: pick.b - pick.a } : null;
+}
+
 /* ---------------- layers ---------------- */
 
-export interface Lettering { key: string; x: number; y: number; text: { sq: string; en: string }; kind: 'water' | 'place' | 'river'; size?: 's' | 'm' | 'l' }
+export interface Lettering { key: string; x: number; y: number; w?: number /* open-water run, chart units */; text: { sq: string; en: string }; kind: 'water' | 'place' | 'river'; size?: 's' | 'm' | 'l' }
 export interface Layers {
   coast: string;            // Shkumbin mouth → Seman mouth (north → south), one subpath
   lagoon: string;           // outer shore + islets (evenodd)
@@ -390,24 +415,37 @@ export interface Layers {
   points: number;
 }
 
-let layerCache: { src: Raw; layers: Layers } | null = null;
+const layerCache = new Map<Detail, { src: Raw; layers: Layers }>();
 
-export const WATERLINE_LEVELS = [3.2, 7.5, 13, 20, 29];
-export const SEA_LEVELS = [5, 12];
+/** DESIGN §4.6: at most 2 000 path points per chart (the signature re-rasterises it per frame). */
+export const WATERLINE_LEVELS = [3.2, 9, 18];
+export const SEA_LEVELS = [7];
+/**
+ * full: every layer (≈ 1 900 points, see README → Chart). mini: thumbnails (shop teaser, cards):
+ * coast, lagoon water + shore, park and forest outline, one waterline, coarser (≈ 600 points).
+ */
+export type Detail = 'full' | 'mini';
+const EPS = {
+  full: { coast: 0.7, lagoon: 0.85, wl: 1.9, sea: 2.4, park: 2.4, forest: 2.4, other: 2, island: 1, river: 3.5, road: 2 },
+  mini: { coast: 2, lagoon: 1.8, wl: 3, sea: 4, park: 4, forest: 4, other: 3, island: 2, river: 5, road: 3 },
+};
 
-export function layers(): Layers | null {
+export function layers(detail: Detail = 'full'): Layers | null {
   const g = data();
   if (!g) return null;
-  if (layerCache && layerCache.src === g) return layerCache.layers;
+  const hit = layerCache.get(detail);
+  if (hit && hit.src === g) return hit.layers;
+  const E = EPS[detail];
+  const mini = detail === 'mini';
   const P = g.paths as Raw;
   const coastRings = parsePath(String(P.coast));
-  const coastNS = coastRings.map((r) => simplifyRing([...r].reverse() as Ring, 0.4));
-  const lagoonRings = parsePath(String(P.lagoon)).map((r) => simplifyRing(r, 0.45));
+  const coastNS = coastRings.map((r) => simplifyRing([...r].reverse() as Ring, E.coast));
+  const lagoonRings = parsePath(String(P.lagoon)).map((r) => simplifyRing(r, E.lagoon));
   const outer = lagoonRings[0] ?? [];
-  const wl = waterlinesFrom(lagoonRings, WATERLINE_LEVELS, 1.5, 1.25, undefined, 2);
+  const wl = waterlinesFrom(lagoonRings, mini ? WATERLINE_LEVELS.slice(0, 1) : WATERLINE_LEVELS, 1.5, E.wl, undefined, 2);
   const seaRings = parsePath(String(P.sea ?? ''));
   const shoreRings = [...parsePath(String(P.coast_full ?? P.coast)), ...((Array.isArray(P.coast_islands) ? P.coast_islands : []) as Raw[]).flatMap((c) => parsePath(String(c.d)))];
-  const sea = seaRings.length ? waterlinesFrom(seaRings, SEA_LEVELS, 2, 1.6, { rings: shoreRings, closed: false }) : [];
+  const sea = seaRings.length && !mini ? waterlinesFrom(seaRings, SEA_LEVELS, 2, E.sea, { rings: shoreRings, closed: false }) : [];
   const ll = (lat: number) => project(lat, 19.4).y;
   const lx = (lon: number) => project(40.9, lon).x;
   const graticule = {
@@ -419,8 +457,10 @@ export function layers(): Layers | null {
   const roads = (Array.isArray(P.roads) ? P.roads : []) as Raw[];
   const divjake = poi('divjake-centre');
   const centre = outer.length ? centroid(outer) : { x: 560, y: 650 };
+  const label = widestRun(lagoonRings) ?? { x: 600, y: 640, w: 200 };
   const lettering: Lettering[] = [
-    { key: 'lagoon', x: 585, y: 588, text: { sq: 'Laguna e Karavastasë', en: 'Karavasta Lagoon' }, kind: 'water', size: 'l' },
+    // on open water: the middle of the longest horizontal run of water (the label is horizontal)
+    { key: 'lagoon', x: label.x, y: label.y, w: label.w, text: { sq: 'Laguna e Karavastasë', en: 'Karavasta Lagoon' }, kind: 'water', size: 'l' },
     { key: 'sea', x: 215, y: 610, text: { sq: 'Deti Adriatik', en: 'Adriatic Sea' }, kind: 'water', size: 'l' },
     ...(divjake ? [{ key: 'divjake', x: divjake.x, y: divjake.y, text: { sq: 'Divjakë', en: 'Divjakë' }, kind: 'place' as const, size: 'm' as const }] : []),
     { key: 'shkumbin', x: 470, y: 92, text: { sq: 'Shkumbini', en: 'Shkumbin' }, kind: 'river', size: 's' },
@@ -434,22 +474,22 @@ export function layers(): Layers | null {
     lagoonCentre: centre,
     waterlines: wl,
     seaLines: sea,
-    park: simplify(String(P.park ?? ''), 1.6, true),
-    forest: simplify(String(P.forest ?? ''), 1.7, true),
-    forestOther: (Array.isArray(P.forest_other) ? P.forest_other : []).map((f: Raw) => simplify(String(f.d), 1.6, true)),
+    park: simplify(String(P.park ?? ''), E.park, true),
+    forest: simplify(String(P.forest ?? ''), E.forest, true),
+    forestOther: mini ? [] : (Array.isArray(P.forest_other) ? P.forest_other : []).map((f: Raw) => simplify(String(f.d), E.forest, true)),
     lagoonsOther: others.map((o) => {
       const rings = parsePath(String(o.d));
-      return { d: toPath(rings.map((r) => simplifyRing(r, 1.2)), true), name: o.name_sq ? { sq: String(o.name_sq), en: String(o.name_en ?? o.name_sq) } : null, centre: rings[0] ? centroid(rings[0]) : { x: 0, y: 0 } };
+      return { d: toPath(rings.map((r) => simplifyRing(r, E.other)), true), name: o.name_sq ? { sq: String(o.name_sq), en: String(o.name_en ?? o.name_sq) } : null, centre: rings[0] ? centroid(rings[0]) : { x: 0, y: 0 } };
     }),
-    islands: (Array.isArray(P.coast_islands) ? P.coast_islands : []).map((f: Raw) => simplify(String(f.d), 0.6, true)),
-    rivers: rivers.map((r) => ({ d: simplify(String(r.d), 3, false), name: { sq: String(r.name_sq ?? ''), en: String(r.name_en ?? '') } })),
-    roads: roads.map((r) => simplify(String(r.d), 1.4, false)),
+    islands: (Array.isArray(P.coast_islands) ? P.coast_islands : []).map((f: Raw) => simplify(String(f.d), E.island, true)),
+    rivers: mini ? [] : rivers.map((r) => ({ d: simplify(String(r.d), E.river, false), name: { sq: String(r.name_sq ?? ''), en: String(r.name_en ?? '') } })),
+    roads: mini ? [] : roads.map((r) => simplify(String(r.d), E.road, false)),
     graticule,
     lettering,
     points: 0,
   };
-  out.points = [out.coast, out.lagoon, ...out.waterlines, ...out.seaLines, out.park, out.forest, ...out.forestOther, ...out.lagoonsOther.map((o) => o.d), ...out.islands, ...out.rivers.map((r) => r.d), ...out.roads].reduce((n, d) => n + pointCount(d), 0);
-  layerCache = { src: g, layers: out };
+  out.points = [out.coast, out.lagoon, out.shore, out.islets, ...out.waterlines, ...out.seaLines, out.park, out.forest, ...out.forestOther, ...out.lagoonsOther.map((o) => o.d), ...out.islands, ...out.rivers.map((r) => r.d), ...out.roads].reduce((n, d) => n + pointCount(d), 0);
+  layerCache.set(detail, { src: g, layers: out });
   return out;
 }
 

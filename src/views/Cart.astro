@@ -6,8 +6,10 @@
  * to the checkout, recommendations and the empty state. The cart lives in this browser
  * (localStorage dv-cart, PLAN §8), so the lines are drawn by scripts/checkout.ts; the server
  * prints the frame, the words and a no-JS note.
- * A product page's form without JavaScript posts here as ?shto=<slug>&sasia=&amount=|vlera=&pas=;
- * the product is looked up here and handed to the script in a data island.
+ * A product page's form posts here as ?shto=<slug>&sasia=&amount=|vlera=&pas= when its script has
+ * not run (a tap before it loaded): the product is looked up here and handed to this page's script
+ * in a data island, which adds it. With JavaScript OFF nothing can be added (the cart lives in the
+ * browser): the noscript note then names the product and points to the contact page.
  */
 import Base from '../layouts/Base.astro';
 import SectionHead from '../components/site/SectionHead.astro';
@@ -16,6 +18,8 @@ import Pill from '../components/site/Pill.astro';
 import RecommendRail from '../components/recommend/RecommendRail.astro';
 import { findPublished } from '../lib/catalog';
 import { pname } from '../lib/db/repo/products';
+import { giftLimits } from '../components/shop/shop-data';
+import { money } from '../i18n/format';
 import '../components/checkout/checkout.css';
 import { t } from '../i18n/ui';
 import { path, type Lang } from '../i18n/routes';
@@ -26,6 +30,9 @@ const { lang } = Astro.props;
 // ?shto=… from a product page's form (no JavaScript there)
 const q = Astro.url.searchParams;
 let add: Record<string, unknown> | null = null;
+// a gift card with no valid value is never added at a value the guest did not choose: the page
+// says why and links back to the card
+let giftFix: { name: string; url: string; text: string } | null = null;
 const shto = (q.get('shto') ?? '').trim().toLowerCase();
 if (/^[a-z0-9][a-z0-9-]{0,79}$/.test(shto)) {
   const p = findPublished(shto);
@@ -33,7 +40,16 @@ if (/^[a-z0-9][a-z0-9-]{0,79}$/.test(shto)) {
     const qty = Math.min(99, Math.max(1, Math.trunc(Number(q.get('sasia')) || 1)));
     const rawAmount = q.get('amount') === 'custom' || !q.get('amount') ? q.get('vlera') : q.get('amount');
     const amount = p.kind === 'gift' ? Math.trunc(Number(String(rawAmount ?? '').replace(/[\s.,]/g, ''))) || null : null;
-    add = { slug: p.slug, kind: p.kind, name: pname(p, lang), qty, amount, buy: q.get('pas') === 'buy' };
+    const g = p.kind === 'gift' ? giftLimits(p.slug) : null;
+    if (g && (!amount || amount < g.min || amount > g.max || (amount - g.min) % g.step !== 0)) {
+      giftFix = {
+        name: pname(p, lang),
+        url: path('product', lang, { slug: p.slug }),
+        text: t(lang, 'product.amount.error', { min: money(g.min, lang), max: money(g.max, lang), step: money(g.step, lang) }),
+      };
+    } else {
+      add = { slug: p.slug, kind: p.kind, name: pname(p, lang), qty, amount, buy: q.get('pas') === 'buy' };
+    }
   }
 }
 ---
@@ -45,6 +61,13 @@ if (/^[a-z0-9][a-z0-9-]{0,79}$/.test(shto)) {
       <span slot="aside" class="mono cart-head__count" data-count></span>
     </SectionHead>
     <p class="cart-head__lead">{t(lang, 'cartpage.lead')}</p>
+    <div class="lastorder" role="status" data-last-order hidden></div>
+    {giftFix && (
+      <p class="cart-giftfix mono" role="alert">
+        {t(lang, 'cartpage.gift.notAdded', { name: giftFix.name })} {giftFix.text}{' '}
+        <a href={giftFix.url}>{t(lang, 'cartpage.gift.choose')}</a>
+      </p>
+    )}
   </section>
 
   <div class="cart wrap" data-cartpage data-state="loading">
@@ -55,8 +78,9 @@ if (/^[a-z0-9][a-z0-9-]{0,79}$/.test(shto)) {
       <button type="button" class="pill pill--outline pill--s cart__retry" data-retry><span class="pill__main">{t(lang, 'cartpage.retry')}</span></button>
       <p class="cart__problems mono" role="alert" data-problems hidden></p>
       <ul class="clines" data-lines></ul>
-      <noscript><p class="cart__noscript">{t(lang, 'cartpage.noscript')}</p></noscript>
-      <div class="cart__empty" data-empty hidden>
+      <script is:inline>(function(){try{var c=JSON.parse(localStorage.getItem("dv-cart")||"null");var n=c&&c.v===1&&Array.isArray(c.items)?c.items.length:0;if(document.querySelector("script[data-cart-add]"))n++;var r=document.querySelector("[data-cartpage]");if(r&&!n)r.setAttribute("data-state","empty");document.documentElement.style.setProperty("--cart-n",String(Math.min(n,12)));}catch(e){}})();</script>
+      <noscript><p class="cart__noscript">{add ? t(lang, 'cartpage.noscript.add', { name: String(add.name) }) : t(lang, 'cartpage.noscript')}</p></noscript>
+      <div class="cart__empty" data-empty>
         <svg class="cart__empty-art" viewBox="0 0 220 120" aria-hidden="true">
           <path d="M4 86 C 50 74, 96 98, 216 78" fill="none" stroke="currentColor" stroke-width="1.25" />
           <path d="M14 98 C 60 88, 110 108, 206 92" fill="none" stroke="currentColor" stroke-width="0.75" opacity=".55" />
@@ -86,10 +110,11 @@ if (/^[a-z0-9][a-z0-9-]{0,79}$/.test(shto)) {
           <p id="promo-msg" class="promo__msg mono" role="status" aria-live="polite" data-promo-msg></p>
           <button type="button" class="promo__remove mono" data-promo-remove hidden>{t(lang, 'promo.remove')}</button>
         </form>
-        <div class="cart-card__sums" data-sums></div>
+        <div class="cart-card__sums" data-sums><dl class="sums sums--big sums--sk" aria-hidden="true"><div class="sums__row"><dt class="mono">{t(lang, 'cart.subtotal')}</dt><dd class="mono">—</dd></div><div class="sums__row sums__row--total"><dt class="mono">{t(lang, 'cart.total')}</dt><dd class="sums__total">—</dd></div></dl></div>
         <Fragment slot="stub">
           <p class="mono cart-card__note">{t(lang, 'cart.payNote')}</p>
           <div class="cart-card__actions">
+            <p class="cart-card__blocked mono" data-go-note hidden>{t(lang, 'cartpage.go.blocked')}</p>
             <a href={path('checkout', lang)} class="pill pill--primary pill--block" data-go-checkout><span class="pill__main">{t(lang, 'cartpage.checkout')}<svg class="pill__arrow" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></span></a>
             <a href={path('shop', lang)} class="cart-card__more mono">{t(lang, 'cartpage.continue')}</a>
           </div>
@@ -109,7 +134,7 @@ if (/^[a-z0-9][a-z0-9-]{0,79}$/.test(shto)) {
 <style>
   .cart-head { padding-block-start: clamp(12px, 2vw, 24px); display: grid; gap: 14px; }
   .cart-head :global(.section-head--poster) { --poster-max: clamp(8rem, 24vh, 14rem); }
-  .cart-head__count { font-size: var(--step--2); }
+  .cart-head__count { font-size: var(--step--2); display: inline-block; min-block-size: 1lh; min-inline-size: 10ch; text-align: end; white-space: nowrap; }
   .cart-head__lead { max-inline-size: 58ch; color: var(--muted); }
   .cart { display: grid; gap: clamp(24px, 4vw, 56px); margin-block-start: clamp(20px, 3vw, 40px); align-items: start; }
   @media (min-width: 1024px) {
@@ -129,6 +154,14 @@ if (/^[a-z0-9][a-z0-9-]{0,79}$/.test(shto)) {
   .cart__problems[hidden] { display: none; }
   .cart__noscript { padding-block: 20px; }
   .clines { list-style: none; padding: 0; margin: 0; }
+  /* reserve the rows the quote will paint (CLS): the inline script counts the stored lines */
+  :global(html.js) .clines:empty { min-block-size: calc(var(--cart-n, 0) * var(--cline-h, 159px)); }
+  @media (max-width: 520px) { .clines { --cline-h: 130px; } }
+  /* an empty cart known before the script: the empty state, no summary card */
+  .cart[data-state="empty"] .cart__side { display: none; }
+  .cart[data-state="empty"] .cart__empty { display: grid; }
+  .cart-giftfix { padding: 12px 14px; border: 1px solid var(--ink); border-inline-start: 3px solid var(--pouch); font-size: var(--step--1); text-transform: none; letter-spacing: 0; }
+  .cart-giftfix a { color: var(--pouch-text); text-underline-offset: 3px; display: inline-flex; min-block-size: 44px; align-items: center; }
   .clines :global(.cline) { display: grid; grid-template-columns: 96px minmax(0, 1fr) 44px; gap: 18px; padding-block: 20px; border-block-end: 1px solid var(--rule); align-items: start; }
   .clines :global(.cline__plate) { display: block; inline-size: 88px; aspect-ratio: 4 / 5; margin: 4px; background: var(--salt-2); outline: 1px solid var(--ink); outline-offset: 3px; overflow: clip; }
   .clines :global(.cline__plate img) { inline-size: 100%; block-size: 100%; object-fit: cover; }
@@ -155,23 +188,30 @@ if (/^[a-z0-9][a-z0-9-]{0,79}$/.test(shto)) {
     .clines :global(.cline__plate) { inline-size: 56px; }
     .clines :global(.cline__name) { font-size: var(--step-1); }
   }
-  .cart__empty { display: grid; justify-items: start; gap: 14px; padding-block: clamp(28px, 5vw, 64px); }
-  .cart__empty[hidden] { display: none; }
+  /* shown by state (the inline script knows an empty cart before the bundle; chrome.css [hidden] wins over any display) */
+  .cart__empty { display: none; justify-items: start; gap: 14px; padding-block: clamp(28px, 5vw, 64px); }
   .cart__empty-art { inline-size: min(220px, 60vw); color: var(--ink); }
   .cart__empty-body { max-inline-size: 48ch; }
 
   .cart-card :global(.permit__body) { display: grid; gap: 18px; }
+  /* the card's single column may shrink below its content's natural width (320–375 px phones) */
+  .cart-card :global(.permit__body), .cart-card :global(.permit__stub) { grid-template-columns: minmax(0, 1fr); }
+  .cart-card :global(.sums--sk) { color: var(--muted); }
   .promo { display: grid; gap: 6px; }
   .promo__label { font-size: var(--step--2); color: var(--muted); }
   .promo__row { display: flex; gap: 8px; align-items: center; }
-  .promo__input { flex: 1; min-inline-size: 0; min-block-size: 48px; font-size: 16px; padding: 0 10px; border: 0; border-block-end: 1px solid var(--ink); background: transparent; color: var(--ink); border-radius: 0; text-transform: uppercase; }
+  .promo__input { flex: 1 1 0; inline-size: 0; min-inline-size: 0; min-block-size: 48px; font-size: 16px; padding: 0 10px; border: 0; border-block-end: 1px solid var(--ink); background: transparent; color: var(--ink); border-radius: 0; text-transform: uppercase; }
   .promo__input:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  .promo__input[aria-invalid="true"] { border-block-end: 2px solid var(--pouch); }
+  .promo__row > .pill { flex: none; }
   .promo__msg:empty { display: none; }
   .promo__msg { font-size: var(--step--2); }
   .promo__msg[data-tone="error"] { color: var(--pouch-text); }
   .promo__remove { justify-self: start; min-block-size: 44px; padding: 0; border: 0; background: none; color: inherit; font-size: var(--step--2); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
   .promo__remove[hidden] { display: none; }
   .cart-card__note { font-size: var(--step--2); color: var(--muted); }
+  .cart-card__blocked { font-size: var(--step--2); color: var(--pouch-text); text-transform: none; letter-spacing: .02em; justify-self: stretch; }
+  .cart-card__blocked[hidden] { display: none; }
   .cart-card__actions { display: grid; gap: 8px; margin-block-start: 12px; justify-items: center; }
   .cart-card__more { font-size: var(--step--2); min-block-size: 44px; display: inline-flex; align-items: center; text-underline-offset: 3px; }
 

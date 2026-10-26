@@ -103,6 +103,16 @@ export function initOrder(): void {
   const pr = document.querySelector<HTMLButtonElement>('[data-print]');
   if (pr) { pr.hidden = false; pr.addEventListener('click', () => window.print()); }
 
+  // the checkout kept this order for Back / the cart page (checkout.ts saveLastOrder): once it is
+  // paid, confirmed or cancelled the reminder goes (else it lives until its hold ends)
+  const ord = document.querySelector<HTMLElement>('[data-order-code]');
+  if (ord) {
+    try {
+      const last = JSON.parse(sessionStorage.getItem('dv-last-order') || 'null');
+      if (last && last.code === ord.dataset.orderCode && ord.dataset.orderSettled === '1') sessionStorage.removeItem('dv-last-order');
+    } catch { /* storage blocked */ }
+  }
+
   // clean ?pay=… from the address once its banner has been shown (a reload shows the status only)
   const u = new URL(location.href);
   if (u.searchParams.has('pay')) { u.searchParams.delete('pay'); history.replaceState(history.state, '', u.pathname + u.search + u.hash); }
@@ -119,7 +129,9 @@ export function initOrder(): void {
       const r = await lookup(locked.dataset.code || '', email);
       if (r.url) { location.assign(r.url); return; }
       err.textContent = r.error ?? ''; err.hidden = false;
+      input.setAttribute('aria-invalid', 'true');
     });
+    locked.querySelector('input[name="email"]')?.addEventListener('input', (e) => { (e.target as HTMLElement).removeAttribute('aria-invalid'); });
   }
 }
 
@@ -153,7 +165,9 @@ export function initBookings(): void {
       busy = false;
       if (r.url) { out.textContent = tc('account.found', { code }); location.assign(r.url); return; }
       out.textContent = r.error ?? '';
+      if (r.error) { codeIn.setAttribute('aria-invalid', 'true'); emailIn.setAttribute('aria-invalid', 'true'); }
     });
+    [codeIn, emailIn].forEach((x) => x.addEventListener('input', () => x.removeAttribute('aria-invalid')));
   }
 
   // interests

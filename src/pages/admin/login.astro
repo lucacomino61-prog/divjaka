@@ -1,5 +1,12 @@
 ---
-/** /admin/login — sign-in (T6). Already signed in → straight to `next` (validated: /admin paths only). */
+/**
+ * /admin/login — sign-in (T6). Already signed in → straight to `next` (validated: /admin paths only).
+ * With JS, login.ts posts JSON to /api/admin/login. Without JS (or before the script has loaded)
+ * the form POSTs here — never GET, so the password never lands in the address bar, history,
+ * proxy logs or a Referer — and this page runs T1's own login handler in-process (same checks,
+ * throttles, audit and cookies), then answers 303 → `next`, or the form again with the error.
+ */
+import { POST as loginPOST } from '../api/admin/login';
 import Admin from '../../layouts/Admin.astro';
 import Wordmark from '../../components/site/Wordmark.astro';
 import { adminLang } from '../../components/admin/admin-data';
@@ -11,7 +18,38 @@ const lang = adminLang(Astro);
 const raw = Astro.url.searchParams.get('next') ?? '';
 // Only same-site admin paths: no scheme, no protocol-relative //host, no backslashes.
 const next = /^\/admin(?:[/?#]|$)/.test(raw) && !/^\/\/|\\/.test(raw) && !raw.startsWith('/admin/login') ? raw : '/admin/';
-if (Astro.locals.admin) return Astro.redirect(next, 303);
+if (Astro.locals.admin && Astro.request.method !== 'POST') return Astro.redirect(next, 303);
+
+let error = '';
+let emailValue = '';
+if (Astro.request.method === 'POST') {
+  let fd: FormData | null = null;
+  try { fd = await Astro.request.formData(); } catch { /* unreadable body: treated as empty */ }
+  const email = String(fd?.get('email') ?? '').trim().slice(0, 200);
+  const password = String(fd?.get('password') ?? '').slice(0, 200);
+  emailValue = email;
+  if (!email || !password) {
+    error = t(lang, 'admin.error.fields');
+    Astro.response.status = 400;
+  } else {
+    const headers = new Headers(Astro.request.headers);
+    headers.set('content-type', 'application/json');
+    headers.delete('content-length');
+    const req = new Request(new URL('/api/admin/login', Astro.url), { method: 'POST', headers, body: JSON.stringify({ email, password }) });
+    let clientAddress: string | undefined;
+    try { clientAddress = Astro.clientAddress; } catch { /* not available on this adapter */ }
+    const res = await loginPOST({ request: req, cookies: Astro.cookies, locals: Astro.locals, url: new URL(req.url), params: {}, clientAddress } as never);
+    if (res.ok) return Astro.redirect(next, 303);
+    const body = (await res.json().catch(() => ({}))) as { error?: { message_sq?: string; message_en?: string; retry_after?: number } };
+    const e = body.error ?? {};
+    const wait = Number(e.retry_after);
+    error = res.status === 429
+      ? (wait > 0 ? t(lang, 'admin.login.rate', { s: Math.ceil(wait) }) : t(lang, 'admin.login.rate.soon'))
+      : (lang === 'en' ? e.message_en : e.message_sq) || t(lang, 'admin.error.generic');
+    Astro.response.status = res.status;
+  }
+}
+const action = next === '/admin/' ? '/admin/login/' : `/admin/login/?next=${encodeURIComponent(next)}`;
 const spot = await hotelSpot();
 ---
 <Admin lang={lang} title={t(lang, 'admin.login.title')} bare>
@@ -21,7 +59,7 @@ const spot = await hotelSpot();
       <div class="login__poster"><Wordmark variant="solid" /></div>
       <p class="mono muted">Hotel Pelikan · {coords(spot.lat, spot.lon)}</p>
     </section>
-    <form class="login__form" id="login" data-next={next} novalidate>
+    <form class="login__form" id="login" data-next={next} method="post" action={action} novalidate>
       <div class="vstack">
         <p class="mono muted">{t(lang, 'admin.title')}</p>
         <h1 class="adm-title adm-title--s">{t(lang, 'admin.login.title')}</h1>
@@ -29,16 +67,16 @@ const spot = await hotelSpot();
       </div>
       <div class="fld">
         <label class="fld__label mono" for="login-email">{t(lang, 'admin.login.email')}</label>
-        <input id="login-email" class="fld__input" type="email" name="email" autocomplete="username" required inputmode="email" autocapitalize="off" spellcheck="false" />
+        <input id="login-email" class="fld__input" type="email" name="email" autocomplete="username" required inputmode="email" autocapitalize="off" spellcheck="false" value={emailValue} aria-invalid={error && !emailValue ? 'true' : undefined} />
       </div>
       <div class="fld">
         <label class="fld__label mono" for="login-pw">{t(lang, 'admin.login.password')}</label>
         <div class="pw">
-          <input id="login-pw" class="fld__input" type="password" name="password" autocomplete="current-password" required />
+          <input id="login-pw" class="fld__input" type="password" name="password" autocomplete="current-password" required aria-invalid={error && emailValue ? 'true' : undefined} />
           <button type="button" class="pw__toggle" data-pw-toggle aria-controls="login-pw" aria-label={t(lang, 'admin.login.show.aria')} data-show={t(lang, 'admin.login.show')} data-hide={t(lang, 'admin.login.hide')} data-show-aria={t(lang, 'admin.login.show.aria')} data-hide-aria={t(lang, 'admin.login.hide.aria')}>{t(lang, 'admin.login.show')}</button>
         </div>
       </div>
-      <p class="form-status" data-form-status role="alert"></p>
+      <p class="form-status" data-form-status role="alert" data-tone={error ? 'error' : undefined}>{error}</p>
       <div class="form-actions">
         <button class="pill pill--primary" type="submit">{t(lang, 'admin.login.submit')}</button>
         <button type="button" class="adm-link mono" data-admin-lang-toggle={lang === 'sq' ? 'en' : 'sq'} lang={lang === 'sq' ? 'en' : 'sq'} aria-label={t(lang, 'admin.lang.toggle.aria')}>{t(lang, 'admin.lang.toggle')}</button>

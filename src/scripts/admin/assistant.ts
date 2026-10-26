@@ -45,7 +45,7 @@ if (test) {
     status.textContent = tc('admin.assistant.test.busy');
     status.dataset.tone = '';
     try {
-      const r = await api<{ reply: string; chips: string[]; links: { label: string; url: string }[]; intent?: string }>('/api/assistant', 'POST', { lang: l.value, message: q.value.trim() });
+      const r = await api<{ reply: string; chips: string[]; links: { label: string; url: string }[]; intent?: string }>('/api/assistant', 'POST', { lang: l.value, message: q.value.trim() }, { 'X-DV-Admin-Test': '1' });
       status.textContent = '';
       out.hidden = false;
       out.querySelector('[data-reply]')!.textContent = r.reply;

@@ -1,7 +1,8 @@
 /**
  * experiences/lineup.ts — the experiences as the index and the "other experiences" strip show
  * them: ordered by straight-line distance from the hotel (research/geo.json), each with its
- * catalogue number, next open session and its real free places (sessions table), length, price
+ * catalogue number, next open session and its real free places (sessions table; verified
+ * schedules only), length, price
  * per person and the season hint for this month. Server side.
  */
 import { productCard } from '../../lib/catalog';
@@ -29,7 +30,10 @@ export function lines(lang: Lang, list: Product[] = lineup()): Line[] {
     return {
       p, n: String(all.findIndex((x) => x.id === p.id) + 1).padStart(3, '0'), name: c.name, summary: c.summary,
       url: path('experience', lang, { slug: p.slug }), km, kmText: km == null ? '' : km < 0.1 ? '' : kmLabel(km, lang),
-      length: duration(p.duration_min, lang), next: c.next, left: c.next ? c.left : null, hint: hintFor(p, month),
+      length: duration(p.duration_min, lang), next: c.next,
+      // free places only for a schedule the owner verified (demo = 0): a demo schedule's numbers
+      // are not facts (PLAN §2, as on the home strip)
+      left: c.next && !p.demo ? c.left : null, hint: hintFor(p, month),
       image: img ? { slug: img.slug, alt: lang === 'en' ? img.alt_en : img.alt_sq } : null,
     };
   });

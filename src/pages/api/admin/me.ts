@@ -9,6 +9,7 @@ import { loginCeilingHitAt, proxyWarning, rateFactorWarning } from '../../../lib
 import { lastPaymentDetailsChange } from '../../../lib/audit';
 import { heldSince, surgeLimits } from '../../../lib/orders';
 import { getSetting } from '../../../lib/db/repo/settings';
+import { liveContactMissing } from '../../../lib/live';
 
 /**
  * GET /api/admin/me → { user, env: { card_mode, pok_configured, test_payments, claude, site_url,
@@ -23,6 +24,7 @@ import { getSetting } from '../../../lib/db/repo/settings';
  *   /api/admin/orders/cancel-unconfirmed cancels them in one go),
  * payment_details_changed (IBAN / beneficiary / bank / SWIFT changed in the last 7 days — check
  *   that it was you; the audit log has who, when and the last 4 IBAN characters),
+ * live_contact_missing (MET Norway gets no contact e-mail: set LIVE_CONTACT or confirm business.email),
  * login_ceiling_hit (in the last hour so many wrong passwords arrived that sign-ins from new
  *   browsers were refused for a while; remembered browsers kept working).
  */
@@ -45,6 +47,8 @@ export const GET: APIRoute = handle(async ({ locals }) => {
     ...(surge ? ['pending_surge'] : []),
     ...(recentChange ? ['payment_details_changed'] : []),
     ...(ceilingRecent ? ['login_ceiling_hit'] : []),
+    // MET Norway (weather on /tani/ and the home log) wants a contact in the User-Agent (T7)
+    ...(liveContactMissing() ? ['live_contact_missing'] : []),
   ];
   return json({
     user,

@@ -95,7 +95,7 @@ const docTitle = `${title} · ${t(lang, 'admin.title')} · Hotel Pelikan`;
         <a class="adm-brand adm-brand--bar" href="/admin/" aria-label={t(lang, 'admin.nav.dashboard')}>
           <Wordmark variant="solid" class="adm-brand__mark" />
         </a>
-        {(pending > 0 || unread > 0) && <span class="adm-phonebar__count mono" aria-hidden="true"><span class="adm-nav__dot"></span>{pending + unread}</span>}
+        {(pending > 0 || unread > 0) && <span class="adm-phonebar__count mono" aria-hidden="true"><span class="adm-nav__dot"></span><span data-count-n>{pending + unread}</span></span>}
         <button type="button" class="pill pill--outline pill--s adm-phonebar__menu" data-open="adm-menu" aria-controls="adm-menu" aria-expanded="false">{t(lang, 'admin.nav.menu')}</button>
       </header>
 
@@ -137,12 +137,14 @@ const docTitle = `${title} · ${t(lang, 'admin.title')} · Hotel Pelikan`;
       <ul class="adm-dialog__list mono" data-confirm-list hidden></ul>
       <div class="fld" data-confirm-password hidden>
         <label class="fld__label mono" for="adm-confirm-pw">{t(lang, 'admin.confirm.password')}</label>
-        <input id="adm-confirm-pw" class="fld__input" type="password" autocomplete="current-password" />
-        <p class="fld__help">{t(lang, 'admin.confirm.password.why')}</p>
+        <input id="adm-confirm-pw" class="fld__input" type="password" autocomplete="current-password" aria-describedby="adm-confirm-pw-why" />
+        <p class="fld__err mono" id="adm-confirm-pw-err" role="alert" hidden>{t(lang, 'admin.confirm.password.empty')}</p>
+        <p class="fld__help" id="adm-confirm-pw-why">{t(lang, 'admin.confirm.password.why')}</p>
       </div>
       <div class="adm-dialog__actions">
-        <button class="pill pill--outline" value="cancel" formnovalidate>{t(lang, 'admin.cancel')}</button>
-        <button class="pill pill--primary" value="ok" data-confirm-ok>{t(lang, 'admin.confirm')}</button>
+        {/* The dismiss button is type=button (closed from api.ts), so Enter in the password field submits through Confirm, the form's only submit button. */}
+        <button type="button" class="pill pill--outline" data-confirm-back>{t(lang, 'admin.confirm.back')}</button>
+        <button type="submit" class="pill pill--primary" value="ok" data-confirm-ok>{t(lang, 'admin.confirm')}</button>
       </div>
     </form>
   </dialog>

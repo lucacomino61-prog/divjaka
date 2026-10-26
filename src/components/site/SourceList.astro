@@ -20,7 +20,7 @@ const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./,
     <h2 id={`${id}-h`} class="sources__title mono">{title ?? t(lang, 'sources.title')}</h2>
     <ol class="sources__list">
       {list.map((s, i) => (
-        <li class="sources__item">
+        <li class="sources__item" id={`${id}-${i + 1}`}>
           <span class="sources__n mono">{String(i + 1).padStart(2, '0')}</span>
           <span class="sources__body">
             <a href={s.url} rel="noopener">{s.title}</a>

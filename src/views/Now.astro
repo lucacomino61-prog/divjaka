@@ -15,11 +15,13 @@ import Breadcrumbs from '../components/site/Breadcrumbs.astro';
 import Pill from '../components/site/Pill.astro';
 import WxGlyph from '../components/live/WxGlyph.astro';
 import WindChart from '../components/live/WindChart.astro';
-import { getLive, type LivePayload } from '../lib/live';
+import { getLive, seasonItems, sunTimes, type LivePayload } from '../lib/live';
 import { roomsVerified } from '../lib/availability';
+import { findPublished } from '../lib/catalog';
 import { productUrl } from '../lib/urls';
 import { publisherOf } from '../components/heritage/facts';
-import { hotelSpot, siteOriginOf } from '../components/site/site-data';
+import { hotelSpot } from '../components/site/site-data';
+import { siteOrigin } from '../lib/urls';
 import { t } from '../i18n/ui';
 import { coords, formatDate, number, tirane } from '../i18n/format';
 import { path, type Lang } from '../i18n/routes';
@@ -27,15 +29,19 @@ import { path, type Lang } from '../i18n/routes';
 interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
 const { lang } = Astro.props;
 
+// the public origin, also behind the proxy (TRUST_PROXY: x-forwarded-host), for MET's User-Agent
+const origin = siteOrigin(Astro.url, Astro.request);
 let live: LivePayload | null = null;
 try {
-  live = await Promise.race([getLive(), new Promise<null>((r) => setTimeout(() => r(null), 3000))]);
+  live = await Promise.race([getLive({ origin }), new Promise<null>((r) => setTimeout(() => r(null), 3000))]);
 } catch { live = null; }
 const w = live && !live.stale ? live.weather : null;
 const spot = await hotelSpot();
 const now = tirane();
 const view = Astro.url.searchParams.get('pamja') === 'dite' ? 'days' : 'hours';
 
+/** first letter only: Albanian weekdays are 'E martë', never 'E Martë' */
+const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
 const n1 = (v: number) => number(v, lang, Math.abs(v) < 10 && v % 1 !== 0 ? 1 : 0);
 const deg = (v: number) => `${Math.round(v)}°`;
 const compassIdx = (d: number) => Math.round((((d % 360) + 360) % 360) / 45) % 8;
@@ -45,7 +51,9 @@ const validAt = w ? tirane(new Date(w.valid_at)).time : '';
 const weatherSrc = live?.sources.find((s) => s.key === 'weather');
 const seaSrc = live?.sources.find((s) => s.key === 'sea');
 const airSrc = live?.sources.find((s) => s.key === 'air');
-const sun = live?.sun ?? null;
+// sun and season do not need the network: when getLive() is slow (cold start), compute them here
+// so the promise of the stale text ("the sun and the season below still hold") is kept
+const sun = live?.sun ?? sunTimes(now.iso);
 const mins = (hm: string) => { const [h, m] = hm.split(':').map(Number); return h * 60 + m; };
 const pct = (hm: string) => `${((mins(hm) / 1440) * 100).toFixed(2)}%`;
 
@@ -65,11 +73,18 @@ const wMax = days.length ? Math.max(...days.map((d) => d.tmax)) : 1;
 const wSpan = Math.max(6, wMax - wMin);
 const bar = (lo: number, hi: number) => `--from:${(((lo - wMin) / wSpan) * 100).toFixed(1)}%;--to:${(((hi - wMin) / wSpan) * 100).toFixed(1)}%`;
 
-const season = live?.season_now.items ?? [];
+const season = live?.season_now.items ?? seasonItems(now.m);
 const birdsCal = `${path('article', lang, { slug: 'zogjte-sipas-stineve' })}#muaji-${now.m}`;
 const sessions = (live?.availability_today.sessions ?? []).filter((s) => s.left > 0).slice(0, 6);
+// free-place counts only for products the owner has verified (demo = 0), the home page's rule: a
+// demo schedule's seeded capacity is not a fact (PLAN §2), so it shows its time and name alone
+const seatsVerified = new Set(sessions.filter((s) => findPublished(s.slug)?.demo === false).map((s) => s.slug));
+// "public domain" in the reader's language; other licence names (CC BY 4.0) stay as they are
+const licence = (l: string) => (/^public domain$/i.test(l.trim()) ? t(lang, 'now.license.pd') : l);
+// the now-label near midnight sits inside the bar instead of half outside it
+const nowM = mins(now.time);
+const nowEdge = nowM < 75 ? 'start' : nowM > 1365 ? 'end' : '';
 const roomsLeft = live?.availability_today.rooms_verified && roomsVerified() ? live.availability_today.rooms_left : null;
-const origin = await siteOriginOf(Astro.url, Astro.site);
 const jsonld = {
   '@context': 'https://schema.org', '@type': 'WebPage',
   name: t(lang, 'page.now.title'), description: t(lang, 'page.now.description'),
@@ -79,7 +94,7 @@ const jsonld = {
 ---
 <Base lang={lang} title={t(lang, 'page.now.title')} description={t(lang, 'page.now.description')} routeKey="now" jsonld={jsonld} clientKeys={['now.']}>
   <div class="now" data-now data-view={view}>
-    <section class="wrap now__head" aria-labelledby="now-h">
+    <section class="wrap now__head" aria-labelledby="now-h" id="now-head">
       <Breadcrumbs lang={lang} items={[{ label: t(lang, 'page.now.title') }]} />
       <p class="now__rule mono">
         <span>{t(lang, 'now.index')}</span>
@@ -87,17 +102,18 @@ const jsonld = {
         <span class="now__rule-end"><time data-clock datetime={now.time}>{now.time}</time> · {coords(spot.lat, spot.lon)}</span>
       </p>
 
-      <div class="now__grid" data-live-block id="now-entry">
+      <div class="now__grid" data-live-block id="now-entry" data-stale={w ? '0' : '1'} data-updated={updated}>
         <div class="now__entry">
           <h1 id="now-h" class="now__title">{t(lang, 'now.title')}</h1>
           {w ? (
             <>
-              <p class="now__temp" aria-label={t(lang, 'now.temp.aria', { t: String(Math.round(w.temp)) })}>
+              <p class="now__temp">
+                <span class="visually-hidden">{t(lang, 'now.temp.aria', { t: String(Math.round(w.temp)) })}</span>
                 <span class="now__temp-n" aria-hidden="true">{Math.round(w.temp)}</span><span class="now__temp-u" aria-hidden="true">°C</span>
               </p>
               <p class="now__cond">
                 <WxGlyph symbol={w.symbol} size={36} />
-                <span class="now__label">{lang === 'sq' ? w.label_sq : w.label_en}</span>
+                <span class="now__label">{lang === 'sq' ? w.label_sq : w.label_en}<span class="now__label-n mono">{t(lang, 'now.cond.next')}</span></span>
                 <span class="now__feels mono">{t(lang, 'now.feels', { t: String(Math.round(w.feels)) })}</span>
               </p>
               <p class="now__stamp mono">
@@ -113,7 +129,7 @@ const jsonld = {
               <p class="muted">{t(lang, 'now.stale.body')}</p>
             </div>
           )}
-          <p class="now__lead">{t(lang, 'now.lead')}</p>
+          {w && <p class="now__lead">{t(lang, 'now.lead')}</p>}
         </div>
         <figure class="now__chart">
           <WindChart lang={lang} dir={w?.wind_dir ?? null} kmh={w?.wind_kmh ?? null} compassName={compassName} />
@@ -165,8 +181,8 @@ const jsonld = {
             <span class="sun__seg sun__seg--gold" style={`left:${pct(sun.sunrise)};right:calc(100% - ${pct(sun.golden_morning_end)})`}></span>
             <span class="sun__seg sun__seg--gold" style={`left:${pct(sun.golden_start)};right:calc(100% - ${pct(sun.sunset)})`}></span>
             <span class="sun__now" style={`left:${pct(now.time)}`}></span>
-            <span class="sun__now-t mono" style={`left:${pct(now.time)}`}>{now.time}</span>
-            {['00:00', '06:00', '12:00', '18:00'].map((h) => <span class="sun__tick mono" style={`left:${pct(h)}`}>{h.slice(0, 2)}</span>)}
+            <span class:list={['sun__now-t mono', nowEdge && `sun__now-t--${nowEdge}`]} style={`left:${pct(now.time)}`}>{now.time}</span>
+            {['00:00', '06:00', '12:00', '18:00'].map((h) => <span class:list={['sun__tick mono', h === '00:00' && 'sun__tick--start']} style={`left:${pct(h)}`}>{h.slice(0, 2)}</span>)}
           </div>
           <dl class="sun__list">
             <div><dt class="mono">{t(lang, 'now.sunrise')}</dt><dd>{sun.sunrise}</dd></div>
@@ -191,7 +207,7 @@ const jsonld = {
 
         {hours.length > 0 && (
           <div class="fc__panel" id="fc-hours" role="tabpanel" aria-labelledby="fc-tab-hours" data-panel="hours">
-            <div class="hours" data-lenis-prevent tabindex="0" aria-label={t(lang, 'now.hours.caption')}>
+            <div class="hours" data-lenis-prevent tabindex="0" role="region" aria-label={t(lang, 'now.hours.caption')}>
               <div class="hours__in" style={`--n:${hours.length}`}>
                 <svg class="hours__spark" viewBox="0 0 960 120" preserveAspectRatio="none" aria-hidden="true">
                   {[0.25, 0.5, 0.75].map((f) => <path d={`M0 ${(16 + f * 88).toFixed(0)}H960`} class="hours__grid" />)}
@@ -220,12 +236,12 @@ const jsonld = {
               {days.map((d, i) => (
                 <li class="days__r">
                   <span class="days__d">
-                    <span class="days__name">{i === 0 ? t(lang, 'now.days.today') : formatDate(d.date, lang, 'weekday')}</span>
+                    <span class="days__name">{i === 0 ? t(lang, 'now.days.today') : cap(formatDate(d.date, lang, 'weekday'))}</span>
                     <span class="days__date mono">{i === 0 ? t(lang, 'now.days.today.note') : formatDate(d.date, lang, 'short')}</span>
                   </span>
                   <WxGlyph symbol={d.symbol} size={30} />
                   <span class="days__label">{lang === 'sq' ? d.label_sq : d.label_en}</span>
-                  <span class="days__range" aria-label={`${t(lang, 'now.days.min')} ${deg(d.tmin)}, ${t(lang, 'now.days.max')} ${deg(d.tmax)}`}>
+                  <span class="days__range" role="img" aria-label={`${t(lang, 'now.days.min')} ${deg(d.tmin)}, ${t(lang, 'now.days.max')} ${deg(d.tmax)}`}>
                     <span class="days__lo mono">{deg(d.tmin)}</span>
                     <span class="days__track" aria-hidden="true"><span class="days__bar" style={bar(d.tmin, d.tmax)}></span></span>
                     <span class="days__hi mono">{deg(d.tmax)}</span>
@@ -268,7 +284,7 @@ const jsonld = {
               <li><a href={productUrl('experience', s.slug, lang)} class="today__a">
                 <span class="today__t mono">{s.starts_at.slice(11, 16)}</span>
                 <span class="today__n">{lang === 'sq' ? s.name_sq : s.name_en}</span>
-                <span class="today__s mono">{s.left === 1 ? t(lang, 'now.today.seat') : t(lang, 'now.today.seats', { n: String(s.left) })}</span>
+                {seatsVerified.has(s.slug) && <span class="today__s mono">{s.left === 1 ? t(lang, 'now.today.seat') : t(lang, 'now.today.seats', { n: String(s.left) })}</span>}
               </a></li>
             ))}
           </ul>
@@ -290,7 +306,7 @@ const jsonld = {
       <h2 id="now-src-h" class="foot__h mono">{t(lang, 'now.sources.title')}</h2>
       <ol class="foot__src" data-live-block id="now-sources">
         {(live?.sources ?? []).map((s) => (
-          <li><a href={s.url} rel="noopener">{lang === 'sq' ? s.sq : s.en}</a> <span class="mono muted">· <a href={s.license_url} rel="noopener license">{t(lang, 'now.license', { l: s.license })}</a></span></li>
+          <li><a href={s.url} rel="noopener">{lang === 'sq' ? s.sq : s.en}</a> <span class="mono muted">· <a href={s.license_url} rel="noopener license">{t(lang, 'now.license', { l: licence(s.license) })}</a></span></li>
         ))}
         <li class="muted">{t(lang, 'now.sources.rounded')}</li>
       </ol>
@@ -313,6 +329,7 @@ const jsonld = {
   }
   .now__temp-u { font-size: 0.24em; letter-spacing: 0; margin-inline-start: 0.08em; margin-block-start: 0.14em; }
   .now__cond { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: var(--step-2); font-weight: 650; font-stretch: 88%; }
+  .now__label-n { display: block; font-size: var(--step--2); font-weight: 400; color: var(--muted); letter-spacing: .02em; margin-block-start: 2px; }
   .now__feels { font-size: var(--step--1); color: var(--muted); font-weight: 400; }
   .now__stamp { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: var(--step--2); color: var(--muted); }
   .now__stamp a { color: inherit; min-block-size: 24px; display: inline-flex; align-items: center; }
@@ -350,8 +367,10 @@ const jsonld = {
   .sun__seg--gold { background: repeating-linear-gradient(135deg, var(--salt) 0 2px, var(--salt-70) 2px 6px); }
   .sun__now { position: absolute; inset-block: -10px; inline-size: 2px; margin-inline-start: -1px; background: var(--pouch); }
   .sun__now-t { position: absolute; inset-block-end: calc(100% + 10px); transform: translateX(-50%); font-size: var(--step--2); color: var(--salt); padding-block-end: 2px; white-space: nowrap; }
-  .sun__tick { position: absolute; inset-block-start: 100%; transform: translateX(-50%); font-size: 0.625rem; color: var(--muted); padding-block-start: 6px; }
-  .sun__tick:first-of-type { transform: none; }
+  .sun__tick { position: absolute; inset-block-start: 100%; transform: translateX(-50%); font-size: 0.6875rem; color: var(--muted); padding-block-start: 6px; }
+  .sun__tick--start { transform: none; }
+  .sun__now-t--start { transform: none; }
+  .sun__now-t--end { transform: translateX(-100%); }
   .sun__list { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; }
   .sun__list > div { padding-block: 14px; border-block-start: 1px solid var(--rule); }
   .sun__list dt { font-size: var(--step--2); color: var(--muted); }
@@ -382,15 +401,15 @@ const jsonld = {
   .hours__c { display: grid; justify-items: center; gap: 6px; padding-block: 10px; border-inline-start: 1px solid var(--rule); }
   .hours__c:first-child { border-inline-start: 0; }
   .hours__c.is-now .hours__t { color: var(--pouch-text); }
-  .hours__t { font-size: 0.625rem; color: var(--muted); }
+  .hours__t { font-size: 0.6875rem; color: var(--muted); }
   .hours__v { font-weight: 650; font-variant-numeric: tabular-nums; font-size: var(--step-0); }
-  .hours__w { font-size: 0.625rem; color: var(--muted); }
+  .hours__w { font-size: 0.6875rem; color: var(--muted); }
 
   .days { list-style: none; margin: 0; padding: 0; border-block-start: 1px solid var(--ink); }
   .days__r { display: grid; grid-template-columns: minmax(0, 1fr) 30px; grid-template-areas: "d g" "l l" "r r" "m m"; gap: 6px 14px; padding-block: 16px; border-block-end: 1px solid var(--rule); align-items: center; }
   .days__d { grid-area: d; display: flex; align-items: baseline; gap: 10px; min-inline-size: 0; }
   .days__r > :global(.wx) { grid-area: g; }
-  .days__name { font-size: var(--step-2); font-weight: 700; font-stretch: 85%; text-transform: capitalize; overflow-wrap: anywhere; }
+  .days__name { font-size: var(--step-2); font-weight: 700; font-stretch: 85%; overflow-wrap: anywhere; }
   .days__date { font-size: var(--step--2); color: var(--muted); }
   .days__label { grid-area: l; color: var(--muted); }
   .days__range { grid-area: r; display: grid; grid-template-columns: 3em minmax(0, 1fr) 3em; gap: 10px; align-items: center; }

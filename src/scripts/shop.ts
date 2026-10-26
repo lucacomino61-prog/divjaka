@@ -14,27 +14,16 @@
  * is off screen, addViewed() for recommendations and the product_view beacon.
  */
 import { readState, writeState, matches, compare, queryTokens, type ShopState, type ItemFacts, type Kind } from '../components/shop/filters';
-import { addItem } from './cart';
+import { addItem, getCart, itemKey, setQty as setLineQty } from './cart';
 import { addViewed, eurRate, getCurrency } from './prefs';
 import { track } from './track';
 import { tc, lang } from '../i18n/client';
 import { initShare } from './share';
 import { money } from '../i18n/format';
 
-/** First-touch campaign tags of this tab, kept for the checkout's attribution (sessionStorage dv-utm). */
-export function rememberUtm(): void {
-  try {
-    const q = new URLSearchParams(location.search);
-    const source = q.get('utm_source');
-    if (!source || sessionStorage.getItem('dv-utm')) return;
-    sessionStorage.setItem('dv-utm', JSON.stringify({ source, medium: q.get('utm_medium') ?? undefined, campaign: q.get('utm_campaign') ?? undefined }));
-  } catch { /* storage blocked */ }
-}
-
 /* ------------------------------------------------------------------ shop index */
 
 export function initShop(): void {
-  rememberUtm();
   const form = document.querySelector<HTMLFormElement>('[data-shop-form]');
   const results = document.querySelector<HTMLElement>('[data-shop-results]');
   if (!form || !results) return;
@@ -179,7 +168,6 @@ export function initProduct(): void {
   if (!card || !dataEl) return;
   let d: ProductData;
   try { d = JSON.parse(dataEl.textContent || '{}'); } catch { return; }
-  rememberUtm();
   addViewed(d.slug);
   track('product_view', { product: d.slug, meta: { kind: d.kind } });
   initShare();
@@ -230,7 +218,7 @@ export function initProduct(): void {
     err.textContent = msg;
     err.hidden = false;
   }
-  function clearError() { if (err) { err.hidden = true; err.textContent = ''; } }
+  function clearError() { if (err) { err.hidden = true; err.textContent = ''; } custom?.removeAttribute('aria-invalid'); }
 
   function paintPill() {
     if (!pillPrice) return;
@@ -248,10 +236,18 @@ export function initProduct(): void {
     const a = amount();
     if (a === 'bad') {
       showError(tc('product.amount.error', { min: formatLek(d.min ?? 0), max: formatLek(d.max ?? 0), step: formatLek(d.step ?? 1) }));
+      custom?.setAttribute('aria-invalid', 'true');
       custom?.focus();
       return;
     }
     const qty = getQty();
+    const line = { slug: d.slug, kind: d.kind, qty, ...(typeof a === 'number' ? { amount: a } : {}) };
+    // Buy now buys the chosen quantity: a line already in the cart is set to it, not added to
+    if (then === 'checkout' && getCart().some((i) => i.key === itemKey(line))) {
+      setLineQty(itemKey(line), qty);
+      window.location.href = d.checkout;
+      return;
+    }
     const item = addItem({ slug: d.slug, kind: d.kind, qty, ...(typeof a === 'number' ? { amount: a } : {}) }, {
       name: d.name, value: (typeof a === 'number' ? a : d.price) * qty, toast: then !== 'checkout',
     });

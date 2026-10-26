@@ -1,0 +1,91 @@
+---
+/**
+ * One recommendation, used by RecommendRail for both the visible list and the hidden pool (the
+ * client moves these nodes; [data-rec-card], [data-reason] and [data-rec-reason] are its hooks).
+ * variant 'cards': plate, reason, name, kind + price. variant 'list': a ruled text row
+ * (nr from a CSS counter, so re-ordering keeps 01–0n) · reason · name · kind · price.
+ */
+import Photo from '../site/Photo.astro';
+import Price from '../site/Price.astro';
+import { pname, type Product } from '../../lib/db/repo/products';
+import type { Reason } from '../../lib/recommend';
+import { productUrl } from '../../lib/urls';
+import { t } from '../../i18n/ui';
+import type { Lang } from '../../i18n/routes';
+
+interface Props { p: Product; lang: Lang; reason?: Reason | null; variant?: 'cards' | 'list' }
+const { p, lang, reason = null, variant = 'cards' } = Astro.props;
+const img = p.images[0]?.slug ?? null;
+const alt = (lang === 'en' ? p.images[0]?.alt_en : p.images[0]?.alt_sq) ?? undefined;
+const href = productUrl(p.kind, p.slug, lang);
+const from = p.kind === 'room' || p.kind === 'gift';
+const per = p.kind === 'room' ? 'night' : p.kind === 'experience' ? 'person' : null;
+const why = reason ? t(lang, `recommend.reason.${reason}`) : '';
+---
+{variant === 'list' ? (
+  <li class="rec-row" data-rec-card={p.slug} data-reason={reason ?? undefined}>
+    <span class="rec-row__n mono" aria-hidden="true"></span>
+    <div class="rec-row__main">
+      <p class="rec-row__reason mono"><span class="rec-card__dot" aria-hidden="true"></span><span data-rec-reason>{why}</span></p>
+      <h3 class="rec-row__name"><a href={href} class="rec-row__a">{pname(p, lang)}</a></h3>
+    </div>
+    <p class="rec-row__meta mono">
+      <span>{t(lang, `recommend.kind.${p.kind}`)}</span>
+      <Price lek={p.price} lang={lang} from={from} per={per} />
+    </p>
+    <svg class="rec-row__arrow" viewBox="0 0 16 16" width="20" height="20" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.3" /></svg>
+  </li>
+) : (
+  <li class="rec-card" data-rec-card={p.slug} data-reason={reason ?? undefined}>
+    <div class="rec-card__link">
+      <Photo slug={img} lang={lang} ratio="4 / 3" sizes="(min-width: 1100px) 22vw, (min-width: 640px) 45vw, 78vw" alt={alt} crosshair={false} />
+      <p class="rec-card__reason mono"><span class="rec-card__dot" aria-hidden="true"></span><span data-rec-reason>{why}</span></p>
+      <h3 class="rec-card__name"><a href={href} class="rec-card__a"><span class="rec-card__nm">{pname(p, lang)}</span></a></h3>
+      <p class="rec-card__row mono">
+        <span>{t(lang, `recommend.kind.${p.kind}`)}</span>
+        <Price lek={p.price} lang={lang} from={from} per={per} />
+      </p>
+    </div>
+  </li>
+)}
+
+<style>
+  .rec-card { border-block-start: 2px solid var(--ink); padding-block-start: 10px; }
+  .rec-card__link { position: relative; display: grid; gap: 10px; }
+  .rec-card__a { display: block; min-block-size: 44px; text-decoration: none; color: inherit; }
+  .rec-card__a::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+  .rec-card__link :global(.plate__credit) { position: relative; z-index: 2; }
+  .rec-card__a:focus-visible { outline: none; box-shadow: none; }
+  .rec-card__a:focus-visible::after { outline: 2px solid var(--pouch); outline-offset: 3px; }
+  .rec-card__reason, .rec-row__reason { display: flex; align-items: center; gap: 8px; font-size: var(--step--2); min-block-size: 1.4em; }
+  .rec-card__dot { inline-size: 7px; block-size: 7px; border-radius: 99px; background: var(--ink); flex: none; }
+  :is(.rec-card, .rec-row):is([data-reason="interests"], [data-reason="together"], [data-reason="history"]) .rec-card__dot { background: var(--pouch); }
+  .rec-card__name { font-size: var(--step-1); font-weight: 700; font-stretch: 85%; line-height: 1.08; text-wrap: balance; }
+  .rec-card__nm { display: inline-block; transition: transform 200ms var(--ease-out); }
+  .rec-card__row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; font-size: var(--step--2); padding-block-start: 8px; border-block-start: 1px solid var(--rule); }
+  @media (hover: hover) and (pointer: fine) { .rec-card__link:hover .rec-card__nm { transform: translateX(6px); } }
+
+  /* the ruled index row: nr · (reason / name) · kind + price · arrow; the whole row is the link */
+  .rec-row {
+    position: relative; counter-increment: rec; display: grid; align-items: center; gap: 4px 16px;
+    grid-template-columns: 2.4em minmax(0, 1fr) auto; grid-template-areas: "n main arrow" "n meta arrow";
+    padding-block: 16px; border-block-end: 1px solid var(--rule);
+  }
+  .rec-row__n { grid-area: n; align-self: start; padding-block-start: 2px; font-size: var(--step--1); }
+  .rec-row__n::before { content: counter(rec, decimal-leading-zero); }
+  .rec-row__main { grid-area: main; min-inline-size: 0; display: grid; gap: 4px; }
+  .rec-row__name { font-size: var(--step-2); font-weight: 700; font-stretch: 85%; line-height: 1.04; letter-spacing: -0.015em; overflow-wrap: anywhere; text-wrap: balance; }
+  /* a 44 px box (padding cancelled by margin, the line keeps its height); ::after covers the row */
+  .rec-row__a { display: block; padding-block: 10px; margin-block: -10px; color: inherit; text-decoration: none; }
+  .rec-row__a::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+  .rec-row__a:focus-visible { outline: none; box-shadow: none; }
+  .rec-row__a:focus-visible::after { outline: 2px solid var(--pouch); outline-offset: -2px; }
+  .rec-row__meta { grid-area: meta; display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; font-size: var(--step--2); color: var(--muted); }
+  .rec-row__meta :global(.price) { color: var(--ink); }
+  .rec-row__arrow { grid-area: arrow; transition: transform 200ms var(--ease-out); }
+  @media (hover: hover) and (pointer: fine) {
+    .rec-row:hover .rec-row__arrow { transform: translateX(6px); }
+    .rec-row:hover .rec-row__name { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 5px; }
+  }
+  .rec-row:has(.rec-row__a:active) { background: color-mix(in oklch, var(--ink) 6%, transparent); }
+</style>

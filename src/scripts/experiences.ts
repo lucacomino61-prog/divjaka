@@ -59,6 +59,9 @@ function initStrip(root: HTMLElement) {
       const s = step();
       sc.scrollTo({ left: Math.round(sc.scrollLeft / s) * s, behavior: isMotionOff() ? 'instant' : 'smooth' });
     }
+    // the click that follows this pointerup (same task) is swallowed; a drag released outside the
+    // strip fires no click there, so the flag must not outlive this task
+    window.setTimeout(() => { moved = 0; }, 0);
   };
   window.addEventListener('pointerup', up);
   window.addEventListener('pointercancel', up);

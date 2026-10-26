@@ -8,14 +8,20 @@ import Admin from '../../layouts/Admin.astro';
 import SeriesChart from '../../components/admin/SeriesChart.astro';
 import BarList from '../../components/admin/BarList.astro';
 import RangePicker from '../../components/admin/RangePicker.astro';
-import { adminLang, tr, lek, when, rangeOf } from '../../components/admin/admin-data';
+import Stamp from '../../components/site/Stamp.astro';
+import { adminLang, tr, lek, when, rangeOf, demoInRange } from '../../components/admin/admin-data';
 import { stats } from '../../lib/stats';
+import { listProducts } from '../../lib/db/repo/products';
 import { number, percent } from '../../i18n/format';
 
 const lang = adminLang(Astro);
 const T = tr(lang);
 const range = rangeOf(Astro.url);
 const s = stats(range.from, range.to);
+const demo = demoInRange(range.from, range.to);
+// product names in the admin's language (stats rows carry the Albanian name only)
+const bySlug = new Map(listProducts({ status: 'any' }).map((p) => [p.slug, p]));
+const pname = (slug: string, fallback: string) => { const p = bySlug.get(slug); return p ? (lang === 'en' ? p.name_en || p.name_sq : p.name_sq) : fallback; };
 const vis = (n: number) => number(n, lang);
 const dev = (d: string) => { const k = `admin.analytics.device.${d}`; const v = T(k); return v === k ? d : v; };
 const lng = (l: string) => { const k = `admin.analytics.lang.${l}`; const v = T(k); return v === k ? l.toUpperCase() : v; };
@@ -31,7 +37,10 @@ const rating = (name: string, v: number) => (v <= BANDS[name][0] ? 'good' : v <=
 const zeroTotal = s.search_terms.reduce((a, x) => a + Number(x.zero), 0);
 ---
 <Admin lang={lang} title={T('admin.analytics.title')} section="analytics" kicker={T('admin.analytics.kicker')}>
-  <RangePicker lang={lang} url={Astro.url} from={range.from} to={range.to} preset={range.preset} />
+  <RangePicker lang={lang} url={Astro.url} from={range.from} to={range.to} preset={range.preset} capped={range.capped} />
+  {(demo.orders > 0 || demo.visitors > 0) && (
+    <p class="demo-figures" role="note"><Stamp kind="demo" lang={lang} tilt={false} /><span>{T(demo.orders > 0 ? 'admin.demo.figures' : 'admin.demo.figures.events', { orders: number(demo.orders, lang), visitors: number(demo.visitors, lang) })}</span></p>
+  )}
   <p class="fld__help" style="margin-block-end:24px">{T('admin.analytics.note')}</p>
 
   <section class="blk" aria-labelledby="vi-t">
@@ -82,7 +91,7 @@ const zeroTotal = s.search_terms.reduce((a, x) => a + Number(x.zero), 0);
     </section>
     <section class="blk" aria-labelledby="tv-t">
       <div class="blk__head"><h2 class="blk__title" id="tv-t">{T('admin.analytics.products')}</h2></div>
-      <BarList label={T('admin.analytics.products')} rows={s.top_viewed.map((x) => ({ label: x.name, value: x.views, display: vis(x.views) }))} empty={T('admin.analytics.none')} />
+      <BarList label={T('admin.analytics.products')} rows={s.top_viewed.map((x) => ({ label: pname(x.slug, x.name), value: x.views, display: vis(x.views) }))} empty={T('admin.analytics.none')} />
     </section>
   </div>
 

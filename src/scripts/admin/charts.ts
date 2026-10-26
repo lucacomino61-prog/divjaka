@@ -6,9 +6,9 @@
  */
 interface Pt { d: string; v: string }
 
-interface Plot { el: HTMLElement; pts: Pt[]; kind: string; cross: HTMLElement; tip: HTMLElement }
+interface Plot { el: HTMLElement; pts: Pt[]; kind: string; cross: HTMLElement; tip: HTMLElement; live: HTMLElement | null }
 
-function show(p: Plot, i: number): void {
+function show(p: Plot, i: number, announce = false): void {
   const n = p.pts.length;
   if (!n) return;
   i = Math.max(0, Math.min(n - 1, i));
@@ -25,6 +25,8 @@ function show(p: Plot, i: number): void {
   p.tip.style.setProperty('--x', `${pct}%`);
   p.tip.dataset.side = pct > 60 ? 'left' : 'right';
   p.el.dataset.index = String(i);
+  // Screen readers: the tooltip is aria-hidden, so keyboard moves are spoken through a polite live region.
+  if (announce && p.live) p.live.textContent = `${p.pts[i].d}: ${p.pts[i].v}`;
 }
 
 function hide(p: Plot): void {
@@ -38,9 +40,11 @@ export function initCharts(): void {
   for (const el of document.querySelectorAll<HTMLElement>('.chart__plot[data-series]')) {
     let pts: Pt[] = [];
     try { pts = JSON.parse(el.dataset.series || '[]'); } catch { /* ignore */ }
-    const p: Plot = { el, pts, kind: el.dataset.kind || 'line', cross: el.querySelector('.chart__cross')!, tip: el.querySelector('.chart__tip')! };
+    const p: Plot = { el, pts, kind: el.dataset.kind || 'line', cross: el.querySelector('.chart__cross')!, tip: el.querySelector('.chart__tip')!, live: el.closest('figure')?.querySelector<HTMLElement>('[data-chart-live]') ?? null };
     plots.push(p);
   }
+  /** The day the chart marks as current (data-current from SeriesChart), else the latest. */
+  const start = (p: Plot) => { const c = Number(p.el.dataset.current); return Number.isInteger(c) && c >= 0 && c < p.pts.length ? c : p.pts.length - 1; };
   const peers = (p: Plot) => {
     const g = p.el.closest('[data-chart-sync]');
     return g ? plots.filter((q) => q.el.closest('[data-chart-sync]') === g && q.pts.length === p.pts.length) : [p];
@@ -55,14 +59,21 @@ export function initCharts(): void {
     p.el.addEventListener('pointermove', (e) => { const i = indexAt(p, e.clientX); for (const q of peers(p)) show(q, i); });
     p.el.addEventListener('pointerdown', (e) => { const i = indexAt(p, e.clientX); for (const q of peers(p)) show(q, i); });
     p.el.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') for (const q of peers(p)) hide(q); });
-    p.el.addEventListener('focus', () => { for (const q of peers(p)) show(q, p.pts.length - 1); });
+    p.el.addEventListener('focus', () => {
+      // Only keyboard focus jumps to the current day (the pouch point: today, else the latest day): a tap/click focuses the plot too, and must keep
+      // the day under the finger that pointerdown just showed.
+      let kb = true;
+      try { kb = p.el.matches(':focus-visible'); } catch { /* old engine: treat as keyboard */ }
+      if (!kb) return;
+      for (const q of peers(p)) show(q, start(p), q === p);
+    });
     p.el.addEventListener('blur', () => { for (const q of peers(p)) hide(q); });
     p.el.addEventListener('keydown', (e) => {
-      const cur = Number(p.el.dataset.index ?? p.pts.length - 1);
+      const cur = p.el.dataset.index !== undefined ? Number(p.el.dataset.index) : start(p);
       const step = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : e.key === 'Home' ? -1e6 : e.key === 'End' ? 1e6 : 0;
       if (!step) return;
       e.preventDefault();
-      for (const q of peers(p)) show(q, cur + step);
+      for (const q of peers(p)) show(q, cur + step, q === p);
     });
   }
 }

@@ -3,7 +3,7 @@ slug: historia-dhe-kultura
 lang: sq
 title: Historia dhe kultura
 description: Nga anija e grabitur në 1297 te kishat e Karavastasë, Ardenica dhe Apolonia: historia e zonës, me distancat nga Divjaka.
-updated: 2026-10-23
+updated: 2026-10-26
 order: 7
 topic: history
 kicker: Historia
@@ -21,7 +21,7 @@ Arkeologu Bashkim Lahi e identifikon një qytet antik 5–6 ha mbi kodrën e Bab
 
 ## Karavasta
 
-Emri Karavasta del në dokumente qysh në vitin 1297, kur njerëz të familjes Matarango «de Caravastasi» grabitën një anije të ankoruar në lagunë.[^lagoon-10] Kisha e Shën Thanasit në Karavasta u ndërtua në vitin 1778, ndërsa kisha bizantine e Shën Nikollës në fshatin Xeng daton në vitin 1776.[^hist-08] «7 kishat e Karavastasë», në fshatin Karavasta e Re, janë të shekullit XVIII, me arkitekturë të thjeshtë vendase dhe ikona me ndikim bizantin e ortodoks.[^hist-09]
+Emri Karavasta del në dokumente qysh në vitin 1297, kur njerëz të familjes Matarango «de Caravastasi» grabitën një anije të ankoruar në lagunë.[^lagoon-10] Kisha e Shën Thanasit në Karavasta u ndërtua në vitin 1778, ndërsa kisha në stil bizantin e Shën Nikollës në fshatin Xeng daton në vitin 1776.[^hist-08] «7 kishat e Karavastasë», në fshatin Karavasta e Re, janë të shekullit XVIII, me arkitekturë të thjeshtë vendase dhe ikona me ndikim bizantin e ortodoks.[^hist-09]
 
 ::chart karavasta-village divjake-centre hotel-pelikan
 
@@ -37,7 +37,7 @@ Apolonia, pranë fshatit Pojan, u themelua rreth vitit 600 p.e.s. nga kolonë gr
 
 ## Në tryezë
 
-Kuzhina e Divjakës ndërthur detin dhe tokën: peshk e fruta deti nga laguna dhe nga Adriatiku (ngjalë, levrek, karkaleca), të pjekur në skarë ose të zier me perime vendase, si dhe qumësht e djathë nga fermat përreth.[^hist-21] Zona e parkut prodhon drithëra, perime e fruta, vaj ulliri, verë dhe mjaltë.[^hist-22] Divjaka njihet edhe si zona më e madhe e kultivimit të shalqirit në Shqipëri.[^hist-23]
+Kuzhina e Divjakës ndërthur detin dhe tokën: peshk e fruta deti nga laguna dhe nga Adriatiku (ngjalë, levrek, karkaleca), të pjekur në skarë ose të zier me perime vendase, si dhe qumësht e djathë nga fermat përreth.[^hist-21] Zona e parkut prodhon drithëra, perime e fruta, vaj ulliri, verë dhe mjaltë.[^hist-22] Divjaka njihet edhe për shalqinjtë e saj.[^hist-23]
 
 ## Festa
 

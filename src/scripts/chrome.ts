@@ -11,7 +11,7 @@ import { initMenu } from './menu';
 import { initDrawer, initCartCount } from './drawer';
 import { initTicker } from './ticker';
 import { getPrefs, setCurrency, onPrefs, eurRate } from './prefs';
-import { track, observeVitals } from './track';
+import { track, observeVitals, rememberSource } from './track';
 import { getLive, isFresh } from './livefeed';
 import { tc, lang } from '../i18n/client';
 import { money, tirane, time, compass } from '../i18n/format';
@@ -124,6 +124,7 @@ function boot() {
   initLiveSpots();
   initClocks();
   initAssistant();
+  rememberSource();
   if (!html.dataset.noTrack) track('view');
   observeVitals();
 }

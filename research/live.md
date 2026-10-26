@@ -329,6 +329,8 @@ Sources added in this pass:
 
 ## Decision (T7, 2026-10-23)
 
+**Fix round 2026-10-26:** the MET cache now follows `Expires` exactly (no new request before it, never sooner than 10 min; only when the header is missing does the server pick 60 min), and the downloaded series is parsed once per clock hour and download instead of on every `/api/live` request. When fresh data is missing, `/tani/` and the assistant say so instead of showing old numbers; the sun and the season are computed locally even when the weather call times out.
+
 The production site is commercial (it sells the hotel's services), so the free Open-Meteo host is no longer used. `src/lib/live.ts` now has one provider per reading:
 
 | Reading | Provider | Licence / terms (opened 2026-10-23) | Notes |

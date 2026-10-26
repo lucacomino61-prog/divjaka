@@ -22,6 +22,8 @@ export type Lang = 'sq' | 'en';
 export interface Sheet {
   slug: string; lang: Lang; title: string; description: string; updated: string | null;
   order: number; topic: string; kicker: string; hero: string | null;
+  /** frontmatter hero_focus: "50% 85%" — where the hero's wide crop is centred (object-position) */
+  heroFocus: string | null;
   pins: string[]; related: string[]; place: string | null; minutes: number;
   body: string;
 }
@@ -47,12 +49,12 @@ export function sheets(): Sheet[] {
     if (data.draft === 'true') continue;
     const base = file.split('/').pop()!.replace(/\.(md|mdx)$/, '');
     const lang = (data.lang || /\.(sq|en)$/.exec(base)?.[1] || 'sq') as Lang;
-    const words = body.replace(/::\w+.*$/gm, '').replace(/\[\^[\w-]+\]/g, '').split(/\s+/).filter(Boolean).length;
+    const words = body.replace(/::\w+.*$/gm, '').replace(/\[\^[\w-]+(?:@\d+)?\]/g, '').split(/\s+/).filter(Boolean).length;
     out.push({
       slug: data.slug || base.replace(/\.(sq|en)$/, ''), lang,
       title: data.title || base, description: data.description || '', updated: data.updated || null,
       order: Number(data.order) || 99, topic: data.topic || '', kicker: data.kicker || '',
-      hero: data.hero || null, pins: list(data.pins), related: list(data.related), place: data.place || null,
+      hero: data.hero || null, heroFocus: /^\d{1,3}% \d{1,3}%$/.test(data.hero_focus ?? '') ? data.hero_focus : null, pins: list(data.pins), related: list(data.related), place: data.place || null,
       minutes: Math.max(1, Math.round(words / 200)), body,
     });
   }
@@ -85,10 +87,10 @@ export function slugify(s: string): string {
 export function parse(body: string, cite: (id: string) => number | null, refLabel: (n: number) => string): Block[] {
   const inline = (text: string) => {
     let s = esc(text);
-    s = s.replace(/\[\^([\w-]+)\]/g, (_, id: string) => {
+    s = s.replace(/\[\^([\w-]+(?:@\d+)?)\]/g, (_, id: string) => {
       const n = cite(id);
       if (n == null) { if (import.meta.env.DEV) console.warn(`[heritage] unknown or unverified fact "${id}"`); return ''; }
-      return `<sup class="ref"><a href="#burimet" aria-label="${esc(refLabel(n))}">${n}</a></sup>`;
+      return `<sup class="ref"><a href="#burimet-${n}" aria-label="${esc(refLabel(n))}">${n}</a></sup>`;
     });
     // two facts from the same source side by side print one number
     s = s.replace(/(<sup class="ref"><a [^>]*>(\d+)<\/a><\/sup>)(?:<sup class="ref"><a [^>]*>\2<\/a><\/sup>)+/g, '$1');
@@ -132,13 +134,17 @@ export function parse(body: string, cite: (id: string) => number | null, refLabe
 export function citations() {
   const order: Source[] = [];
   const byUrl = new Map<string, number>();
-  const cite = (id: string): number | null => {
+  // [^id] cites the fact's source; [^id@n] the n-th further source in its research notes
+  const cite = (ref: string): number | null => {
+    const [id, at] = ref.split('@');
     const f = fact(id);
     if (!f) return null;
-    const hit = byUrl.get(f.source.url);
+    const src = at ? f.also[Number(at) - 1] : f.source;
+    if (!src) return null;
+    const hit = byUrl.get(src.url);
     if (hit) return hit;
-    order.push(f.source);
-    byUrl.set(f.source.url, order.length);
+    order.push(src);
+    byUrl.set(src.url, order.length);
     return order.length;
   };
   const add = (s: Source) => { if (!byUrl.has(s.url)) { order.push(s); byUrl.set(s.url, order.length); } };

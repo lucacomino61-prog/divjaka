@@ -12,12 +12,12 @@ export class ApiFail extends Error {
   }
 }
 
-export async function api<T = unknown>(url: string, method = 'GET', body?: unknown): Promise<T> {
+export async function api<T = unknown>(url: string, method = 'GET', body?: unknown, extraHeaders: Record<string, string> = {}): Promise<T> {
   let res: Response;
   try {
     res = await fetch(url, {
       method,
-      headers: body instanceof FormData ? { Accept: 'application/json' } : { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: { ...(body instanceof FormData ? { Accept: 'application/json' } : { 'Content-Type': 'application/json', Accept: 'application/json' }), ...extraHeaders },
       body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
       credentials: 'same-origin',
     });
@@ -70,17 +70,47 @@ export function confirmDialog(o: ConfirmOpts): Promise<false | true | string> {
   list.hidden = !o.list?.length;
   pwWrap.hidden = !o.password;
   pw.value = '';
-  pw.required = !!o.password;
+  pw.required = false; // checked below in the admin's language (the native bubble would be English)
+  pw.removeAttribute('aria-invalid');
+  const pwErr = d.querySelector<HTMLElement>('#adm-confirm-pw-err');
+  const pwOk = () => {
+    if (pwErr) pwErr.hidden = true;
+    pw.removeAttribute('aria-invalid');
+    pw.setAttribute('aria-describedby', 'adm-confirm-pw-why');
+  };
+  pwOk();
+  const form = d.querySelector('form')!;
+  form.noValidate = true;
   ok.textContent = o.ok ?? tc('admin.confirm');
   ok.classList.toggle('pill--signal', !!o.danger);
+  const back = d.querySelector<HTMLButtonElement>('[data-confirm-back]');
   return new Promise((resolve) => {
+    const ac = new AbortController();
+    back?.addEventListener('click', () => d.close('cancel'), { signal: ac.signal });
+    form.addEventListener('submit', (e) => {
+      if (o.password && !pw.value) {
+        // WCAG 3.3.1: say what is wrong, in words, tied to the field (role=alert announces it once)
+        e.preventDefault();
+        pw.setAttribute('aria-invalid', 'true');
+        if (pwErr) {
+          pwErr.textContent = tc('admin.confirm.password.empty');
+          pwErr.hidden = false;
+          pw.setAttribute('aria-describedby', 'adm-confirm-pw-err adm-confirm-pw-why');
+        }
+        pw.focus();
+      }
+    }, { signal: ac.signal });
+    pw.addEventListener('input', () => { if (pw.value) pwOk(); }, { signal: ac.signal });
     d.addEventListener('close', () => {
+      ac.abort();
       const yes = d.returnValue === 'ok';
       resolve(yes ? (o.password ? pw.value : true) : false);
-    }, { once: true });
+    }, { signal: ac.signal });
     d.returnValue = '';
     d.showModal();
-    (o.password ? pw : ok).focus();
+    // a password goes first; on a destructive confirm the safe answer ("Jo, kthehu") takes focus,
+    // so Enter pressed twice never cancels an order or releases its inventory
+    (o.password ? pw : o.danger && back ? back : ok).focus();
   });
 }
 

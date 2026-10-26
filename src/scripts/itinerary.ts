@@ -12,7 +12,7 @@ import { track } from './track';
 import { toast } from './toast';
 import { tc } from '../i18n/client';
 
-interface AddData { slug: string; kind: Kind; qty: number; session_id: number; name: string; value: number }
+interface AddData { slug: string; kind: Kind; qty: number; guests?: number; session_id: number; name: string; value: number }
 
 export function initItinerary() {
   const root = document.querySelector<HTMLElement>('[data-itinerary]');
@@ -45,7 +45,9 @@ export function initItinerary() {
   const add = (btn: HTMLButtonElement, quiet = false) => {
     if (btn.dataset.state === 'added') return false;
     const d = JSON.parse(btn.dataset.add!) as AddData;
-    const item = addItem({ slug: d.slug, kind: d.kind, qty: d.qty, session_id: d.session_id }, { name: d.name, value: d.value, toast: !quiet });
+    // same line shape as the experience page (booking.ts): guests = people, so adding the same
+    // session there and here makes one cart line, not two
+    const item = addItem({ slug: d.slug, kind: d.kind, qty: d.qty, guests: d.guests ?? d.qty, session_id: d.session_id }, { name: d.name, value: d.value, toast: !quiet });
     if (!item) return false;
     btn.dataset.state = 'added';
     const label = btn.querySelector('[data-add-label]');
@@ -76,10 +78,24 @@ export function initItinerary() {
       if (navigator.share && matchMedia('(pointer: coarse)').matches) {
         navigator.share({ title, url }).then(() => track('share', { meta: { channel: 'native', kind: 'itinerary' } })).catch(() => {});
       } else {
-        navigator.clipboard?.writeText(url).then(() => {
+        // no clipboard (http, older WebViews) or refused: select the visible link and say so
+        const manual = () => {
+          const a = root.querySelector<HTMLElement>('.plan__link a');
+          if (a) {
+            const r = document.createRange();
+            r.selectNodeContents(a);
+            const sel = getSelection();
+            sel?.removeAllRanges();
+            sel?.addRange(r);
+            a.scrollIntoView({ block: 'nearest' });
+          }
+          toast(tc('itinerary.copy.manual'));
+        };
+        if (!navigator.clipboard?.writeText) manual();
+        else navigator.clipboard.writeText(url).then(() => {
           toast(tc('itinerary.copied'));
           track('share', { meta: { channel: 'copy', kind: 'itinerary' } });
-        }).catch(() => { location.hash = ''; });
+        }).catch(manual);
       }
       track('itinerary', meta('plan', 'share'));
       return;

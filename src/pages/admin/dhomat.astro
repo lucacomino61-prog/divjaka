@@ -30,11 +30,12 @@ const name = (p: { name_sq: string; name_en: string }) => (lang === 'en' ? p.nam
           <a class="mono blk__meta" href={`/admin/produktet/${p.id}/`}>{T('admin.rooms.edit.product')}</a>
         </span>
       </div>
-      {p.demo && <p class="fld__help">{T('admin.demo.note')}</p>}
+      {p.demo && <p class="fld__help">{owner ? T('admin.rooms.demo.owner') : T('admin.product.demo.staff')}</p>}
 
       <form class="row" style="align-items:end;gap:14px 20px" data-api={`/api/admin/products/${p.id}`} data-method="PATCH">
         <div class="fld"><label class="fld__label mono" for={`u-${p.id}`}>{T('admin.rooms.units')}</label><input id={`u-${p.id}`} class="fld__input" style="inline-size:120px" type="number" min="0" max="500" name="units" data-type="int" value={p.units ?? 0} /></div>
         <div class="fld"><label class="fld__label mono" for={`bp-${p.id}`}>{T('admin.rooms.base')} ({T('admin.lek')})</label><input id={`bp-${p.id}`} class="fld__input" style="inline-size:160px" type="number" min="0" name="price" data-type="int" value={p.price} disabled={!owner} /></div>
+        {p.demo && owner && <label class="fld fld--check"><input class="check" type="checkbox" name="verify_demo" data-type="bool" /><span class="fld__label">{T('admin.product.verify.room')}</span></label>}
         <button class="pill pill--primary pill--s" type="submit">{T('admin.rooms.save')}</button>
       </form>
 
@@ -64,8 +65,8 @@ const name = (p: { name_sq: string; name_en: string }) => (lang === 'en' ? p.nam
               <summary><span class="rec__title">{formatRange(r.date_from, r.date_to, lang)} · {lek(r.price, lang)}</span><span class="rec__meta mono">{r.note ?? ''}</span></summary>
               <form class="rec__body" data-api={`/api/admin/room-rates/${r.id}`} data-method="PATCH">
                 <div class="fields">
-                  <div class="fld"><label class="fld__label mono" for={`rf-${r.id}`}>{T('admin.from')}</label><input id={`rf-${r.id}`} class="fld__input" type="date" name="date_from" value={r.date_from} disabled={!owner} /></div>
-                  <div class="fld"><label class="fld__label mono" for={`rt-${r.id}`}>{T('admin.to')}</label><input id={`rt-${r.id}`} class="fld__input" type="date" name="date_to" value={r.date_to} disabled={!owner} /></div>
+                  <div class="fld"><label class="fld__label mono" for={`rf-${r.id}`}>{T('admin.rooms.rate.first')}</label><input id={`rf-${r.id}`} class="fld__input" type="date" name="date_from" value={r.date_from} disabled={!owner} /></div>
+                  <div class="fld"><label class="fld__label mono" for={`rt-${r.id}`}>{T('admin.rooms.rate.last')}</label><input id={`rt-${r.id}`} class="fld__input" type="date" name="date_to" value={r.date_to} disabled={!owner} /></div>
                   <div class="fld"><label class="fld__label mono" for={`rp-${r.id}`}>{T('admin.rooms.rate.price')}</label><input id={`rp-${r.id}`} class="fld__input" type="number" min="0" name="price" data-type="int" value={r.price} disabled={!owner} /></div>
                   <div class="fld"><label class="fld__label mono" for={`rn-${r.id}`}>{T('admin.rooms.rate.note')}</label><input id={`rn-${r.id}`} class="fld__input" name="note" data-nullable value={r.note ?? ''} disabled={!owner} /></div>
                 </div>
@@ -79,8 +80,8 @@ const name = (p: { name_sq: string; name_en: string }) => (lang === 'en' ? p.nam
               <form class="rec__body" data-api="/api/admin/room-rates" data-method="POST">
                 <input type="hidden" name="product_id" value={p.id} data-type="int" />
                 <div class="fields">
-                  <div class="fld"><label class="fld__label mono" for={`nf-${p.id}`}>{T('admin.from')}</label><input id={`nf-${p.id}`} class="fld__input" type="date" name="date_from" required /></div>
-                  <div class="fld"><label class="fld__label mono" for={`nt-${p.id}`}>{T('admin.to')}</label><input id={`nt-${p.id}`} class="fld__input" type="date" name="date_to" required /></div>
+                  <div class="fld"><label class="fld__label mono" for={`nf-${p.id}`}>{T('admin.rooms.rate.first')}</label><input id={`nf-${p.id}`} class="fld__input" type="date" name="date_from" required /></div>
+                  <div class="fld"><label class="fld__label mono" for={`nt-${p.id}`}>{T('admin.rooms.rate.last')}</label><input id={`nt-${p.id}`} class="fld__input" type="date" name="date_to" required /></div>
                   <div class="fld"><label class="fld__label mono" for={`np-${p.id}`}>{T('admin.rooms.rate.price')}</label><input id={`np-${p.id}`} class="fld__input" type="number" min="0" name="price" data-type="int" required /></div>
                   <div class="fld"><label class="fld__label mono" for={`nn-${p.id}`}>{T('admin.rooms.rate.note')}</label><input id={`nn-${p.id}`} class="fld__input" name="note" /></div>
                 </div>
@@ -96,8 +97,8 @@ const name = (p: { name_sq: string; name_en: string }) => (lang === 'en' ? p.nam
           <form class="vstack" style="gap:14px" data-api="/api/admin/room-nights" data-method="POST">
             <input type="hidden" name="product_id" value={p.id} data-type="int" />
             <div class="fields">
-              <div class="fld"><label class="fld__label mono" for={`cf-${p.id}`}>{T('admin.from')}</label><input id={`cf-${p.id}`} class="fld__input" type="date" name="from" value={t0} required /></div>
-              <div class="fld"><label class="fld__label mono" for={`ct-${p.id}`}>{T('admin.to')}</label><input id={`ct-${p.id}`} class="fld__input" type="date" name="to" value={addDays(t0, 1)} required /></div>
+              <div class="fld"><label class="fld__label mono" for={`cf-${p.id}`}>{T('admin.rooms.close.first')}</label><input id={`cf-${p.id}`} class="fld__input" type="date" name="from" value={t0} required /></div>
+              <div class="fld"><label class="fld__label mono" for={`ct-${p.id}`}>{T('admin.rooms.close.last')}</label><input id={`ct-${p.id}`} class="fld__input" type="date" name="to" value={t0} min={t0} required data-plus-day /></div>
               <div class="fld"><label class="fld__label mono" for={`cc-${p.id}`}>{T('admin.rooms.close.count')}</label>
                 <select id={`cc-${p.id}`} class="fld__input" name="closed" data-type="json">
                   {Array.from({ length: (p.units ?? 0) + 1 }, (_, n) => <option value={n}>{n}</option>)}

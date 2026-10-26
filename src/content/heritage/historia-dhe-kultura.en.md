@@ -3,7 +3,7 @@ slug: historia-dhe-kultura
 lang: en
 title: History and culture
 description: From a ship robbed in 1297 to the churches of Karavasta, Ardenica and Apollonia: the area’s history, with distances from Divjakë.
-updated: 2026-10-23
+updated: 2026-10-26
 order: 7
 topic: history
 kicker: History
@@ -37,7 +37,7 @@ Apollonia, near the village of Pojan, was founded around 600 BC by Greek colonis
 
 ## At the table
 
-Divjakë’s cooking mixes sea and land: fish and seafood from the lagoon and the Adriatic (eel, sea bass, shrimp), grilled or stewed with local vegetables, and milk and cheese from nearby farms.[^hist-21] The park area produces cereals, vegetables and fruit, olive oil, wine and honey.[^hist-22] Divjakë is also known as Albania’s largest watermelon-growing area.[^hist-23]
+Divjakë’s cooking mixes sea and land: fish and seafood from the lagoon and the Adriatic (eel, sea bass, shrimp), grilled or stewed with local vegetables, and milk and cheese from nearby farms.[^hist-21] The park area produces cereals, vegetables and fruit, olive oil, wine and honey.[^hist-22] Divjakë is also known for its watermelons.[^hist-23]
 
 ## Celebrations
 

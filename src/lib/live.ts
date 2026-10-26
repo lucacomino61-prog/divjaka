@@ -272,7 +272,7 @@ export function seasonItems(month: number): LivePayload['season_now']['items'] {
 
 const API_TIMEOUT = 4000;
 const MET_MIN_TTL = 10 * 60 * 1000;   // never more often than every 10 minutes
-const MET_MAX_TTL = 60 * 60 * 1000;   // and at least hourly, whatever Expires says
+const MET_MAX_TTL = 60 * 60 * 1000;   // the next try when MET sends no Expires header
 const SEA_TTL = 6 * 3600 * 1000;      // MUR is a daily analysis
 const SEA_KEEP = 3 * 86400 * 1000;    // a failed refresh keeps the last analysis up to 3 days
 const OM_TTL = 30 * 60 * 1000;
@@ -281,15 +281,37 @@ const STALE_AFTER = 90 * 60 * 1000;   // weather older than this is "stale" for 
 const r1 = (n: unknown) => (typeof n === 'number' && Number.isFinite(n) ? Math.round(n * 10) / 10 : null);
 const ri = (n: unknown) => (typeof n === 'number' && Number.isFinite(n) ? Math.round(n) : null);
 
-/** Identifying User-Agent (MET terms): app + site + contact. */
-function userAgent(): string {
+/**
+ * Identifying User-Agent (MET terms): app + site + contact. The site is settings.seo.site_url,
+ * else the public origin a page request arrived on (getLive({ origin })), never a made-up domain
+ * once either is known; a startup warning says when MET only gets the placeholder.
+ */
+let warnedUa = false;
+/** The site and contact MET Norway sees ('' when unknown). */
+function uaParts(): { site: string; mail: string } {
   let site = '';
   let mail = process.env.LIVE_CONTACT ?? '';
   try {
     site = getSetting('seo').site_url ?? '';
     const b = getSetting('business');
     if (!mail && b.email && !(b.placeholders ?? []).includes('email')) mail = b.email;
-  } catch { /* no DB: placeholder below */ }
+  } catch { /* no DB: the request origin or the placeholder below */ }
+  return { site: site || state.origin || '', mail };
+}
+/**
+ * True while MET Norway gets no contact (LIVE_CONTACT or a confirmed business e-mail): their terms
+ * ask for one and may throttle anonymous clients. Shown in the admin (env warning
+ * live_contact_missing) and logged once per server start.
+ */
+export function liveContactMissing(): boolean {
+  return !uaParts().mail;
+}
+function userAgent(): string {
+  const { site, mail } = uaParts();
+  if (!warnedUa && !mail) {
+    warnedUa = true;
+    console.warn('[live] MET Norway needs a contact in its User-Agent: set LIVE_CONTACT (an e-mail) or a confirmed business e-mail in the settings (NEEDS_VERIFICATION.md).');
+  }
   return `DivjakaSmartTourism/1.0 (+${site || 'https://divjaka.example'}${mail ? `; ${mail}` : '; contact: see NEEDS_VERIFICATION'})`;
 }
 
@@ -304,7 +326,7 @@ interface Weather { at: number; checkedAt: number; expires: number; lastModified
 interface Sea { at: number; temp: number; date: string }
 interface OmExtra { at: number; aqi: number | null; pm25: number | null; wave_m: number | null; uv: number | null; sea_temp: number | null }
 
-const G = globalThis as unknown as { __dvLive2?: { metRaw?: unknown; met?: Weather; sea?: Sea; om?: OmExtra; inflight?: Record<string, Promise<unknown> | undefined>; failedAt?: Record<string, number> } };
+const G = globalThis as unknown as { __dvLive2?: { today?: LiveDay; origin?: string; metRaw?: unknown; met?: Weather; sea?: Sea; om?: OmExtra; parsed?: { key: string; p: ReturnType<typeof parseMet> }; inflight?: Record<string, Promise<unknown> | undefined>; failedAt?: Record<string, number> } };
 const state = G.__dvLive2 ?? (G.__dvLive2 = {});
 state.inflight ??= {};
 state.failedAt ??= {};
@@ -354,12 +376,15 @@ export function parseMet(json: any, now = Date.now()): Omit<Weather, 'at' | 'che
 
   // days (Europe/Tirane): extremes from instant temps and 6-hour max/min; precipitation from
   // 1-hour amounts where the series is hourly, 6-hour amounts where it is 6-hourly
-  const days = new Map<string, { tmax: number; tmin: number; wind: number; precip: number; havePrecip: boolean; sym: string; symRank: number; symHour: number }>();
-  for (let i = ci; i < ts.length; i++) {
+  // today's extremes include the hours of today the series still holds before the current one
+  let i0 = ci;
+  while (i0 > 0 && localDate(ts[i0 - 1].time) === today) i0--;
+  const days = new Map<string, { tmax: number; tmin: number; wind: number; precip: number; havePrecip: boolean; sym: string; symRank: number; symHour: number; symDay: boolean }>();
+  for (let i = i0; i < ts.length; i++) {
     const t = ts[i];
     const date = localDate(t.time);
     const d = t.data?.instant?.details ?? {};
-    const e = days.get(date) ?? { tmax: -Infinity, tmin: Infinity, wind: 0, precip: 0, havePrecip: false, sym: '', symRank: -1, symHour: -99 };
+    const e = days.get(date) ?? { tmax: -Infinity, tmin: Infinity, wind: 0, precip: 0, havePrecip: false, sym: '', symRank: -1, symHour: -99, symDay: false };
     if (typeof d.air_temperature === 'number') { e.tmax = Math.max(e.tmax, d.air_temperature); e.tmin = Math.min(e.tmin, d.air_temperature); }
     const n6 = t.data?.next_6_hours;
     if (typeof n6?.details?.air_temperature_max === 'number') e.tmax = Math.max(e.tmax, n6.details.air_temperature_max);
@@ -374,7 +399,7 @@ export function parseMet(json: any, now = Date.now()): Omit<Weather, 'at' | 'che
     const s6: string | undefined = n6?.summary?.symbol_code;
     if (s6 && hour >= 5 && hour <= 13) {
       const rk = symbolRank(s6);
-      if (rk > e.symRank) { e.sym = s6; e.symRank = rk; e.symHour = hour; }
+      if (rk > e.symRank) { e.sym = s6; e.symRank = rk; e.symHour = hour; e.symDay = true; }
     } else if (!e.sym && (s6 || t.data?.next_1_hours?.summary?.symbol_code)) {
       e.sym = s6 ?? t.data.next_1_hours.summary.symbol_code;
     }
@@ -387,7 +412,8 @@ export function parseMet(json: any, now = Date.now()): Omit<Weather, 'at' | 'che
       const l = metSymbol(e.sym);
       const s = sunTimes(date);
       return {
-        date, code: l.code, symbol: e.sym.replace(/_(night|polartwilight)$/, '_day'), label_sq: l.sq, label_en: l.en,
+        // a daytime period's symbol is drawn as day; what is left of today after the daytime periods keeps its night symbol
+        date, code: l.code, symbol: e.symDay ? e.sym.replace(/_(night|polartwilight)$/, '_day') : e.sym, label_sq: l.sq, label_en: l.en,
         tmax: r1(e.tmax) ?? 0, tmin: r1(e.tmin) ?? 0, wind_max: r1(e.wind) ?? 0,
         precip_mm: e.havePrecip ? r1(e.precip) : null, precip_prob: null,
         sunrise: s?.sunrise ?? null, sunset: s?.sunset ?? null,
@@ -401,7 +427,9 @@ async function refreshMet(): Promise<void> {
   const url = `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${COORDS.lat.toFixed(4)}&lon=${COORDS.lon.toFixed(4)}`;
   const r = await fetchJson(url, prev?.lastModified ? { 'If-Modified-Since': prev.lastModified } : {});
   const exp = Date.parse(r.headers.get('expires') ?? '');
-  const expires = Math.min(Date.now() + MET_MAX_TTL, Math.max(Date.now() + MET_MIN_TTL, Number.isFinite(exp) ? exp : 0));
+  // MET's terms: no new request before Expires (never sooner than 10 min either); only without the
+  // header do we pick a time ourselves
+  const expires = Number.isFinite(exp) ? Math.max(Date.now() + MET_MIN_TTL, exp) : Date.now() + MET_MAX_TTL;
   if (r.status === 304 && prev) {
     // unchanged upstream: re-derive "now" from the cached series on the next parse
     state.met = { ...prev, checkedAt: Date.now(), expires };
@@ -470,18 +498,55 @@ const WEATHER_SRC: LiveSource = { key: 'weather', sq: 'Moti: MET Norway', en: 'W
 const SEA_SRC: LiveSource = { key: 'sea', sq: 'Deti: NASA JPL MUR SST (NOAA ERDDAP)', en: 'Sea: NASA JPL MUR SST (NOAA ERDDAP)', url: 'https://podaac.jpl.nasa.gov/dataset/MUR-JPL-L4-GLOB-v4.1', license: 'PO.DAAC', license_url: 'https://podaac.jpl.nasa.gov/CitingPODAAC' };
 const AIR_SRC: LiveSource = { key: 'air', sq: 'Ajri dhe valët: Open-Meteo.com (CAMS, DWD)', en: 'Air and waves: Open-Meteo.com (CAMS, DWD)', url: 'https://open-meteo.com/', license: 'CC BY 4.0', license_url: 'https://creativecommons.org/licenses/by/4.0/' };
 const SUN_SRC: LiveSource = { key: 'sun', sq: 'Dielli: llogaritur këtu (USNO/NOAA)', en: 'Sun: computed here (USNO/NOAA)', url: 'https://gml.noaa.gov/grad/solcalc/solareqns.PDF', license: 'public domain', license_url: 'https://gml.noaa.gov/grad/solcalc/' };
+/** the providers above, for server-rendered credit lines (T3 /kreditet/#moti); air only when its key is set */
+export function liveSources(): LiveSource[] {
+  return [WEATHER_SRC, SEA_SRC, ...(process.env.OPEN_METEO_API_KEY ? [AIR_SRC] : []), SUN_SRC];
+}
 
-export async function getLive(): Promise<LivePayload> {
+/**
+ * Today's row from the forecast covers only the hours still ahead (and the few the series keeps):
+ * at 19:00 its max would be tonight's. The day's extremes and its daytime sky are remembered from
+ * the first forecasts of the day (per server process) and merged in.
+ */
+function withToday(daily: LiveDay[], now: number): LiveDay[] {
+  const today = tirane(new Date(now)).date;
+  const d = daily[0];
+  if (!d || d.date !== today) return daily;
+  const m = state.today?.date === today ? state.today : null;
+  const merged: LiveDay = { ...d, tmax: m ? Math.max(d.tmax, m.tmax) : d.tmax, tmin: m ? Math.min(d.tmin, m.tmin) : d.tmin, wind_max: m ? Math.max(d.wind_max, m.wind_max) : d.wind_max };
+  const night = /_(night|polartwilight)$/.test(d.symbol);
+  if (night && m && !/_(night|polartwilight)$/.test(m.symbol)) Object.assign(merged, { symbol: m.symbol, code: m.code, label_sq: m.label_sq, label_en: m.label_en });
+  state.today = merged;
+  return [merged, ...daily.slice(1)];
+}
+
+/** origin: the public origin of the page request (for MET's User-Agent while settings.seo.site_url is empty). */
+export async function getLive(opts: { origin?: string } = {}): Promise<LivePayload> {
+  if (opts.origin && !state.origin) {
+    try {
+      const u = new URL(opts.origin);
+      // a real public host only: never localhost, a LAN address or the .example placeholder
+      if (u.protocol === 'https:' && !/^(localhost|127\.|10\.|192\.168\.|\[)|\.(example|localhost|test|local)$/.test(u.hostname)) state.origin = u.origin;
+    } catch { /* not a URL */ }
+  }
   const pending = refreshAll();
   // Only the very first request after a start waits (for at most the timeout); later ones get the
   // cached copy at once while the refresh runs in the background.
   if (!state.met && pending.length) await Promise.race([Promise.allSettled(pending), new Promise((r) => setTimeout(r, API_TIMEOUT + 200))]);
   const now = Date.now();
   // re-derive "now" from the cached series so the current hour advances between downloads
+  // (parsed once per clock hour and download, not on every request: /api/live has no rate limit)
   let met = state.met;
   if (met && state.metRaw && now - met.checkedAt < MET_MAX_TTL * 2) {
-    const p = parseMet(state.metRaw, now);
-    if (p) met = { ...met, ...p };
+    const key = `${Math.floor(now / 3600_000)}|${met.at}`;
+    if (state.parsed?.key !== key) state.parsed = { key, p: parseMet(state.metRaw, now) };
+    const p = state.parsed.p;
+    if (p) {
+      // is_day changes within the hour (sunrise / sunset): recomputed per request, it is cheap
+      const sun = sunTimes(tirane(new Date(now)).date);
+      const t = tirane(new Date(now)).time;
+      met = { ...met, ...p, current: { ...p.current, is_day: sun ? t >= sun.sunrise && t < sun.sunset : p.current.is_day } };
+    }
   }
   const fresh = !!met && now - met.checkedAt < STALE_AFTER && now - Date.parse(met.current.valid_at) < 2 * 3600_000;
   const sea = state.sea && now - state.sea.at < SEA_KEEP ? state.sea : null;
@@ -509,7 +574,7 @@ export async function getLive(): Promise<LivePayload> {
     marine: seaTemp != null || om?.wave_m != null ? { sea_temp: seaTemp, wave_m: om?.wave_m ?? null, sea_date: sea?.date ?? null } : null,
     air: om && (om.aqi != null || om.pm25 != null) ? { aqi: om.aqi, pm25: om.pm25 } : null,
     sun: sunTimes(tirane().date),
-    daily: met?.daily ?? [],
+    daily: withToday(met?.daily ?? [], now),
     hourly: met?.hourly ?? [],
     season_now: { month, items: cached(`live-season|${month}`, () => seasonItems(month)) },
     availability_today: availability,
@@ -526,4 +591,6 @@ export function resetLiveCache(): void {
   state.om = undefined;
   state.failedAt = {};
   state.metRaw = undefined;
+  state.parsed = undefined;
+  state.today = undefined;
 }

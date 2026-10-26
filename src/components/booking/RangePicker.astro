@@ -7,7 +7,7 @@
  * taken night is refused with an explanation. Logic: src/scripts/booking.ts (RangeCtl).
  *
  * Props: lang, id, mode 'night' | 'stay', ym, days, min, max, hrefFor, from?, to?,
- *        collapsible? (stay search: the calendar opens from the readouts), minNights?
+ *        collapsible? (stay search: the calendar opens from the readouts), minNights?, note?
  */
 import Calendar from './Calendar.astro';
 import { t } from '../../i18n/ui';
@@ -18,11 +18,13 @@ import type { DayCell } from './server';
 interface Props {
   lang: Lang; id: string; mode: 'night' | 'stay'; ym: string; days: DayCell[]; min: string; max: string;
   hrefFor: (ym: string) => string; from?: string | null; to?: string | null; collapsible?: boolean; minNights?: number;
+  /** why the dates of a shared link were cleared (shown in the message line, error tone) */
+  note?: string | null;
 }
-const { lang, id, mode, ym, days, min, max, hrefFor, from = null, to = null, collapsible = false, minNights = 1 } = Astro.props;
+const { lang, id, mode, ym, days, min, max, hrefFor, from = null, to = null, collapsible = false, minNights = 1, note = null } = Astro.props;
 const calId = `${id}-cal`;
 const choose = t(lang, 'booking.range.choose');
-const msg = from && to
+const msg = note ? note : from && to
   ? t(lang, 'booking.range.done', { nights: nightsLabel(daysBetween(from, to), lang), range: formatRange(from, to, lang) })
   : from ? t(lang, 'booking.range.pickOut') : t(lang, 'booking.range.pickIn');
 ---
@@ -47,7 +49,7 @@ const msg = from && to
     <Calendar lang={lang} id={`${id}-grid`} mode={mode} ym={ym} days={days} min={min} max={max} hrefFor={hrefFor} selected={{ from, to }} />
   </div>
   <div class="bk-range__foot">
-    <p class="bk-range__msg mono" data-range-msg aria-live="polite">{msg}</p>
+    <p class="bk-range__msg mono" data-range-msg aria-live="polite" data-tone={note ? 'error' : undefined}>{msg}</p>
     <button type="button" class="bk-range__clear mono" data-range-clear hidden={!from ? true : undefined}>{t(lang, 'booking.range.clear')}</button>
   </div>
 </div>

@@ -3,7 +3,7 @@ slug: pylli-me-pisha-dhe-flora
 lang: en
 title: The pine forest and its plants
 description: Albania’s only natural coastal pine forest: the pines, the shrubs, the dunes, the endemic orchid and how to keep it safe from fire.
-updated: 2026-10-23
+updated: 2026-10-26
 order: 4
 topic: flora
 kicker: Flora
@@ -16,7 +16,7 @@ The Divjaka coastal pine forest is the only natural coastal pine forest in Alban
 
 ## Two pines
 
-This is a native forest of stone pine (*Pinus pinea*), the only one of its kind on the Albanian coast. Aleppo pine (*Pinus halepensis*) was brought from Italy early in the 20th century and has made parts of the forest semi-natural.[^flora-01] The sources do not fully agree: the Key Biodiversity Area factsheet also names *Pinus pinaster*.[^lagoon-07]
+This is a native forest of stone pine (*Pinus pinea*), the only one of its kind on the Albanian coast. Aleppo pine (*Pinus halepensis*) was brought from Italy early in the 20th century and has made parts of the forest semi-natural.[^flora-01] The sources do not fully agree: the [Key Biodiversity Area factsheet](https://www.keybiodiversityareas.org/site/factsheet/2904) also names *Pinus pinaster*.
 
 How big is the forest? The 1994 decision records 1,162 ha; other sources give anything from about 1,100 to 1,250 ha.[^flora-03]
 

@@ -20,7 +20,7 @@ import { track } from './track';
 import { addViewed } from './prefs';
 import { tc, lang as pageLang } from '../i18n/client';
 import {
-  MONTHS, formatDate, formatRange, money, number, nights as nightsLabel, seats as seatsLabel, daysBetween, addDays,
+  MONTHS, formatDate, formatRange, money, number, nights as nightsLabel, daysBetween, addDays,
 } from '../i18n/format';
 
 type Status = 'past' | 'open' | 'full' | 'closed' | 'none' | 'far';
@@ -34,6 +34,9 @@ interface Quote { lines: QuoteLine[]; total: number }
 
 const L = pageLang();
 const html = document.documentElement;
+/** Rooms of one type per booking line: the room page's stepper max and T1's
+ *  max_units_per_unconfirmed_order (an unpaid order holds at most 5 units of one product). */
+const MAX_ROOMS = 5;
 const rate = () => Number(html.dataset.eurRate) || 0;
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 /** Both currencies in the markup; CSS shows one from html[data-cur] (same as <Price>). */
@@ -43,6 +46,20 @@ function priceHTML(lek: number): string {
 }
 function priceText(lek: number): string {
   return html.dataset.cur === 'EUR' && rate() > 0 ? money(lek, L, { currency: 'EUR', rate: rate() }) : money(lek, L);
+}
+/** "8 vende të lira" / "1 vend i lirë" (one dict key pair for the grid, the slots and the hints). */
+const freeSeats = (n: number) => (n === 1 ? tc('booking.seats1') : tc('booking.seats', { n: number(n, L) }));
+/** Wall-clock time in Divjakë now ("HH:MM"): tells a session that already started from one past the online cutoff. */
+function nowTirane(): string {
+  try {
+    return new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Tirane', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date());
+  } catch { return '00:00'; }
+}
+/** Label of a slot that cannot be booked: full, closed by the staff, past the online cutoff, started. */
+function slotOffLabel(x: { status: string; date: string; time: string }, today: string): string {
+  if (x.status === 'full') return tc('booking.session.full');
+  if (x.status === 'past') return x.date === today && x.time > nowTirane() ? tc('booking.session.cutoff') : tc('booking.session.started');
+  return tc('booking.session.closed');
 }
 const ymOf = (d: string) => d.slice(0, 7);
 function addMonths(ym: string, n: number): string {
@@ -105,6 +122,8 @@ class Cal {
   max: string;
   today: string;
   horizon: string;
+  /** seats mode for a demo schedule: open days are marked, their counts are not printed */
+  noSeats: boolean;
   cache = new Map<string, Day[]>();
   inflight = new Map<string, Promise<Day[]>>();
   focusDate: string | null = null;
@@ -126,11 +145,17 @@ class Cal {
     this.max = el.dataset.max!;
     this.today = el.dataset.today!;
     this.horizon = el.dataset.horizon || '9999-12-31';
+    this.noSeats = el.hasAttribute('data-noseats');
     try {
       const data = JSON.parse(el.querySelector<HTMLScriptElement>('script[data-cal-data]')?.textContent || 'null');
       if (Array.isArray(data)) this.cache.set(this.ym, data);
     } catch { /* re-fetch */ }
     this.focusDate = el.querySelector<HTMLElement>('.cal__day[tabindex="0"]')?.dataset.date ?? null;
+    if (!this.focusDate) {
+      // the grid must always keep one tab stop (a selected date in another month left none)
+      const first = el.querySelector<HTMLElement>('.cal__day[data-status="open"]') ?? el.querySelector<HTMLElement>('.cal__day');
+      if (first) this.setFocus(first.dataset.date!, false);
+    }
 
     el.querySelector('[data-cal-prev]')?.addEventListener('click', (e) => { e.preventDefault(); this.go(addMonths(this.ym, -1)); });
     el.querySelector('[data-cal-next]')?.addEventListener('click', (e) => { e.preventDefault(); this.go(addMonths(this.ym, 1)); });
@@ -169,26 +194,29 @@ class Cal {
   invalidate() { this.cache.clear(); }
   day(date: string): Day | undefined { return this.cache.get(ymOf(date))?.find((d) => d.date === date); }
 
-  async go(ym: string, focus?: string) {
-    if (ym < this.min || ym > this.max) return;
+  /** Show a month; true when it rendered (false: out of bounds, superseded or failed to load). */
+  async go(ym: string, focus?: string): Promise<boolean> {
+    if (ym < this.min || ym > this.max) return false;
     const my = ++this.seq;
     this.el.setAttribute('aria-busy', 'true');
     const status = this.el.querySelector<HTMLElement>('[data-cal-status]')!;
     const slow = window.setTimeout(() => { status.textContent = tc('booking.cal.loading'); status.removeAttribute('data-tone'); }, 250);
     try {
       const days = await this.month(ym);
-      if (my !== this.seq) return;
+      if (my !== this.seq) return false;
       this.ym = ym;
       this.el.dataset.ym = ym;
       this.render(days, focus);
       status.textContent = '';
       setParams({ muaji: ym });
       this.onMonth(ym);
+      return true;
     } catch {
-      if (my !== this.seq) return;
+      if (my !== this.seq) return false;
       status.dataset.tone = 'error';
       status.innerHTML = `${esc(tc('booking.cal.error'))}<button type="button">${esc(tc('booking.cal.retry'))}</button>`;
       status.querySelector('button')?.addEventListener('click', () => this.go(ym, focus), { once: true });
+      return false;
     } finally {
       clearTimeout(slow);
       if (my === this.seq) this.el.removeAttribute('aria-busy');
@@ -214,7 +242,8 @@ class Cal {
         const date = cells[r * 7 + c];
         if (!date) { out += '<td class="cal__pad"></td>'; continue; }
         const d = byDate.get(date) ?? { date, status: (date < this.today ? 'past' : 'none') as Status };
-        const val = d.status === 'open' ? (d.price != null ? number(d.price, L) : d.seats != null ? String(d.seats) : '') : '';
+        // a demo schedule's seat counts are not facts (PLAN §2): open days only, no number
+        const val = d.status === 'open' ? (d.price != null ? number(d.price, L) : d.seats != null && !this.noSeats ? String(d.seats) : '') : '';
         const v = d.status === 'open' && d.price != null && rate() > 0
           ? `<span data-cur-all>${val}</span><span data-cur-eur>${number(Math.round(d.price / rate()), L)}</span>`
           : val;
@@ -259,8 +288,10 @@ class Cal {
     let s = long;
     const st = d?.status ?? (date < this.today ? 'past' : 'none');
     if (st === 'open' && d?.price != null) s = tc('booking.cal.dayNight', { date: long, price: priceText(d.price) });
-    else if (st === 'open' && d?.seats != null) s = tc('booking.cal.daySeats', { date: long, seats: seatsLabel(d.seats, L) });
+    else if (st === 'open' && d?.seats != null) s = this.noSeats ? tc('booking.cal.dayOpen', { date: long }) : tc('booking.cal.daySeats', { date: long, seats: freeSeats(d.seats) });
     else s = `${long}, ${tc(`booking.cal.${st === 'full' ? 'full' : st}`)}`;
+    // a taken day that can still end the stay (the night before it is free)
+    if (st !== 'open' && this.canOut(date)) s += `, ${tc('booking.cal.canOut')}`;
     if (date === this.today) s += `, ${tc('booking.cal.today')}`;
     const words = mark.split(' ');
     if (words.includes('in')) s += `, ${tc('booking.cal.selectedIn')}`;
@@ -270,20 +301,25 @@ class Cal {
   }
 
   setFocus(date: string, move = true) {
-    this.focusDate = date;
-    let target: HTMLButtonElement | null = null;
-    for (const b of this.body.querySelectorAll<HTMLButtonElement>('.cal__day')) {
-      const on = b.dataset.date === date;
-      b.tabIndex = on ? 0 : -1;
-      if (on) target = b;
-    }
-    if (move) target?.focus();
+    const days = [...this.body.querySelectorAll<HTMLButtonElement>('.cal__day')];
+    // the grid always keeps one tab stop: a date not in the shown month keeps the current one
+    const target = days.find((b) => b.dataset.date === date)
+      ?? days.find((b) => b.dataset.date === this.focusDate)
+      ?? days.find((b) => b.dataset.status === 'open') ?? days[0] ?? null;
+    if (!target) return;
+    this.focusDate = target.dataset.date!;
+    for (const b of days) b.tabIndex = b === target ? 0 : -1;
+    if (move) target.focus();
   }
 
   /** Focus a day; switch months when it lies outside the one shown. */
   async focusDay(date: string) {
     if (ymOf(date) < this.min || ymOf(date) > this.max) return;
-    if (ymOf(date) !== this.ym) await this.go(ymOf(date), date);
+    if (ymOf(date) !== this.ym && !(await this.go(ymOf(date), date))) {
+      // the month did not load (the status line offers a retry): stay on the day that had focus
+      this.setFocus(this.focusDate ?? '');
+      return;
+    }
     this.setFocus(date);
     this.onHover(date);
   }
@@ -330,11 +366,13 @@ const stayProvider = (slugs: string[]): Provider => async (ym) => {
     return { date: d.date, status: (st.includes('past') ? 'past' : st.every((s) => s === 'closed') ? 'closed' : 'full') as Status };
   });
 };
-function experienceProvider(slug: string, store: Map<string, Sess[]>): Provider {
+function experienceProvider(slug: string, store: Map<string, Sess[]>, notes: Map<number, string>): Provider {
   return async (ym) => {
     const r = await getJSON<{ sessions: Sess[] }>(`/api/availability/experience/${encodeURIComponent(slug)}?month=${ym}`);
-    // only the light-linked keys are public (staff notes are free text)
-    const sessions = r.sessions.map((s) => ({ ...s, note: s.note === 'sunrise' || s.note === 'sunset' ? s.note : null }));
+    // only the light-linked keys are public (staff notes are free text). The month API sends no
+    // note, so the page seeds every upcoming sunrise/sunset slot by id and they are merged here.
+    const light = (n: unknown) => (n === 'sunrise' || n === 'sunset' ? n : null);
+    const sessions = r.sessions.map((s) => ({ ...s, note: light(s.note) ?? light(notes.get(s.id)) }));
     store.set(ym, sessions);
     const today = html.querySelector<HTMLElement>('[data-cal]')?.dataset.today ?? '';
     return monthDates(ym).map((date) => {
@@ -432,6 +470,11 @@ class RangeCtl {
     const box = this.el.querySelector<HTMLElement>('[data-range-cal]')!;
     box.hidden = !on;
     this.el.querySelectorAll('[data-range-field]').forEach((b) => b.setAttribute('aria-expanded', String(on)));
+    this.markFields();
+  }
+  /** The readout being picked is shaded only while the calendar is open. */
+  private markFields() {
+    this.el.querySelectorAll<HTMLElement>('[data-range-field]').forEach((b) => b.toggleAttribute('data-active', b.dataset.rangeField === this.picking && this.open));
   }
 
   private field(which: 'in' | 'out') {
@@ -453,8 +496,9 @@ class RangeCtl {
   }
   /** Sync guess for painting (months not loaded yet count as unknown → not offered). */
   private canOut(d: string): boolean {
-    if (this.picking !== 'out' || !this.from || this.to || d <= this.from) return false;
-    if (daysBetween(this.from, d) > this.opts.maxNights) return false;
+    if (this.picking !== 'out' || !this.from || d <= this.from) return false;
+    const n = daysBetween(this.from, d);
+    if (n > this.opts.maxNights || n < this.opts.minNights) return false;
     for (let x = this.from; x < d; x = addDays(x, 1)) if (this.cal.day(x)?.status !== 'open') return false;
     return true;
   }
@@ -485,16 +529,30 @@ class RangeCtl {
       const keep = this.picking === 'in' && this.to && d < this.to && daysBetween(d, this.to) <= maxNights && daysBetween(d, this.to) >= minNights && await this.nightsOpen(d, this.to);
       this.from = d;
       if (!keep) this.to = null;
-      this.picking = this.to ? 'in' : 'out';
+      // the next click always sets the departure (a kept one can still be moved earlier)
+      this.picking = 'out';
       this.hover = null;
       this.update();
-      this.say(this.to ? this.doneText() : tc('booking.range.pickOut'));
+      this.say(this.to ? `${this.doneText()} · ${tc('booking.range.pickOut')}` : tc('booking.range.pickOut'));
       return;
     }
     const n = daysBetween(this.from, d);
-    if (n > maxNights) { this.say(tc('booking.range.max', { n: maxNights }), 'error'); return; }
     if (n < minNights) { this.say(tc('booking.range.min', { n: minNights }), 'error'); return; }
-    if (!(await this.nightsOpen(this.from, d))) { this.say(tc('booking.range.blocked'), 'error'); return; }
+    const tooLong = n > maxNights;
+    if (tooLong || !(await this.nightsOpen(this.from, d))) {
+      // the stay cannot end here: the clicked day starts a new one when it can be an arrival
+      // (otherwise every later click would be refused the same way)
+      const was = this.from!;
+      const why = tooLong ? tc('booking.range.max', { n: maxNights }) : tc('booking.range.blockedAt', { from: formatDate(was, L, 'day-month'), to: formatDate(d, L, 'day-month') });
+      if (this.cal.day(d)?.status === 'open') {
+        this.from = d; this.to = null; this.picking = 'out'; this.hover = null;
+        this.update();
+        this.say(`${why} ${tc('booking.range.newIn', { date: formatDate(d, L, 'day-month') })}`, 'error');
+      } else {
+        this.say(why, 'error');
+      }
+      return;
+    }
     this.to = d;
     this.picking = 'in';
     this.hover = null;
@@ -530,7 +588,7 @@ class RangeCtl {
     q('[data-range-out-w]').textContent = this.to ? formatDate(this.to, L, 'weekday') : '';
     q('[data-range-n]').textContent = this.from && this.to ? nightsLabel(daysBetween(this.from, this.to), L) : '';
     this.el.toggleAttribute('data-has-range', !!(this.from && this.to));
-    this.el.querySelectorAll<HTMLElement>('[data-range-field]').forEach((b) => b.toggleAttribute('data-active', b.dataset.rangeField === this.picking && this.open));
+    this.markFields();
     const clear = this.el.querySelector<HTMLElement>('[data-range-clear]');
     if (clear) clear.hidden = !this.from;
     this.cal.el.dataset.picking = this.picking;
@@ -562,6 +620,42 @@ function showSum(s: Stub, total: number, compare?: number, offer?: { name: strin
   s.sum.innerHTML = `${compare && compare > total ? `<s class="bk__sum-was">${priceHTML(compare)}</s>` : ''}<span class="bk__sum-main">${priceHTML(total)}</span>`;
   if (offer) { s.offer.hidden = false; s.offer.textContent = `${tc('booking.total.offer', { name: offer.name })} · ${tc('booking.total.saving', { price: priceText(offer.saving) })}`; }
   else s.offer.hidden = true;
+}
+/**
+ * The fixed Pyet pill and the desktop permit card: the card sticks under the header and its last
+ * row (Add / Book, an error line, then "In your cart · View cart") can reach the bottom corner the
+ * pill sits in (1440 × 900). While a card control lies under the pill, the pill steps aside
+ * (html[data-has-done-under-pill], booking.css), so a click there always reaches the card.
+ * Measured when the card changes size, on scroll and on resize (reads, then one attribute write);
+ * no rAF.
+ */
+const guarded: HTMLElement[] = [];
+function pillCheck() {
+  const pill = document.querySelector<HTMLElement>('.assistant-pill');
+  let hit = false;
+  if (pill && guarded.length && matchMedia('(min-width: 1000px)').matches) {
+    const q = pill.getBoundingClientRect();
+    for (const a of guarded) {
+      const r = a.getBoundingClientRect();
+      if (r.width && r.right > q.left && r.left < q.right && r.bottom > q.top && r.top < q.bottom) { hit = true; break; }
+    }
+  }
+  if (html.hasAttribute('data-has-done-under-pill') !== hit) html.toggleAttribute('data-has-done-under-pill', hit);
+}
+function guardPill(root: HTMLElement) {
+  const els = [...root.querySelectorAll<HTMLElement>('[data-bk-add], [data-bk-book], [data-bk-done] a')];
+  if (!els.length) return;
+  if (!guarded.length) {
+    window.addEventListener('scroll', pillCheck, { passive: true });
+    window.addEventListener('resize', pillCheck, { passive: true });
+  }
+  guarded.push(...els);
+  new ResizeObserver(pillCheck).observe(root);
+}
+function done(s: Stub, text: string | null) {
+  if (text == null) { s.done.hidden = true; return; }
+  s.done.querySelector('[data-bk-done-text]')!.textContent = text;
+  s.done.hidden = false;
 }
 function message(s: Stub, text: string | null) {
   if (!text) { s.msg.hidden = true; s.msg.textContent = ''; return; }
@@ -596,10 +690,14 @@ function initRoom(root: HTMLElement) {
   const item = () => ({ key: '', slug, kind: 'room' as const, qty: rooms.value, from: range.from!, to: range.to!, guests: guests.value });
 
   function schedule() { clearTimeout(timer); timer = window.setTimeout(refresh, 120); }
+  /** A change still waiting for its debounced quote: run it now (before an add, so the add's
+   *  confirmation is not hidden by a refresh that lands after it). */
+  async function flush() { if (timer) { clearTimeout(timer); await refresh(); } }
 
   async function refresh() {
+    timer = 0;
     message(s, null);
-    s.done.hidden = true;
+    done(s, null);
     if (!range.from || !range.to) { waitSum(s, 'booking.total.waitDates'); if (nightsBox) nightsBox.hidden = true; lastOk = false; return; }
     ctl?.abort();
     ctl = new AbortController();
@@ -610,7 +708,10 @@ function initRoom(root: HTMLElement) {
       const line = r.quote.line;
       const n = r.nights.length;
       showSum(s, line.line_total, line.compare_total, line.offer);
-      s.calc.textContent = tc('booking.total.nights', { nights: nightsLabel(n, L), price: priceText(line.unit_price * rooms.value) }) + (rooms.value > 1 ? ` · ${rooms.value} × ${L === 'sq' ? 'dhoma' : 'rooms'}` : '');
+      // "3 netë × 2 dhoma × 4 100 lekë": the price is per room and night; "mesatarisht" only when nights differ
+      const avg = new Set(r.nights.map((x) => x.price)).size > 1;
+      const key = `booking.total.${rooms.value > 1 ? 'rooms' : 'nights'}${avg ? 'Avg' : ''}`;
+      s.calc.textContent = tc(key, { nights: nightsLabel(n, L), rooms: rooms.value === 1 ? tc('booking.rooms.n1') : tc('booking.rooms.n', { n: rooms.value }), price: priceText(line.unit_price) });
       if (nightsBox && nightsList) {
         nightsList.innerHTML = r.nights.map((x) => `<li><span>${esc(formatDate(x.night, L, 'weekday-short'))} ${esc(formatDate(x.night, L, 'short'))}</span><span>${priceHTML(x.price)}</span></li>`).join('');
         nightsBox.hidden = n < 2;
@@ -629,6 +730,7 @@ function initRoom(root: HTMLElement) {
 
   async function commit(go: boolean) {
     const btn = go ? s.book : s.add;
+    await flush();
     if (!range.from || !range.to) {
       message(s, tc('booking.err.dates'));
       cal.setFocus(cal.focusDate ?? '', true);
@@ -641,14 +743,23 @@ function initRoom(root: HTMLElement) {
       if (line?.problem) {
         cal.invalidate();
         await cal.go(cal.ym);
-        if (line.problem.code === 'sold_out' || line.problem.code === 'closed') { range.reset(true); clearTimeout(timer); waitSum(s, 'booking.total.waitDates'); }
+        if (line.problem.code === 'sold_out' || line.problem.code === 'closed') {
+          // keep the arrival only if that night is still free (a lost race may have taken it)
+          const from = range.from;
+          const keep = !!from && await cal.month(ymOf(from)).then(() => cal.day(from)?.status === 'open', () => false);
+          range.reset(keep);
+          // the line under the calendar follows the cleared readouts (no "2 netë · 25–27" left over)
+          range.say(tc(keep ? 'booking.range.pickOut' : 'booking.range.pickIn'));
+          clearTimeout(timer); timer = 0;
+          waitSum(s, 'booking.total.waitDates');
+        }
         message(s, `${tc('booking.err.changed')} ${line.problem.message}`);
         return;
       }
-      addItem({ slug, kind: 'room', qty: rooms.value, from: range.from, to: range.to, guests: guests.value }, { name, value: line?.line_total, toast: !go });
+      // no toast: the card confirms the add itself (a toast would cover its "View cart" link)
+      addItem({ slug, kind: 'room', qty: rooms.value, from: range.from, to: range.to, guests: guests.value }, { name, value: line?.line_total, toast: false });
       if (go) { location.href = root.dataset.checkout!; return; }
-      s.done.hidden = false;
-      s.done.querySelector('[data-bk-done-text]')!.textContent = tc('booking.inCart', { range: formatRange(range.from, range.to, L) });
+      done(s, tc('booking.inCart', { range: formatRange(range.from, range.to, L) }));
     } catch (e) {
       message(s, (e as Error).message || tc('booking.err.network'));
     } finally {
@@ -670,31 +781,51 @@ function initExperience(root: HTMLElement) {
   const name = root.dataset.name ?? slug;
   const maxGroup = Number(root.dataset.maxGroup) || 10;
   const store = new Map<string, Sess[]>();
+  const notes = new Map<number, string>();
   try {
     const seed = JSON.parse(root.querySelector('script[data-bk-sessions]')?.textContent || 'null');
     if (seed?.ym && Array.isArray(seed.sessions)) store.set(seed.ym, seed.sessions);
+    if (seed?.notes && typeof seed.notes === 'object') for (const [id, n] of Object.entries(seed.notes)) notes.set(Number(id), String(n));
   } catch { /* fetched on demand */ }
-  const cal = new Cal(root.querySelector<HTMLElement>('[data-cal]')!, experienceProvider(slug, store));
+  const cal = new Cal(root.querySelector<HTMLElement>('[data-cal]')!, experienceProvider(slug, store, notes));
   const s = stubOf(root);
   const people = new Stepper(root.querySelector('[data-stepper="people"]')!);
   const slots = root.querySelector<HTMLElement>('[data-slots]')!;
   const slotName = slots.dataset.name!;
+  const today = cal.today;
   const params = new URL(location.href).searchParams;
   let date: string | null = params.get('data');
-  let session: number | null = Number(params.get('orari')) || Number(slots.querySelector<HTMLInputElement>('input:checked')?.value) || null;
   let ctl: AbortController | null = null;
   let timer = 0;
-  if (date && !cal.day(date)) date = null;
+  // a demo schedule: its free places are not printed (PLAN §2); the limits still apply
+  const noSeats = root.hasAttribute('data-noseats');
+  // trust only what the server could honour: an open day, then an open slot of that day; a
+  // choice it cannot honour leaves the URL too (a shared link never carries a dead id)
+  if (date && cal.day(date)?.status !== 'open') { date = null; setParams({ data: null, orari: null }); }
+  const daySessions = () => (date ? (store.get(ymOf(date)) ?? []).filter((x) => x.date === date) : []);
+  const isOpen = (id: number | null) => !!id && daySessions().some((x) => x.id === id && x.status === 'open');
+  const checked = Number(slots.querySelector<HTMLInputElement>('input:checked')?.value) || null;
+  const asked = Number(params.get('orari')) || null;
+  let session: number | null = isOpen(checked) ? checked : isOpen(asked) ? asked : null;
+  if (!session && params.has('orari')) setParams({ orari: null });
 
   cal.markOf = (d) => (d === date ? 'pick' : '');
   cal.onPick = (d) => {
-    date = d; session = null; renderSlots(true); cal.paint(); setParams({ data: d, orari: null }); schedule();
+    date = d; session = null; setParams({ data: d, orari: null }); renderSlots(true); cal.paint(); schedule();
     // the slots sit under the calendar: bring them up inside the card's own scroll (desktop column / phone sheet)
     slots.scrollIntoView({ block: 'nearest', behavior: isMotionOff() ? 'instant' : 'smooth' });
   };
-  people.onChange = (n) => { setParams({ persona: String(n) }); schedule(); };
+  // the party size the visitor asked for (stepper or ?persona=): a slot with fewer places lowers
+  // the stepper and says so; a later slot with room for them gives the number back
+  let wish = Math.max(1, Math.trunc(Number(params.get('persona'))) || people.value);
+  let capping = false;
+  people.onChange = (n) => {
+    // the visitor's own change: that is the number they want now (the hint follows it)
+    if (!capping) { wish = n; capPeople(); }
+    setParams({ persona: String(n) });
+    schedule();
+  };
 
-  const daySessions = () => (date ? (store.get(ymOf(date)) ?? []).filter((x) => x.date === date) : []);
   const noteText = (n: string | null) => (n === 'sunrise' ? tc('booking.session.sunrise') : n === 'sunset' ? tc('booking.session.sunset') : '');
 
   function renderSlots(autoPick = false) {
@@ -710,7 +841,7 @@ function initExperience(root: HTMLElement) {
     else if (!open.length) out = `<p class="bk-slots__empty mono">${esc(tc('booking.session.none'))}</p>`;
     out += mine.map((x) => {
       const on = x.status === 'open';
-      const left = on ? seatsLabel(x.left, L) : x.status === 'full' ? tc('booking.session.full') : tc('booking.session.closed');
+      const left = on ? (noSeats ? tc('booking.session.open') : freeSeats(x.left)) : slotOffLabel(x, today);
       const note = noteText(x.note);
       return `<label class="bk-slot${on ? '' : ' bk-slot--off'}"><input type="radio" name="${esc(slotName)}" value="${x.id}"${x.id === session ? ' checked' : ''}${on ? '' : ' disabled'} data-left="${x.left}"><span class="bk-slot__time">${esc(x.time)}</span><span class="bk-slot__left mono">${esc(left)}</span>${note ? `<span class="bk-slot__note mono">${esc(note)}</span>` : ''}</label>`;
     }).join('');
@@ -720,10 +851,22 @@ function initExperience(root: HTMLElement) {
   }
   function capPeople() {
     const chosen = daySessions().find((x) => x.id === session);
+    const slotCapped = !!chosen && chosen.left < maxGroup;
     const cap = Math.max(1, Math.min(maxGroup, chosen ? chosen.left : maxGroup));
+    capping = true;
     people.setMax(cap);
-    if (chosen && chosen.left < maxGroup) people.hint(tc('booking.people.cap', { seats: seatsLabel(chosen.left, L) }));
+    // give back the visitor's number when this slot has room for it
+    const want = Math.min(wish, maxGroup);
+    if (people.value < Math.min(want, cap)) people.set(Math.min(want, cap));
+    capping = false;
+    // the hint under the stepper explains the limit that applies (a demo schedule never prints
+    // its counts); when the stepper lowered the number the visitor chose, it says so there, in
+    // the error tone (beside the control that changed, without growing the card)
+    if (slotCapped && want > people.value) people.hint(tc('booking.people.lowered', { n: want }), 'error');
+    else if (slotCapped) people.hint(noSeats ? tc('booking.people.capSlot') : chosen!.left === 1 ? tc('booking.people.cap1') : tc('booking.people.cap', { n: chosen!.left }));
     else people.hint(tc('booking.people.group', { n: maxGroup }));
+    // the URL carries the number actually booked (a copied link never keeps ?persona=500)
+    if (new URL(location.href).searchParams.has('persona')) setParams({ persona: String(people.value) });
   }
   slots.addEventListener('change', (e) => {
     const r = e.target as HTMLInputElement;
@@ -735,11 +878,13 @@ function initExperience(root: HTMLElement) {
   });
 
   function schedule() { clearTimeout(timer); timer = window.setTimeout(refresh, 100); }
+  async function flush() { if (timer) { clearTimeout(timer); await refresh(); } }
   const item = () => ({ key: '', slug, kind: 'experience' as const, qty: people.value, guests: people.value, session_id: session! });
 
   async function refresh() {
+    timer = 0;
     message(s, null);
-    s.done.hidden = true;
+    done(s, null);
     if (!session) { waitSum(s, 'booking.total.waitSession'); return; }
     ctl?.abort();
     ctl = new AbortController();
@@ -748,7 +893,7 @@ function initExperience(root: HTMLElement) {
       const q = await getJSON<Quote>('/api/quote', { method: 'POST', body: JSON.stringify({ lang: L, items: [item()] }), signal: ctl.signal });
       const line = q.lines[0];
       showSum(s, line.line_total, line.compare_total, line.offer);
-      s.calc.textContent = tc('booking.total.people', { people: L === 'sq' ? (people.value === 1 ? '1 person' : `${people.value} persona`) : people.value === 1 ? '1 person' : `${people.value} people`, price: priceText(line.unit_price) });
+      s.calc.textContent = tc('booking.total.people', { people: people.value === 1 ? tc('booking.people.n1') : tc('booking.people.n', { n: people.value }), price: priceText(line.unit_price) });
       if (line.problem) message(s, line.problem.message);
     } catch (e) {
       if ((e as Error).name === 'AbortError') return;
@@ -761,6 +906,7 @@ function initExperience(root: HTMLElement) {
 
   async function commit(go: boolean) {
     const btn = go ? s.book : s.add;
+    await flush();
     if (!session || !date) {
       message(s, tc('booking.err.session'));
       if (!date) cal.setFocus(cal.focusDate ?? '', true);
@@ -776,14 +922,16 @@ function initExperience(root: HTMLElement) {
         cal.invalidate();
         store.clear();
         await cal.go(cal.ym, date);
+        // the shown month may not be the chosen day's: load that one too before the slots read it
+        await cal.month(ymOf(date)).catch(() => null);
         renderSlots();
+        message(s, `${tc('booking.err.changed')} ${line.problem.message}`);
         return;
       }
-      addItem({ slug, kind: 'experience', qty: people.value, guests: people.value, session_id: session }, { name, value: line?.line_total, toast: !go });
+      addItem({ slug, kind: 'experience', qty: people.value, guests: people.value, session_id: session }, { name, value: line?.line_total, toast: false });
       if (go) { location.href = root.dataset.checkout!; return; }
       const sess = daySessions().find((x) => x.id === session);
-      s.done.hidden = false;
-      s.done.querySelector('[data-bk-done-text]')!.textContent = tc('booking.inCart', { range: `${formatDate(date, L, 'day-month')}, ${sess?.time ?? ''}` });
+      done(s, tc('booking.inCart', { range: `${formatDate(date, L, 'day-month')}, ${sess?.time ?? ''}` }));
     } catch (e) {
       message(s, (e as Error).message || tc('booking.err.network'));
     } finally {
@@ -796,12 +944,17 @@ function initExperience(root: HTMLElement) {
   window.addEventListener('dv:prefs', () => { if (session) void refresh(); });
   cal.paint();
   capPeople();
-  if (session) void refresh();
+  if (session) { setParams({ orari: String(session) }); void refresh(); }
 }
 
 /* ======================================================================== stay search */
 
 interface RoomRef { slug: string; name: string; cap: number; url: string }
+/** The range the server answered (data-from/data-to of the range picker). */
+function range0(root: HTMLElement): { from: string; to: string } | null {
+  const el = root.querySelector<HTMLElement>('[data-range]');
+  return el?.dataset.from && el.dataset.to ? { from: el.dataset.from, to: el.dataset.to } : null;
+}
 
 function initStay(root: HTMLElement) {
   const list: RoomRef[] = JSON.parse(root.dataset.rooms || '[]');
@@ -810,9 +963,19 @@ function initStay(root: HTMLElement) {
   const guests = new Stepper(root.querySelector('[data-stepper="guests"]')!);
   const results = root.querySelector<HTMLElement>('[data-bk-results]')!;
   const search = root.querySelector<HTMLElement>('[data-bk-search]');
-  const range = new RangeCtl(root.querySelector('[data-range]')!, cal, { minNights: 1, maxNights: 30, collapsible: true, onChange: () => { s.done.hidden = true; } });
-  guests.onChange = (n) => setParams({ persona: String(n) });
-  const roomWord = (n: number) => (L === 'sq' ? (n === 1 ? '1 dhomë' : `${n} dhoma`) : n === 1 ? '1 room' : `${n} rooms`);
+  // the rows always answer one search: `searched` holds its dates and guests, and Add uses exactly
+  // those. Changing the dates or guests afterwards marks the rows stale until the next search.
+  let searched: { from: string; to: string; guests: number } | null =
+    range0(root) && results.querySelector('.sr__row') ? { ...range0(root)!, guests: guests.value } : null;
+  const stale = () => {
+    if (!searched) return;
+    const same = range.from === searched.from && range.to === searched.to && guests.value === searched.guests;
+    results.toggleAttribute('data-stale', !same);
+    done(s, null);
+  };
+  const range = new RangeCtl(root.querySelector('[data-range]')!, cal, { minNights: 1, maxNights: 30, collapsible: true, onChange: stale });
+  guests.onChange = (n) => { setParams({ persona: String(n) }); stale(); };
+  const roomWord = (n: number) => (n === 1 ? tc('booking.rooms.n1') : tc('booking.rooms.n', { n }));
   let last: { lines: QuoteLine[]; qty: number[] } | null = null;
 
   async function run() {
@@ -824,15 +987,28 @@ function initStay(root: HTMLElement) {
       root.querySelector<HTMLElement>('[data-range-field="in"]')?.focus();
       return;
     }
+    // "Kërko përsëri" and Add on stale rows live inside the results that are about to be
+    // replaced: focus then moves to the new results' head instead of falling back to <body>
+    const refocus = results.contains(document.activeElement);
     const g = guests.value;
-    const qty = list.map((r) => Math.max(1, Math.ceil(g / r.cap)));
+    // rooms needed = guests ÷ capacity, at most MAX_ROOMS of one type (the room page's limit and
+    // the order rule for unpaid bookings); a type that would need more is marked, not quoted
+    const need = list.map((r) => Math.max(1, Math.ceil(g / r.cap)));
+    const qty = need.map((n) => Math.min(n, MAX_ROOMS));
     busy(search, true);
     try {
       // one line per room type; quoted one by one so a type never limits another (whole-cart rules)
-      const quotes = await Promise.all(list.map((r, i) => postQuote([{ key: r.slug, slug: r.slug, kind: 'room', qty: qty[i], from: range.from, to: range.to, guests: g }])));
-      last = { lines: quotes.map((q) => q.lines[0]), qty };
+      const ask = { from: range.from, to: range.to, guests: g };
+      const tooMany = (r: RoomRef): QuoteLine => ({ key: r.slug, slug: r.slug, name: r.name, unit_price: 0, qty: MAX_ROOMS, line_total: 0, problem: { code: 'too_many', message: tc('stay.search.tooMany', { n: g, max: MAX_ROOMS }) } });
+      const lines = await Promise.all(list.map((r, i) => (need[i] > MAX_ROOMS ? Promise.resolve(tooMany(r))
+        : postQuote([{ key: r.slug, slug: r.slug, kind: 'room', qty: qty[i], from: ask.from, to: ask.to, guests: g }]).then((q) => q.lines[0]))));
+      last = { lines, qty };
+      searched = ask;
       paintResults();
-      setParams({ nga: range.from, deri: range.to, persona: String(g) });
+      results.removeAttribute('data-stale');
+      stale();
+      setParams({ nga: ask.from, deri: ask.to, persona: String(g) });
+      if (refocus) results.querySelector<HTMLElement>('.sr__head')?.focus();
     } catch (e) {
       message(s, (e as Error).message || tc('booking.err.network'));
     } finally {
@@ -840,32 +1016,40 @@ function initStay(root: HTMLElement) {
     }
   }
   function paintResults() {
-    if (!last || !range.from || !range.to) return;
+    if (!last || !searched) return;
+    const { from, to, guests: g } = searched;
     const lines = last.lines;
     const free = lines.filter((l) => !l.problem).length;
-    const head = `${nightsLabel(daysBetween(range.from, range.to), L)} · ${formatRange(range.from, range.to, L)} · ${free === 1 ? tc('stay.search.result1') : tc('stay.search.result', { n: free })}`;
-    const q = (r: RoomRef, i: number) => `${r.url}?nga=${range.from}&deri=${range.to}&persona=${guests.value}&dhoma=${last!.qty[i]}`;
-    results.innerHTML = `<p class="sr__head mono">${esc(head)}</p>${free ? '' : `<p class="bk-msg">${esc(tc('stay.search.none'))}</p>`}<ol class="sr">${list.map((r, i) => {
+    const head = `${nightsLabel(daysBetween(from, to), L)} · ${formatRange(from, to, L)} · ${free === 1 ? tc('stay.search.result1') : tc('stay.search.result', { n: free })}`;
+    const q = (r: RoomRef, i: number) => `${r.url}?nga=${from}&deri=${to}&persona=${g}&dhoma=${last!.qty[i]}`;
+    results.innerHTML = `<p class="sr__stale mono">${esc(tc('stay.search.stale'))} <button type="button" data-sr-again>${esc(tc('stay.search.again'))}</button></p><p class="sr__head mono" tabindex="-1">${esc(head)}</p>${free ? '' : `<p class="bk-msg">${esc(tc('stay.search.none'))}</p>`}<ol class="sr">${list.map((r, i) => {
       const l = lines[i];
       const ok = !l.problem;
+      // the type cannot hold this party (more rooms than MAX_ROOMS, or than the hotel has of it):
+      // no price, no "taken on these dates" (the nights are not the problem), and no unit count
+      const many = l.problem?.code === 'too_many' || l.problem?.code === 'rooms';
+      if (l.problem?.code === 'rooms') l.problem = { code: 'rooms', message: tc('stay.search.notEnough', { n: g }) };
       const was = l.compare_total && l.compare_total > l.line_total ? `<s class="bk__sum-was">${priceHTML(l.compare_total)}</s> ` : '';
-      return `<li class="sr__row${ok ? '' : ' sr__row--full'}" data-slug="${esc(r.slug)}"><p class="sr__name"><a href="${esc(q(r, i))}">${esc(r.name)}</a></p><p class="sr__meta mono">${esc(roomWord(last!.qty[i]))} · ${esc(tc('stay.search.cap', { n: r.cap }))} · ${esc(ok ? tc('stay.search.free') : tc('stay.search.full'))}</p><div class="sr__price"><span class="sr__total">${was}${priceHTML(l.line_total)}</span>${ok ? `<button type="button" class="pill pill--outline sr__add" data-sr-add="${esc(r.slug)}" data-qty="${last!.qty[i]}">${esc(tc('booking.add'))}</button>` : ''}</div>${ok && l.offer ? `<p class="sr__problem bk__offer mono">${esc(tc('booking.total.offer', { name: l.offer.name }))}</p>` : ''}${!ok && l.problem ? `<p class="sr__problem">${esc(l.problem.message)}</p>` : ''}</li>`;
+      const meta = many ? tc('stay.search.cap', { n: r.cap }) : `${roomWord(last!.qty[i])} · ${tc('stay.search.cap', { n: r.cap })} · ${ok ? tc('stay.search.free') : tc('stay.search.full')}`;
+      const name = many ? esc(r.name) : `<a href="${esc(q(r, i))}">${esc(r.name)}</a>`;
+      return `<li class="sr__row${ok ? '' : ' sr__row--full'}" data-slug="${esc(r.slug)}"><p class="sr__name">${name}</p><p class="sr__meta mono">${esc(meta)}</p><div class="sr__price">${many ? '' : `<span class="sr__total">${was}${priceHTML(l.line_total)}</span>`}${ok ? `<button type="button" class="pill pill--outline sr__add" data-sr-add="${esc(r.slug)}" data-qty="${last!.qty[i]}">${esc(tc('booking.add'))}</button>` : ''}</div>${ok && l.offer ? `<p class="sr__problem bk__offer mono">${esc(tc('booking.total.offer', { name: l.offer.name }))}</p>` : ''}${!ok && l.problem ? `<p class="sr__problem">${esc(l.problem.message)}</p>` : ''}</li>`;
     }).join('')}</ol>`;
   }
   search?.addEventListener('click', run);
   results.addEventListener('click', async (e) => {
+    if ((e.target as HTMLElement).closest('[data-sr-again]')) { void run(); return; }
     const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-sr-add]');
-    if (!b || !range.from || !range.to) return;
+    if (!b || !searched) return;
+    if (results.hasAttribute('data-stale')) { void run(); return; }
     const ref = list.find((r) => r.slug === b.dataset.srAdd)!;
-    const it = { key: '', slug: ref.slug, kind: 'room' as const, qty: Number(b.dataset.qty) || 1, from: range.from, to: range.to, guests: guests.value };
+    const it = { key: '', slug: ref.slug, kind: 'room' as const, qty: Number(b.dataset.qty) || 1, from: searched.from, to: searched.to, guests: searched.guests };
     b.setAttribute('aria-busy', 'true');
     try {
       const qt = await postQuote([it]);
       const line = qt.lines[0];
       if (line.problem) { message(s, `${tc('booking.err.changed')} ${line.problem.message}`); cal.invalidate(); await run(); return; }
-      addItem({ slug: it.slug, kind: 'room', qty: it.qty, from: it.from, to: it.to, guests: it.guests }, { name: ref.name, value: line.line_total });
-      s.done.hidden = false;
-      s.done.querySelector('[data-bk-done-text]')!.textContent = tc('booking.inCart', { range: `${ref.name} · ${formatRange(range.from, range.to, L)}` });
+      addItem({ slug: it.slug, kind: 'room', qty: it.qty, from: it.from, to: it.to, guests: it.guests }, { name: ref.name, value: line.line_total, toast: false });
+      done(s, tc('booking.inCart', { range: `${ref.name} · ${formatRange(it.from, it.to, L)}` }));
     } catch (err) {
       message(s, (err as Error).message || tc('booking.err.network'));
     } finally {
@@ -885,6 +1069,11 @@ function initSheet() {
   if (!pill || !sheet || !slot || !card) return;
   const body = sheet.querySelector<HTMLElement>('[data-bk-sheet-body]')!;
   const wide = matchMedia('(min-width: 1000px)');
+  // a tap on the pill before this bundle ran was recorded by BookingSheet's inline script
+  const early = pill.dataset.early === '1';
+  pill.dataset.ready = '1';
+  delete pill.dataset.early;
+  pill.removeAttribute('aria-busy');
 
   const open = () => {
     if (sheet.open) return;
@@ -923,8 +1112,13 @@ function initSheet() {
   }, { passive: true });
   sheet.addEventListener('touchend', () => { tracking = false; }, { passive: true });
   window.addEventListener('pagehide', (e) => { if ((e as PageTransitionEvent).persisted) close(); });
-  // a deep link with dates (?nga=…) on a phone opens straight on the permit
-  if (!wide.matches && new URL(location.href).searchParams.has('leje')) open();
+  // a deep link with a choice in it (stay-search rows, the cart's "change dates", the assistant)
+  // opens straight on the permit on a phone: dates for rooms and the stay search, day + time for
+  // experiences (or an explicit ?leje=1)
+  const sp = new URL(location.href).searchParams;
+  const kind = card.dataset.booking;
+  const deep = sp.has('leje') || (kind === 'experience' ? sp.has('data') && sp.has('orari') : sp.has('nga') && sp.has('deri'));
+  if (!wide.matches && (deep || early)) open();
 }
 
 /* ======================================================================== boot */
@@ -936,6 +1130,7 @@ export function initBooking() {
       if (kind === 'room') initRoom(root);
       else if (kind === 'experience') initExperience(root);
       else if (kind === 'stay') initStay(root);
+      if (kind === 'room' || kind === 'experience') guardPill(root);
       if ((kind === 'room' || kind === 'experience') && root.dataset.slug) {
         addViewed(root.dataset.slug);
         track('product_view', { product: root.dataset.slug, meta: { kind } });

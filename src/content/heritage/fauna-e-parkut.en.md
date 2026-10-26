@@ -3,7 +3,7 @@ slug: fauna-e-parkut
 lang: en
 title: The park’s wildlife
 description: The mammals, reptiles, frogs and fish of Divjakë-Karavasta: what has been recorded, where, and how firm each list is.
-updated: 2026-10-23
+updated: 2026-10-26
 order: 5
 topic: fauna
 kicker: Fauna
@@ -11,7 +11,7 @@ hero: lagoon-pine-reflection
 pins: pine-forest, lagoon-boat-trips
 related: parku-kombetar-me-guide, shpendet-e-lagunes-ne-agim
 ---
-Birds are the face of the park, but not its only residents. The bulletin of the National Agency of Protected Areas counts about 25 mammal species and 29 species of reptiles and amphibians; the Ornithological Society gives at least 35 mammal species and more than 1,000 insect species. The figures vary with the source and the year.[^fauna-01]
+Birds are the face of the park, but not its only residents. The bulletin of the National Agency of Protected Areas counts about 25 mammal species and 29 species of reptiles and amphibians;[^fauna-01] the Ornithological Society gives at least 35 mammal species and more than 1,000 insect species.[^fauna-01@1] The figures vary with the source and the year.
 
 ## Mammals
 

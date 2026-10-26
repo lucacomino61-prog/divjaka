@@ -11,9 +11,13 @@
  */
 import { t } from '../../i18n/ui';
 import { path, type Lang } from '../../i18n/routes';
+import { claudeEnabled } from '../../lib/assistant/claude';
+import { getSetting } from '../../lib/db/repo/settings';
 
 interface Props { lang: Lang }
 const { lang } = Astro.props;
+// the AI fallback can answer (same rule as the engine and the privacy notice): the note names it
+const ai = (() => { try { return claudeEnabled() && getSetting('assistant').use_claude !== false; } catch { return false; } })();
 const langs: Lang[] = ['sq', 'en'];
 ---
 <dialog id="assistant" class="asst" aria-labelledby="asst-title" data-assistant data-lang={lang} data-contact-sq={path('contact', 'sq')} data-contact-en={path('contact', 'en')} data-privacy={path('privacy', lang)}>
@@ -70,7 +74,11 @@ const langs: Lang[] = ['sq', 'en'];
           <textarea id="asst-ho-msg" name="question" rows="3" maxlength="1000" aria-describedby="asst-ho-msg-err"></textarea>
           <p class="afield__err mono" id="asst-ho-msg-err" data-err="question"></p>
         </div>
-        <p class="asst__consent">{t(lang, 'assistant.handoff.consent').replace(/\.$/, '')} <a href={path('privacy', lang)}>→</a></p>
+        <div class="asst__hp" aria-hidden="true">
+          <label for="asst-ho-hp">{t(lang, 'assistant.handoff.hp')}</label>
+          <input id="asst-ho-hp" name="hp_web_x" tabindex="-1" autocomplete="new-password" maxlength="200" />
+        </div>
+        <p class="asst__consent">{t(lang, 'assistant.handoff.consent')} {t(lang, 'assistant.privacy.pre')} <a href={path('privacy', lang)}>{t(lang, 'assistant.privacy.link')}</a>.</p>
         <p class="afield__err mono" data-err="form" role="alert"></p>
         <div class="asst__ho-actions">
           <button type="submit" class="pill pill--primary pill--s">{t(lang, 'assistant.handoff.send')}</button>
@@ -84,7 +92,7 @@ const langs: Lang[] = ['sq', 'en'];
       <input id="asst-input" name="message" maxlength="600" autocomplete="off" enterkeyhint="send" placeholder={t(lang, 'assistant.input.placeholder')} />
       <button type="submit" class="pill pill--primary pill--s asst__send">{t(lang, 'assistant.send')}</button>
     </form>
-    <p class="asst__note mono"><span>{t(lang, 'assistant.note')}</span> <button type="button" class="asst__clear" data-asst-clear>{t(lang, 'assistant.clear')}</button></p>
+    <p class="asst__note mono"><span>{t(lang, ai ? 'assistant.note.ai' : 'assistant.note')} <a href={`${path('privacy', lang)}${ai ? '#te-tjeret' : '#cfare'}`}>{t(lang, 'assistant.privacy.pre')} {t(lang, 'assistant.privacy.link')}</a>.</span> <button type="button" class="asst__clear" data-asst-clear>{t(lang, 'assistant.clear')}</button></p>
   </div>
 </dialog>
 
@@ -183,12 +191,16 @@ const langs: Lang[] = ['sq', 'en'];
   .afield__err:empty { display: none; }
   .afield__hint { font-size: var(--step--2); color: var(--muted); }
   .asst__consent { font-size: var(--step--1); color: var(--muted); }
+  /* honeypot: off screen, never focusable, hidden from assistive tech */
+  .asst__hp { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .asst__consent a, .asst__note a { color: inherit; display: inline-flex; align-items: center; min-block-size: 24px; text-underline-offset: 3px; }
+  @media (pointer: coarse) { .asst__consent a, .asst__note a, .asst__clear { min-block-size: 44px; } }
   .asst__ho-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
   .asst__compose { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 12px 20px; border-block-start: 3px double var(--ink); background: var(--salt); }
   .asst__compose input { min-block-size: 48px; padding: 0 14px; font: inherit; font-size: 16px; background: var(--salt); color: var(--ink); border: 1px solid var(--ink); border-radius: var(--radius-pill); }
   .asst__compose input:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
   .asst__send { min-block-size: 48px; }
-  .asst__note { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 0.625rem; color: var(--muted); padding: 0 20px max(12px, env(safe-area-inset-bottom)); }
+  .asst__note { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 0.6875rem; line-height: 1.45; color: var(--muted); padding: 0 20px max(12px, env(safe-area-inset-bottom)); }
   .asst__clear { border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-block-size: 24px; padding: 0; }
 </style>

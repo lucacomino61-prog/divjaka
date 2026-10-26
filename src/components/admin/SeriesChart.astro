@@ -2,7 +2,8 @@
 /**
  * One measure over days, hand-drawn SVG (dataviz skill: one axis, 2 px line, 10 % wash, hairline
  * grid, compact ticks, one direct label at the end, crosshair + tooltip, table fallback).
- * Ink for the series, pouch only for the current (latest) value. The plot is an SVG stretched to
+ * Ink for the series, pouch only for the current value: today when the series holds today (an
+ * occupancy series looks ahead), else the latest day; `current` (index or day) overrides it. The plot is an SVG stretched to
  * the frame (non-scaling strokes); every text is HTML so it stays legible at phone widths.
  * Charts inside one [data-chart-sync] share the crosshair (revenue over orders, same days).
  *
@@ -11,10 +12,11 @@
 import type { Lang } from '../../i18n/routes';
 import { t } from '../../i18n/ui';
 import { formatDate, number, money } from '../../i18n/format';
+import { today } from './admin-data';
 
 interface Point { day: string; value: number }
-interface Props { lang: Lang; title: string; desc: string; points: Point[]; kind?: 'line' | 'bars'; format?: 'lek' | 'int' | 'pct'; height?: number; id?: string; size?: 'm' | 's' }
-const { lang, title, desc, points, kind = 'line', format = 'int', height = 220, id = `c${Math.random().toString(36).slice(2, 8)}`, size = 'm' } = Astro.props;
+interface Props { lang: Lang; title: string; desc: string; points: Point[]; kind?: 'line' | 'bars'; format?: 'lek' | 'int' | 'pct'; height?: number; id?: string; size?: 'm' | 's'; current?: number | string }
+const { lang, title, desc, points, kind = 'line', format = 'int', height = 220, id = `c${Math.random().toString(36).slice(2, 8)}`, size = 'm', current } = Astro.props;
 
 const fmt = (v: number) => (format === 'lek' ? money(v, lang) : format === 'pct' ? `${number(v, lang, v % 1 ? 1 : 0)} %` : number(v, lang));
 const compact = (v: number) => {
@@ -43,7 +45,11 @@ const band = W / Math.max(1, n);
 const barW = Math.min(band * 0.62, band - 2);
 const line = points.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ');
 const area = n ? `${line} L${x(n - 1).toFixed(1)},${H} L${x(0).toFixed(1)},${H} Z` : '';
-const last = points[n - 1];
+const findDay = (d: string) => points.findIndex((p) => p.day === d);
+const ci = typeof current === 'number' && current >= 0 && current < n ? current
+  : typeof current === 'string' && findDay(current) >= 0 ? findDay(current)
+  : findDay(today()) >= 0 ? findDay(today()) : n - 1;
+const last = points[ci];
 const pctX = (i: number) => (kind === 'bars' ? ((i + 0.5) * band) / W : x(i) / W) * 100;
 const xLabels = n ? [...new Set([0, Math.floor((n - 1) / 2), n - 1])] : [];
 const series = points.map((p) => ({ d: formatDate(p.day, lang, 'medium'), v: fmt(p.value) }));
@@ -58,7 +64,7 @@ const empty = !points.some((p) => p.value > 0);
     <div class="chart__yaxis mono" aria-hidden="true">
       {ticks.map((v) => <span style={`--y:${(1 - v / top) * 100}%`}>{compact(v)}</span>)}
     </div>
-    <div class="chart__plot" data-series={JSON.stringify(series)} data-kind={kind} tabindex="0" role="img" aria-label={`${title}. ${desc}`}>
+    <div class="chart__plot" data-series={JSON.stringify(series)} data-kind={kind} data-current={ci} tabindex="0" role="application" aria-roledescription={t(lang, 'admin.chart.role')} aria-label={`${title}. ${desc}`}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
         {ticks.map((v) => <line class="chart__grid" x1="0" x2={W} y1={y(v)} y2={y(v)} vector-effect="non-scaling-stroke" />)}
         {kind === 'line' ? (
@@ -67,10 +73,10 @@ const empty = !points.some((p) => p.value > 0);
             <path class="chart__line" d={line} vector-effect="non-scaling-stroke" />
           </>
         ) : (
-          points.map((p, i) => p.value > 0 && <rect class:list={['chart__bar', i === n - 1 && 'is-current']} x={(i * band + (band - barW) / 2).toFixed(1)} y={y(p.value).toFixed(1)} width={barW.toFixed(1)} height={(H - y(p.value)).toFixed(1)} />)
+          points.map((p, i) => p.value > 0 && <rect class:list={['chart__bar', i === ci && 'is-current']} x={(i * band + (band - barW) / 2).toFixed(1)} y={y(p.value).toFixed(1)} width={barW.toFixed(1)} height={(H - y(p.value)).toFixed(1)} />)
         )}
       </svg>
-      {kind === 'line' && last && <span class="chart__dot" style={`--x:${pctX(n - 1)}%;--y:${(y(last.value) / H) * 100}%`} aria-hidden="true"></span>}
+      {kind === 'line' && last && <span class="chart__dot" style={`--x:${pctX(ci)}%;--y:${(y(last.value) / H) * 100}%`} aria-hidden="true"></span>}
       <span class="chart__cross" aria-hidden="true" hidden></span>
       <span class="chart__tip mono" aria-hidden="true" hidden></span>
       {empty && <p class="chart__empty mono">{t(lang, 'admin.analytics.none')}</p>}
@@ -80,6 +86,7 @@ const empty = !points.some((p) => p.value > 0);
     </div>
   </div>
   <p class="visually-hidden">{desc}</p>
+  <p class="visually-hidden" aria-live="polite" aria-atomic="true" data-chart-live></p>
   <details class="chart__table">
     <summary class="mono">{t(lang, 'admin.table.show')}</summary>
     <div class="table-scroll">

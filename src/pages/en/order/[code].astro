@@ -4,7 +4,9 @@ import NotFound from '../../../views/NotFound.astro';
 import { load } from '../../../views/order.load';
 
 const params = { code: Astro.params.code ?? '' };
-const data = await load(params, 'en');
+const loaded = await load(params, 'en', { request: Astro.request, clientAddress: Astro.clientAddress });
+if (loaded && 'redirect' in loaded) return Astro.redirect(loaded.redirect, 303);
+const data = loaded && !('redirect' in loaded) ? loaded : null;
 if (!data) Astro.response.status = 404;
 ---
 {data ? <Order lang="en" params={params} data={data} /> : <NotFound lang="en" />}

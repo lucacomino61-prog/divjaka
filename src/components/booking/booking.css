@@ -5,7 +5,8 @@
    the pouch only for the plotted route, the selected pin and error text (DESIGN §2). */
 
 /* ---------- calendar ---------- */
-.cal { display: grid; gap: 8px; --cal-cell: 46px; container-type: inline-size; }
+/* --cal-lane: the strip under the price where the plotted route runs (it never crosses a figure) */
+.cal { display: grid; gap: 8px; --cal-cell: 46px; --cal-lane: 9px; container-type: inline-size; }
 .cal__head { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 8px; }
 .cal__month { margin: 0; text-align: center; font-family: var(--font-mono); font-size: var(--step--1); font-weight: 550; text-transform: uppercase; letter-spacing: 0.08em; }
 .cal__nav { inline-size: 44px; block-size: 44px; display: grid; place-items: center; border: 1px solid var(--rule-strong); border-radius: var(--radius-pill); color: var(--fg); text-decoration: none; touch-action: manipulation; transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
@@ -17,18 +18,27 @@
 .cal__grid td { padding: 0; block-size: var(--cal-cell); border-block-end: 1px solid var(--rule); position: relative; }
 .cal__day {
   position: relative; display: grid; grid-template-rows: 1fr auto; justify-items: center; align-content: stretch;
-  inline-size: 100%; block-size: var(--cal-cell); padding: 6px 0 4px; margin: 0;
+  inline-size: 100%; block-size: var(--cal-cell); padding: 5px 0 var(--cal-lane); margin: 0;
   background: transparent; border: 0; color: var(--fg); font: inherit; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
   transition: background-color var(--dur-fast) var(--ease-out);
 }
 .cal__day:focus-visible { outline: 2px solid var(--pouch); outline-offset: -3px; box-shadow: none; z-index: 2; }
 .cal__n { font-family: var(--font-mono); font-size: 14px; line-height: 1; font-variant-numeric: tabular-nums; position: relative; z-index: 1; padding: 2px 4px; }
 .cal__v { font-family: var(--font-mono); font-size: 10px; line-height: 1; letter-spacing: 0.02em; color: var(--muted); font-variant-numeric: tabular-nums; position: relative; z-index: 1; white-space: nowrap; }
-.cal__day[data-today] .cal__n { box-shadow: inset 0 -1px 0 var(--fg); }
+/* today: a short rule ABOVE the number (under it, it read as a line over the price) */
+.cal__day[data-today] .cal__n { box-shadow: inset 0 1px 0 var(--fg); }
 .cal__day:is([data-status="past"], [data-status="none"], [data-status="far"]) { color: var(--muted); cursor: default; }
 .cal__day:is([data-status="past"], [data-status="none"], [data-status="far"]) .cal__n { font-weight: 300; }
 .cal__day:is([data-status="full"], [data-status="closed"]) { color: var(--muted); cursor: default; }
-.cal__day:is([data-status="full"], [data-status="closed"]) .cal__n { text-decoration: line-through; text-decoration-thickness: 1.5px; text-decoration-color: var(--fg); }
+.cal__day[data-status="full"] .cal__n, .cal__legend s { text-decoration: line-through; text-decoration-thickness: 1.5px; text-decoration-color: var(--fg); }
+/* closed by the hotel (not sold out): a dashed frame, like a closed time slot */
+.cal__day[data-status="closed"] .cal__n, .cal__legend-x { outline: 1px dashed var(--muted); outline-offset: 0; }
+/* a demo schedule prints no seat counts: an open day carries a dot instead (legend: same dot) */
+.cal[data-noseats] .cal__cell:not([data-mark="pick"]) > .cal__day[data-status="open"] .cal__v::before, .cal__legend-open::before {
+  content: ""; display: inline-block; inline-size: 5px; block-size: 5px; border-radius: var(--radius-pill); background: var(--fg); vertical-align: 1px;
+}
+.cal__legend-open::before { margin-inline-end: 6px; }
+.cal__legend-x { font-family: var(--font-mono); padding: 0 2px; }
 /* a taken day can still be the departure day of a stay (the night before it is what counts) */
 .cal[data-picking="out"] .cal__day:is([data-status="full"], [data-status="closed"])[data-can-out] { cursor: pointer; color: var(--fg); }
 @media (hover: hover) and (pointer: fine) {
@@ -36,11 +46,12 @@
 }
 .cal__day[data-status="open"]:active { background: color-mix(in oklch, var(--fg) 12%, transparent); }
 
-/* the plotted route: pouch line through the middle of the stay, ink pins with a pouch core on the
-   two ends; while choosing the departure a dashed preview runs to the day under the pointer.
+/* the plotted route: a pouch line in the lane UNDER the prices (the figures of the nights stay
+   readable and never look struck), ink pins with a pouch core on the two ends; while choosing the
+   departure a dashed preview runs to the day under the pointer.
    Marks (data-mark on the cell, space-separated words): in · in solo · in hover · mid · out ·
    hover · hover-out · pick (experience day). */
-.cal__cell[data-mark]::before { content: ""; position: absolute; inset-block-start: 29px; block-size: 2px; background: var(--pouch); z-index: 0; pointer-events: none; }
+.cal__cell[data-mark]::before { content: ""; position: absolute; inset-block-end: calc(var(--cal-lane) / 2 - 1px); block-size: 2px; background: var(--pouch); z-index: 0; pointer-events: none; }
 .cal__cell[data-mark="mid"]::before { inset-inline: 0; }
 .cal__cell[data-mark="in"]::before { inset-inline: 50% 0; }
 .cal__cell[data-mark="out"]::before { inset-inline: 0 50%; }
@@ -50,13 +61,11 @@
 .cal__cell[data-mark="in hover"]::before { inset-inline: 50% 0; }
 .cal__cell[data-mark="hover-out"]::before { inset-inline: 0 50%; }
 .cal__cell:is([data-mark~="in"], [data-mark="out"], [data-mark="pick"], [data-mark="hover-out"]) .cal__day::after {
-  content: ""; position: absolute; inset-block-start: 30px; inset-inline-start: 50%; inline-size: 12px; block-size: 12px; translate: -50% -50%;
+  content: ""; position: absolute; inset-block-end: calc(var(--cal-lane) / 2); inset-inline-start: 50%; inline-size: 10px; block-size: 10px; translate: -50% 50%;
   border-radius: var(--radius-pill); border: 2px solid var(--fg); background: var(--pouch); z-index: 1; pointer-events: none;
 }
 .cal__cell[data-mark="hover-out"] .cal__day::after { border-style: dashed; border-color: var(--ink-40); background: var(--bg-card, var(--salt)); }
 .cal__cell:is([data-mark~="in"], [data-mark="out"], [data-mark="pick"]) .cal__n { font-weight: 700; }
-/* the pin sits between the number and the figure: the figure steps aside under it */
-.cal__cell:is([data-mark~="in"], [data-mark="out"], [data-mark="pick"], [data-mark="hover-out"]) .cal__v { visibility: hidden; }
 .cal__legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: var(--step--2); color: var(--muted); margin: 0; }
 .cal__legend s { text-decoration-thickness: 1.5px; color: var(--muted); text-decoration-color: var(--fg); }
 .cal__status { margin: 0; font-size: var(--step--2); color: var(--muted); }
@@ -135,9 +144,44 @@
 /* ---------- permit card inside ---------- */
 .bk { --bg-card: var(--salt); display: grid; gap: 12px; }
 .bk__after { display: grid; gap: 6px; padding-inline: 2px; }
-/* desktop: the card scrolls inside its column; the stub (total + Book) stays in view */
-@media (min-width: 1000px) { [data-bk-slot] .bk .permit__stub { position: sticky; inset-block-end: 0; z-index: 3; box-shadow: 0 -1px 0 var(--ink); padding-block: 12px 14px; gap: 10px; }
-  [data-bk-slot] .bk .bk__sum-main { font-size: clamp(2rem, 1.6rem + 1vw, 2.6rem); } }
+/* desktop, the card beside the plate (room / experience): compact enough that the whole month,
+   the total and both buttons sit in one view at 1440 × 900 — no scroll inside the card, the stub
+   flows under the calendar (it never covers it). Smaller day cells only for a fine pointer. */
+@media (min-width: 1000px) {
+  .bk--side .permit__label { padding-block: 8px; }
+  .bk--side .permit__body { padding: 12px 18px 10px; gap: 10px; }
+  /* the room's capacity is printed in the spec row beside the card; the stepper's max enforces it */
+  .bk--side [data-stepper="guests"] .bk-step__hint { display: none; }
+  .bk--side .permit__stub { padding: 12px 18px 14px; gap: 10px; }
+  /* the name and "from" price are the h1 and the spec row right beside the card: the card keeps
+     its permit label and starts on the choices (the head shows again in the phone sheet). The
+     night-by-night breakdown is the calendar itself here (each night carries its price), and the
+     weekday under the readouts is on the grid too. */
+  .bk--side .bk__head, .bk--side .bk__nights, .bk--side .bk-range__w { display: none; }
+  .bk--side .bk-range { gap: 8px; }
+  .bk--side .bk-range__field { min-block-size: 0; padding-block: 4px 6px; }
+  .bk--side .bk-range__v { font-size: var(--step-1); }
+  .bk--side .bk-range__w { min-block-size: 0; }
+  .bk--side .bk-range__foot { min-block-size: 24px; }
+  .bk--side .bk-range__msg:empty { display: none; }
+  .bk--side .cal { gap: 4px; }
+  .bk--side .cal__legend { gap: 2px 12px; }
+  .bk--side .bk__sum-main { font-size: clamp(1.9rem, 1.5rem + 1vw, 2.4rem); }
+  .bk--side .bk__total { gap: 2px; }
+  .bk--side .bk-step--row .bk-step__hint { padding-block-end: 2px; }
+  .bk--side .bk-slots__list { grid-template-columns: repeat(auto-fill, minmax(min(118px, 100%), 1fr)); }
+  .bk--side .bk-slot { min-block-size: 48px; padding: 8px 10px; }
+}
+@media (min-width: 1000px) and (pointer: fine) {
+  .bk--side .cal { --cal-cell: 37px; --cal-lane: 9px; }
+  .bk--side .cal__day { padding: 2px 0 var(--cal-lane); }
+  .bk--side .cal__n { font-size: 13px; padding-block: 1px; }
+  .bk--side .cal__head { grid-template-columns: 36px minmax(0, 1fr) 36px; }
+  .bk--side .cal__nav { inline-size: 36px; block-size: 36px; }
+  .bk--side .bk-step--row .bk-step__ctl { grid-template-columns: 36px 3ch 36px; }
+  .bk--side .bk-step--row .bk-step__btn { inline-size: 36px; block-size: 36px; margin-block: 2px; }
+  .bk--side .bk-step--row .bk-step__input { block-size: 40px; }
+}
 .bk .permit__label { gap: 12px; }
 .bk__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; padding-block-end: 12px; border-block-end: 2px solid var(--fg); }
 .bk__title { margin: 0; font-size: var(--step-2); font-weight: 700; font-stretch: 85%; line-height: 1.05; letter-spacing: -0.02em; overflow-wrap: anywhere; }
@@ -172,6 +216,14 @@ html.js .bk__nojs { display: none; }
 
 /* ---------- stay search results ---------- */
 .sr { list-style: none; padding: 0; margin: 0; display: grid; }
+/* the rows answer the last search; after a change of dates/guests they dim and Add gives way to
+   "Kërko përsëri" (Add never books dates the visitor did not see priced) */
+.sr__stale { display: none; margin: 0 0 8px; padding: 8px 0 8px 12px; border-inline-start: 2px solid var(--pouch); font-size: var(--step--2); align-items: center; flex-wrap: wrap; gap: 4px 10px; }
+.sr__stale button { font: inherit; text-transform: inherit; letter-spacing: inherit; color: var(--fg); background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-block-size: 44px; }
+@media (pointer: fine) { .sr__stale button { min-block-size: 24px; } }
+[data-bk-results][data-stale] .sr__stale { display: flex; }
+[data-bk-results][data-stale] :is(.sr, .sr__head) { opacity: 0.45; transition: opacity var(--dur-fast) var(--ease-out); }
+[data-bk-results][data-stale] .sr__add { display: none; }
 .sr__head { margin: 0 0 6px; font-size: var(--step--2); color: var(--muted); }
 .sr__row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding-block: 12px; border-block-end: 1px solid var(--rule); align-items: center; }
 .sr__row:first-child { border-block-start: 1px solid var(--rule-strong); }
@@ -185,6 +237,15 @@ html.js .bk__nojs { display: none; }
 .sr__row--full .sr__total { text-decoration: line-through; color: var(--faint); }
 .sr__add { min-block-size: 44px; padding-inline: 14px; font-size: 14px; }
 .sr__problem { grid-column: 1 / -1; margin: 0; font-size: var(--step--2); color: var(--signal-text); }
+/* narrow (a 320 px phone sheet, the 380 px desktop card): one column, the price and Add on their
+   own line under the name, so the name never shrinks to a 48 px column broken letter by letter */
+[data-bk-results] { container: srlist / inline-size; }
+@container srlist (max-width: 420px) {
+  .sr__row { grid-template-columns: minmax(0, 1fr); }
+  .sr__price { grid-column: 1; grid-row: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; text-align: start; }
+  .sr__total { white-space: normal; }
+  .sr__total > * { white-space: nowrap; }
+}
 
 /* ---------- phone: sticky pill + full-screen sheet ---------- */
 .bk-pill { display: none; }
@@ -208,13 +269,24 @@ html.js .bk__nojs { display: none; }
     box-shadow: 0 0 0 4px var(--salt); touch-action: manipulation; transition: transform var(--dur-press) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
   }
   html.js .bk-pill:active { transform: scale(0.97); }
-  .bk-pill__price { font-family: var(--font-mono); font-size: var(--step--1); text-transform: uppercase; letter-spacing: 0.04em; line-height: 1.2; min-inline-size: 0; overflow-wrap: anywhere; }
+  /* tapped before the page script ran: the tap is kept and the sheet opens when it runs */
+  html.js .bk-pill[aria-busy="true"] .bk-pill__cta { opacity: 0.6; }
+  /* no uppercase: in English it ran the currency code into the words ("FROM ALL 4,000") */
+  .bk-pill__price { font-family: var(--font-mono); font-size: var(--step--1); letter-spacing: 0.02em; line-height: 1.2; min-inline-size: 0; overflow-wrap: anywhere; }
   .bk-pill__cta { flex: none; display: inline-flex; align-items: center; gap: 8px; min-block-size: 44px; padding: 0 18px; border-radius: var(--radius-pill); background: var(--salt); color: var(--ink); font-weight: 650; font-size: 15px; }
   html:is(.menu-open, .cart-drawer-open) .bk-pill { opacity: 0; pointer-events: none; }
   /* the Pyet pill steps up above the buy pill (T2: buy pills may move it) */
   html.js:has(.bk-pill) .assistant-pill { inset-block-end: calc(12px + 56px + 12px + env(safe-area-inset-bottom)); }
+  /* both pills stacked (≈ 140 px): a focused link or control scrolls clear of them (WCAG 2.4.11) */
+  html.js:has(.bk-pill) { scroll-padding-block-end: calc(148px + env(safe-area-inset-bottom)); }
   html.js .bk-pill { inset-inline-end: 12px; }
   html.js [data-bk-slot] > .bk { display: none; }
   html.js [data-bk-slot] { display: contents; }
 }
-@media (min-width: 1000px) { .bk-sheet { display: none !important; } }
+@media (min-width: 1000px) {
+  .bk-sheet { display: none !important; }
+  /* the card's "View cart" line fell under the fixed Pyet pill (a sticky card at 1440 × 900): the
+     pill steps aside while it does (booking.ts measures; the attribute goes when the line hides
+     or scrolls clear) */
+  html[data-has-done-under-pill] .assistant-pill { opacity: 0; pointer-events: none; }
+}

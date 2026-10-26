@@ -8,6 +8,7 @@ import { articles } from './content';
 import { fold, snippet, stem, tokens } from './text';
 import { path, productUrl, type Lang } from './urls';
 import type { RouteKey } from '../i18n/routes';
+import { faqText } from './assistant/holds';
 
 export interface SearchResult { type: 'product' | 'article' | 'faq' | 'page'; title: string; url: string; snippet: string; score?: number }
 
@@ -69,8 +70,8 @@ export function search(q: string, lang: Lang, limit = 20): SearchResult[] {
   for (const f of faq) {
     docs.push({
       type: 'faq', title: (lang === 'en' ? f.q_en : f.q_sq) || f.q_sq || f.q_en, url: `${path('contact', lang)}#pyetje-${f.id}`,
-      fields: [{ text: `${f.q_sq ?? ''} ${f.q_en ?? ''}`, w: 2.5 }, { text: f.keywords ?? '', w: 2 }, { text: lang === 'en' ? f.a_en ?? '' : f.a_sq ?? '', w: 1 }],
-      snipFrom: (lang === 'en' ? f.a_en : f.a_sq) ?? '',
+      fields: [{ text: `${f.q_sq ?? ''} ${f.q_en ?? ''}`, w: 2.5 }, { text: f.keywords ?? '', w: 2 }, { text: faqText(lang === 'en' ? f.a_en ?? '' : f.a_sq ?? ''), w: 1 }],
+      snipFrom: faqText((lang === 'en' ? f.a_en : f.a_sq) ?? ''),
     });
   }
 

@@ -7,25 +7,45 @@
  * Swipe down, Esc or the Close button close it; focus returns to the pill. ≥ 1000 px: neither
  * the pill nor the sheet exist (the card floats beside the plate). No JS: the card stays inline.
  *
- * Props: lang, priceLek, per ('night' | 'person'), label (accessible name of the sheet)
+ * Props: lang, priceLek?, per? ('night' | 'person'), label (accessible name of the sheet),
+ *        text? / cta? (the stay search: "Zgjidhni datat · Gjej dhomë" instead of a price)
  */
 import { t } from '../../i18n/ui';
-import { money } from '../../i18n/format';
+import { money, number } from '../../i18n/format';
 import { eurRate } from '../site/site-data';
 import type { Lang } from '../../i18n/routes';
 
-interface Props { lang: Lang; priceLek: number; per: 'night' | 'person'; label: string }
-const { lang, priceLek, per, label } = Astro.props;
+interface Props { lang: Lang; priceLek?: number; per?: 'night' | 'person'; label: string; text?: string; cta?: string }
+const { lang, priceLek = 0, per = 'night', label, text, cta } = Astro.props;
 const rate = await eurRate();
 const key = per === 'night' ? 'booking.pill.room' : 'booking.pill.exp';
+// English pill: '4,100 lek', not 'ALL 4,100' (after 'From' the code read as the word 'all')
+const lek = lang === 'en' ? `${number(priceLek, lang)} lek` : money(priceLek, lang);
 ---
 <button type="button" class="bk-pill" data-bk-pill aria-haspopup="dialog" aria-controls="leja" aria-expanded="false">
   <span class="bk-pill__price">
-    <span data-cur-all>{t(lang, key, { price: money(priceLek, lang) })}</span>
-    {rate > 0 && <span data-cur-eur>{t(lang, key, { price: money(priceLek, lang, { currency: 'EUR', rate }) })}</span>}
+    {text ? <span>{text}</span> : (
+      <Fragment>
+        <span data-cur-all>{t(lang, key, { price: lek })}</span>
+        {rate > 0 && <span data-cur-eur>{t(lang, key, { price: money(priceLek, lang, { currency: 'EUR', rate }) })}</span>}
+      </Fragment>
+    )}
   </span>
-  <span class="bk-pill__cta">{t(lang, 'booking.pill.cta')}</span>
+  <span class="bk-pill__cta">{cta ?? t(lang, 'booking.pill.cta')}</span>
 </button>
+<!-- early tap: on a slow network the pill shows (html.js) before the page bundle wires it; the tap
+     is remembered and initSheet() opens the sheet as soon as it runs. Static text (CSP hash rule). -->
+<script is:inline>
+  (function () {
+    var p = document.querySelector('[data-bk-pill]');
+    if (!p) return;
+    p.addEventListener('click', function () {
+      if (p.dataset.ready) return;
+      p.dataset.early = '1';
+      p.setAttribute('aria-busy', 'true');
+    });
+  })();
+</script>
 <dialog class="bk-sheet" id="leja" aria-label={label} data-bk-sheet>
   <div class="bk-sheet__bar">
     <span class="bk-sheet__grip" aria-hidden="true"></span>

@@ -3,7 +3,7 @@ slug: fauna-e-parkut
 lang: sq
 title: Fauna e parkut
 description: Gjitarët, zvarranikët, bretkosat dhe peshqit e Divjakë-Karavastasë: çfarë është regjistruar, ku dhe sa e sigurt është çdo listë.
-updated: 2026-10-23
+updated: 2026-10-26
 order: 5
 topic: fauna
 kicker: Fauna
@@ -11,7 +11,7 @@ hero: lagoon-pine-reflection
 pins: pine-forest, lagoon-boat-trips
 related: parku-kombetar-me-guide, shpendet-e-lagunes-ne-agim
 ---
-Shpendët janë fytyra e parkut, por jo të vetmit banorë të tij. Buletini i Agjencisë Kombëtare të Zonave të Mbrojtura numëron rreth 25 lloje gjitarësh dhe 29 lloje zvarranikësh e amfibësh; Shoqata Ornitologjike jep të paktën 35 lloje gjitarësh dhe mbi 1 000 lloje insektesh. Shifrat ndryshojnë sipas burimit dhe vitit.[^fauna-01]
+Shpendët janë fytyra e parkut, por jo të vetmit banorë të tij. Buletini i Agjencisë Kombëtare të Zonave të Mbrojtura numëron rreth 25 lloje gjitarësh dhe 29 lloje zvarranikësh e amfibësh;[^fauna-01] Shoqata Ornitologjike jep të paktën 35 lloje gjitarësh dhe mbi 1 000 lloje insektesh.[^fauna-01@1] Shifrat ndryshojnë sipas burimit dhe vitit.
 
 ## Gjitarët
 

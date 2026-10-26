@@ -14,7 +14,7 @@ import GuestStepper from './GuestStepper.astro';
 import { t } from '../../i18n/ui';
 import { path, type Lang } from '../../i18n/routes';
 import type { Product } from '../../lib/db/repo/products';
-import type { DayCell, SessionCell } from './server';
+import { lightNotes, type DayCell, type SessionCell } from './server';
 
 interface Props {
   lang: Lang; product: Product; n: string; ym: string; days: DayCell[]; sessions: SessionCell[]; min: string; max: string;
@@ -26,21 +26,32 @@ const idp = `bk-${p.slug}`;
 const daySessions = date ? sessions.filter((s) => s.date === date) : [];
 const openOfDay = daySessions.filter((s) => s.status === 'open');
 const chosen = openOfDay.find((s) => s.id === session) ?? (openOfDay.length === 1 ? openOfDay[0] : null);
-const cap = Math.max(1, Math.min(maxGroup, chosen ? chosen.left : maxGroup));
+// the group limit a visitor can reach: the per-slot rule (settings) or the trip's own capacity,
+// whichever is lower, so the stepper never offers 10 where a slot holds 8
+const group = Math.max(1, Math.min(maxGroup, p.capacity || maxGroup));
+const cap = Math.max(1, Math.min(group, chosen ? chosen.left : group));
+// the server's first hint matches what booking.ts says for the same state
+const slotCapped = !!chosen && chosen.left < group;
+const hint = slotCapped
+  ? (p.demo ? t(lang, 'booking.people.capSlot') : chosen!.left === 1 ? t(lang, 'booking.people.cap1') : t(lang, 'booking.people.cap', { n: chosen!.left }))
+  : t(lang, 'booking.people.group', { n: group });
+// a demo schedule (NEEDS_VERIFICATION): its seat counts are not printed anywhere (PLAN §2, as on
+// the home and the index); the limits still apply through the stepper and the server
+const noSeats = !!p.demo;
 ---
-<section class="bk"
-  data-booking="experience" data-slug={p.slug} data-name={name} data-max-group={maxGroup}
-  data-checkout={path('checkout', lang)} data-cart={path('cart', lang)} aria-labelledby={`${idp}-t`}
+<section class="bk bk--side bk--exp"
+  data-booking="experience" data-slug={p.slug} data-name={name} data-max-group={group}
+  data-checkout={path('checkout', lang)} data-cart={path('cart', lang)} aria-labelledby={`${idp}-t`} data-noseats={noSeats ? '' : undefined}
 >
 <PermitCard floating label={t(lang, 'booking.permit.exp', { n })}>
   <div class="bk__head bk__head--quiet">
     <h2 class="bk__title bk__title--s" id={`${idp}-t`}>{name}</h2>
     <Price lek={p.price} lang={lang} per="person" />
   </div>
-  <Calendar lang={lang} id={`${idp}-grid`} mode="seats" ym={ym} days={days} min={min} max={max} hrefFor={hrefFor} selected={{ date }} />
-  <script type="application/json" data-bk-sessions set:html={JSON.stringify({ ym, sessions }).replace(/</g, '\\u003c')} />
-  <SessionPicker lang={lang} id={`${idp}-slot`} date={date} sessions={daySessions} selected={chosen?.id ?? null} />
-  <GuestStepper id={`${idp}-people`} name="people" label={t(lang, 'booking.people')} value={Math.min(people, cap)} min={1} max={cap} less={t(lang, 'booking.people.less')} more={t(lang, 'booking.people.more')} hint={t(lang, 'booking.people.group', { n: maxGroup })} />
+  <Calendar lang={lang} id={`${idp}-grid`} mode="seats" ym={ym} days={days} min={min} max={max} hrefFor={hrefFor} selected={{ date }} noSeats={noSeats} />
+  <script type="application/json" data-bk-sessions set:html={JSON.stringify({ ym, sessions, notes: lightNotes(p) }).replace(/</g, '\\u003c')} />
+  <SessionPicker lang={lang} id={`${idp}-slot`} date={date} sessions={daySessions} selected={chosen?.id ?? null} noSeats={noSeats} />
+  <GuestStepper id={`${idp}-people`} name="people" label={t(lang, 'booking.people')} value={Math.min(people, cap)} min={1} max={cap} less={t(lang, 'booking.people.less')} more={t(lang, 'booking.people.more')} hint={hint} row />
   <Fragment slot="stub">
     <div class="bk__total" data-bk-total aria-live="polite" aria-atomic="true">
       <p class="label muted">{t(lang, 'booking.total')}</p>
@@ -53,7 +64,7 @@ const cap = Math.max(1, Math.min(maxGroup, chosen ? chosen.left : maxGroup));
       <Pill variant="outline" data-bk-add>{t(lang, 'booking.add')}</Pill>
       <Pill data-bk-book arrow>{t(lang, 'booking.book')}</Pill>
     </div>
-    <p class="bk__done mono" data-bk-done hidden>
+    <p class="bk__done mono" data-bk-done role="status" hidden>
       <span data-bk-done-text></span>
       <a href={path('cart', lang)} data-cart-open>{t(lang, 'booking.viewCart')}</a>
     </p>

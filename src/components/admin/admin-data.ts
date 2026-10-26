@@ -8,6 +8,8 @@ import { t, type Lang } from '../../i18n/ui';
 import { money, number, formatDate, tirane as tiraneParts } from '../../i18n/format';
 import { readResearch, photos, type PhotoEntry } from '../site/site-data';
 import { photoSrc } from '../site/photo-url';
+import { get as dbGet } from '../../lib/db/index';
+import { localMidnightUtc } from '../../lib/stats';
 
 export const LANG_COOKIE = 'dv_admin_lang';
 
@@ -54,18 +56,36 @@ export function withParam(url: URL, changes: Record<string, string | number | nu
 }
 
 /** Date range from ?from&to or ?r=7|30|90|month (default 30 days ending today). */
-export function rangeOf(url: URL): { from: string; to: string; preset: string } {
+export const MAX_RANGE_DAYS = 400; // same cap as GET /api/admin/stats
+export function rangeOf(url: URL): { from: string; to: string; preset: string; capped?: boolean } {
   const re = /^\d{4}-\d{2}-\d{2}$/;
   const sp = url.searchParams;
   const end = today();
   const add = (d: string, n: number) => { const x = new Date(`${d}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
   const f = sp.get('from'), to = sp.get('to');
-  if (f && to && re.test(f) && re.test(to) && f <= to) return { from: f, to, preset: 'custom' };
+  if (f && to && re.test(f) && re.test(to) && f <= to && !Number.isNaN(Date.parse(f)) && !Number.isNaN(Date.parse(to))) {
+    // the pages call stats() in-process, so they need the API's span cap too (one SVG point per day)
+    const earliest = add(to, -(MAX_RANGE_DAYS - 1));
+    return f < earliest ? { from: earliest, to, preset: 'custom', capped: true } : { from: f, to, preset: 'custom' };
+  }
   const r = sp.get('r') ?? '30';
   if (r === 'month') return { from: `${end.slice(0, 8)}01`, to: end, preset: 'month' };
   const n = r === '7' ? 7 : r === '90' ? 90 : 30;
   return { from: add(end, -(n - 1)), to: end, preset: String(n) };
 }
+
+/**
+ * Demo rows inside a range (PLAN §2: demo values must be flagged). `node scripts/seed.mjs --demo`
+ * marks its orders demo = 1 and its browsing sessions sid 'demo-…'; stats() counts them like any
+ * other row, so the dashboard and Analitika stamp the figures DEMO and say how many there are.
+ */
+export function demoInRange(from: string, to: string): { orders: number; visitors: number } {
+  const a = localMidnightUtc(from), b = localMidnightUtc(addDay(to));
+  const orders = Number(dbGet<{ n: number }>("SELECT COUNT(*) AS n FROM orders WHERE demo = 1 AND test = 0 AND status != 'cancelled' AND created_at >= ? AND created_at < ?", a, b)?.n ?? 0);
+  const visitors = Number(dbGet<{ n: number }>("SELECT COUNT(DISTINCT sid) AS n FROM events WHERE type = 'view' AND sid LIKE 'demo-%' AND day >= ? AND day <= ?", from, to)?.n ?? 0);
+  return { orders, visitors };
+}
+const addDay = (d: string) => { const x = new Date(`${d}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + 1); return x.toISOString().slice(0, 10); };
 
 /* ---------- research: POIs and photos ---------- */
 
@@ -126,6 +146,7 @@ export const WARN_LINK: Record<string, string> = {
   test_payments_enabled: '/admin/cilesimet/#pagesat',
   pending_surge: '/admin/porosite/?status=pending#flood',
   payment_details_changed: '/admin/cilesimet/#pagesat',
+  live_contact_missing: '/admin/cilesimet/#hoteli',
 };
 
 export const ORDER_STATUSES = ['pending', 'confirmed', 'completed', 'cancelled'] as const;

@@ -4,12 +4,14 @@
  * readings come from GET /api/live in the browser (scripts/home.ts; shown only when fresh, with
  * the provider's attribution from the payload); their slots are reserved so nothing moves.
  * Server-rendered and real: this month's season items (research/seasons.json via lib/live, each
- * with its source) and today's sessions with free places (sessions table).
+ * with its source) and today's sessions (sessions table): "Vende të lira sot" with counts only when
+ * every row is a verified product (demo = 0), otherwise the neutral "Sot në program".
  */
 import Pill from '../site/Pill.astro';
 import { sessionsToday } from '../../lib/availability';
 import { tirane } from '../../lib/time';
 import { productUrl } from '../../lib/urls';
+import { findPublished } from '../../lib/catalog';
 import { seasonMonths, seasonYearRound } from '../heritage/facts';
 import { t } from '../../i18n/ui';
 import { path, type Lang } from '../../i18n/routes';
@@ -19,9 +21,15 @@ const { lang } = Astro.props;
 // this month's sourced items (no low-confidence ones, no dated events: their dates are for one
 // year only); a month without any shows two all-year facts instead
 const monthItems = (seasonMonths().find((m) => m.month === tirane().month)?.items ?? []).filter((i) => i.confidence !== 'low' && i.type !== 'event');
-const season = (monthItems.length ? monthItems : seasonYearRound().filter((i) => i.confidence === 'high' && i.type !== 'practical')).slice(0, 2);
+const allYear = !monthItems.length;
+const season = (!allYear ? monthItems : seasonYearRound().filter((i) => i.confidence === 'high' && i.type !== 'practical')).slice(0, 2);
 let today: { slug: string; name_sq: string; name_en: string; starts_at: string; left: number }[] = [];
 try { today = sessionsToday().slice(0, 4); } catch { today = []; }
+// free-place counts only for verified products (demo = 0); a demo schedule shows its time alone
+const verified = new Set(today.filter((s) => findPublished(s.slug)?.demo === false).map((s) => s.slug));
+// 'free places today' only when every row is a verified product with its count; otherwise the
+// neutral 'on today' (a demo schedule is not an availability claim, PLAN §2)
+const allVerified = today.length > 0 && today.every((s) => verified.has(s.slug));
 ---
 <section class="log on-ink" aria-labelledby="log-h" data-home-live data-state="loading">
   <div class="wrap log__inner">
@@ -29,19 +37,19 @@ try { today = sessionsToday().slice(0, 4); } catch { today = []; }
     <div class="log__grid">
       <div class="log__now">
         <h2 id="log-h" class="log__title">{t(lang, 'home.live.title')}</h2>
-        <p class="log__temp" aria-live="polite"><span data-live-big></span><span class="log__unit">°C</span></p>
+        <p class="log__temp"><span data-live-big></span><span class="log__unit">°C</span></p>
         <p class="log__label mono" data-live-label>{t(lang, 'home.live.loading')}</p>
       </div>
       <dl class="log__readings">
         <div><dt class="mono">{t(lang, 'home.live.wind')}</dt><dd data-live-wind>—</dd></div>
-        <div><dt class="mono">{t(lang, 'home.live.sea')}</dt><dd data-live-sea>—</dd></div>
+        <div><dt class="mono">{t(lang, 'home.live.sea')}</dt><dd><span data-live-sea>—</span><span class="log__note mono" data-live-sea-note></span></dd></div>
         <div><dt class="mono">{t(lang, 'home.live.sunrise')}</dt><dd data-live-sunrise>—</dd></div>
         <div><dt class="mono">{t(lang, 'home.live.sunset')}</dt><dd data-live-sunset>—</dd></div>
       </dl>
       <div class="log__side">
         {season.length > 0 && (
           <div class="log__block">
-            <h3 class="log__h mono">{t(lang, 'home.live.season')}</h3>
+            <h3 class="log__h mono">{t(lang, allYear ? 'home.live.allyear' : 'home.live.season')}</h3>
             <ul class="log__season">
               {season.map((s) => <li>{s.text[lang]} <a class="mono log__src" href={s.source.url} rel="noopener">{s.source.publisher}</a></li>)}
             </ul>
@@ -49,9 +57,9 @@ try { today = sessionsToday().slice(0, 4); } catch { today = []; }
         )}
         {today.length > 0 && (
           <div class="log__block">
-            <h3 class="log__h mono">{t(lang, 'home.live.today')}</h3>
+            <h3 class="log__h mono">{t(lang, allVerified ? 'home.live.today' : 'home.live.today.program')}</h3>
             <ul class="log__today mono">
-              {today.map((s) => <li><a href={productUrl('experience', s.slug, lang)}><span>{s.starts_at.slice(11, 16)}</span><span>{lang === 'en' ? s.name_en : s.name_sq}</span><span>{s.left === 1 ? t(lang, 'home.exp.seats.one') : t(lang, 'home.exp.seats', { n: String(s.left) })}</span></a></li>)}
+              {today.map((s) => <li><a href={productUrl('experience', s.slug, lang)}><span>{s.starts_at.slice(11, 16)}</span><span>{lang === 'en' ? s.name_en : s.name_sq}</span><span>{verified.has(s.slug) ? (s.left === 1 ? t(lang, 'home.exp.seats.one') : t(lang, 'home.exp.seats', { n: String(s.left) })) : ''}</span></a></li>)}
             </ul>
           </div>
         )}
@@ -73,11 +81,13 @@ try { today = sessionsToday().slice(0, 4); } catch { today = []; }
   .log__temp { font-family: var(--font-poster); font-weight: 800; font-stretch: 75%; letter-spacing: -0.04em; line-height: 0.8; font-size: clamp(7rem, 4rem + 14vw, 17rem); font-variant-numeric: tabular-nums; margin-block: 18px 10px; min-block-size: 0.8em; }
   .log:not([data-state="ready"]) .log__unit { visibility: hidden; }
   .log__unit { font-size: 0.32em; letter-spacing: 0; vertical-align: top; margin-inline-start: 0.06em; }
-  .log__label { font-size: var(--step--1); color: var(--muted); min-block-size: 1.4em; }
+  .log__label { font-size: var(--step--1); color: var(--muted); min-block-size: 2.8em; }
   .log__readings { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; }
   .log__readings > div { padding-block: 14px; border-block-start: 1px solid var(--rule); }
   .log__readings dt { font-size: var(--step--2); color: var(--muted); }
   .log__readings dd { margin: 4px 0 0; font-size: var(--step-3); font-weight: 650; font-stretch: 85%; font-variant-numeric: tabular-nums; min-block-size: 1.1em; }
+  /* the sea reading is a dated satellite analysis: its note line is reserved, so nothing moves */
+  .log__note { display: block; min-block-size: 1.5em; margin-block-start: 4px; font-size: var(--step--2); font-weight: 400; font-stretch: 100%; color: var(--muted); }
   .log__h { font-size: var(--step--2); color: var(--muted); padding-block-end: 8px; border-block-end: 1px solid var(--rule); }
   .log__block + .log__block { margin-block-start: 28px; }
   .log__season { list-style: none; margin: 0; padding: 0; }
@@ -85,8 +95,8 @@ try { today = sessionsToday().slice(0, 4); } catch { today = []; }
   .log__src { font-size: var(--step--2); color: var(--muted); white-space: nowrap; }
   .log__today { list-style: none; margin: 0; padding: 0; font-size: var(--step--1); }
   .log__today a { display: grid; grid-template-columns: 4em minmax(0, 1fr) auto; gap: 10px; padding-block: 12px; border-block-end: 1px solid var(--rule); text-decoration: none; min-block-size: 44px; align-items: baseline; }
-  .log[data-state="off"] .log__temp, .log[data-state="off"] .log__readings { display: none; }
-  .log[data-state="off"] .log__label { font-size: var(--step-1); color: var(--fg); margin-block-start: 18px; text-transform: none; letter-spacing: 0; font-family: var(--font-sans); }
+  /* off: the slots keep their size ("—" in the big slot, dashes in the readings): nothing moves */
+  .log[data-state="off"] .log__temp { color: var(--muted); }
   .log__foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-block-start: 36px; }
   .log__stamp { font-size: var(--step--2); color: var(--muted); min-block-size: 1.4em; }
   .log__stamp :global(a) { color: inherit; }

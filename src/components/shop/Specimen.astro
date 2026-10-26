@@ -8,7 +8,7 @@
  * can follow the pointer over the photo. Hover (pointer only): the tag slides 6 px.
  * data-* carry the filter facts the URL filters use on both sides (components/shop/filters.ts).
  */
-import Photo from '../site/Photo.astro';
+import ProductPhoto from './ProductPhoto.astro';
 import Price from '../site/Price.astro';
 import Stamp from '../site/Stamp.astro';
 import type { Specimen } from './shop-data';
@@ -32,7 +32,7 @@ const { s, lang, hidden = false, priority = false, heading: H = 'h3' } = Astro.p
   <div class="spec__in">
     <p class="spec__row mono"><span>Nr. {s.nr}</span><span>{s.kindLabel}</span></p>
     <div class="spec__plate" data-spec-plate>
-      <Photo slug={s.image.slug} lang={lang} ratio="4 / 3" sizes="(min-width: 1440px) 24vw, (min-width: 1024px) 31vw, (min-width: 640px) 46vw, 92vw" alt={s.image.alt} priority={priority} />
+      <ProductPhoto slug={s.image.slug} src={s.image.src} lang={lang} ratio="4 / 3" sizes="(min-width: 1440px) 24vw, (min-width: 1024px) 31vw, (min-width: 640px) 46vw, 92vw" alt={s.image.alt} priority={priority} />
       {(s.offer || s.soldOut) && (
         <span class="spec__stamps">
           {s.soldOut ? <Stamp kind="soldout" lang={lang} /> : <Stamp kind="offer" lang={lang} />}
@@ -42,9 +42,11 @@ const { s, lang, hidden = false, priority = false, heading: H = 'h3' } = Astro.p
     <div class="spec__tag">
       <H class="spec__name"><a href={s.card.url} class="spec__a" data-spec-link><span class="spec__nm">{s.name}</span></a></H>
       {s.card.summary && <p class="spec__sum">{s.card.summary}</p>}
-      <ul class="spec__reads mono">
-        {s.readouts.map((r) => <li class:list={['spec__read', r.tone && `spec__read--${r.tone}`]}>{r.text}</li>)}
-      </ul>
+      {s.readouts.length > 0 && (
+        <ul class="spec__reads mono">
+          {s.readouts.map((r) => <li class:list={['spec__read', r.tone && `spec__read--${r.tone}`]}>{r.text}</li>)}
+        </ul>
+      )}
       <p class="spec__price"><Price lek={s.lek} compare={s.compare} lang={lang} per={s.per} from={s.from} /></p>
     </div>
   </div>

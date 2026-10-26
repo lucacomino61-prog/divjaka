@@ -12,12 +12,14 @@ import { photoSrc } from '../site/photo-url';
 import { t } from '../../i18n/ui';
 import { path, type Lang } from '../../i18n/routes';
 
-interface Props { lang: Lang; as?: 'p' | 'h2'; class?: string; id?: string; credits?: boolean }
-const { lang, as: Tag = 'p', class: cls, id, credits = true } = Astro.props;
+/** trigger: a selector of an ancestor whose scroll range lights the words (default: the sentence itself) */
+interface Props { lang: Lang; as?: 'p' | 'h2'; class?: string; id?: string; credits?: boolean; trigger?: string }
+const { lang, as: Tag = 'p', class: cls, id, credits = true, trigger } = Astro.props;
 const text = t(lang, 'heritage.verse');
-// manual breaks for the long words (browsers carry no Albanian hyphenation)
+// manual breaks for the long words (browsers carry no Albanian hyphenation); the digraphs
+// (rr, ll, sh, th…) are single Albanian letters and never split
 const BREAKS: Record<string, string> = {
-  kaçurrelë: 'ka-çur-re-lë', folezojnë: 'fo-le-zoj-në', kallamishte: 'ka-lla-mish-te', nëpër: 'në-për', Dalmatian: 'Dal-ma-tian', flamingot: 'fla-min-got', flamingos: 'fla-min-gos', shallows: 'shal-lows',
+  kaçurrelë: 'ka-çu-rre-lë', folezojnë: 'fo-le-zoj-në', kallamishte: 'ka-lla-mish-te', nëpër: 'në-për', Dalmatian: 'Dal-ma-tian', flamingot: 'fla-min-got', flamingos: 'fla-min-gos', shallows: 'shal-lows',
 };
 const hy = (w: string) => {
   const m = /^([^\p{L}]*)([\p{L}]+)([^\p{L}]*)$/u.exec(w);
@@ -45,7 +47,7 @@ const byAuthor = cuts.filter((c, i) => cuts.findIndex((x) => x.credit === c.cred
 const plain = text.replace(/\[\[[^|\]]+\|([^\]]+)\]\]/g, '$1');
 ---
 <div class="verse-wrap">
-<Tag class:list={['verse', cls]} id={id} data-verse>
+<Tag class:list={['verse', cls]} id={id} data-verse data-verse-trigger={trigger}>
   <span class="visually-hidden">{plain}</span>
   <span aria-hidden="true">{parts.map((p) => p.kind === 'word'
     ? <Fragment><span class="verse__w">{p.text}</span>{' '}</Fragment>
@@ -57,11 +59,20 @@ const plain = text.replace(/\[\[[^|\]]+\|([^\]]+)\]\]/g, '$1');
 </div>
 
 <style>
+  /* The sentence is a first-screen paragraph (the hub): a late font swap would rewrap it (CLS).
+     Its fallback has Bricolage's advance widths at this setting (wdth 82, wght 600 ≈ Arial Bold at
+     89.3 %, measured on both sentences), the measure is in em (ch would change with the swap), and
+     with JS the words stay hidden until the face is ready (scripts/heritage.ts holds the box height,
+     so nothing below moves); a CSS timer shows them after 1.6 s whatever happens. */
+  @font-face { font-family: "Bricolage Verse Fallback"; src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Neue Bold"), local("Roboto Bold"); font-weight: 100 900; size-adjust: 89.3%; ascent-override: 104%; descent-override: 30%; line-gap-override: 0%; }
   .verse {
+    font-family: "Bricolage Grotesque", "Bricolage Verse Fallback", sans-serif;
     font-size: clamp(1.9rem, 1rem + 3.4vw, 4.6rem); font-weight: 600; font-stretch: 82%;
     font-variation-settings: "opsz" 72; line-height: 1.06; letter-spacing: -0.03em;
-    max-inline-size: 22ch; text-wrap: pretty; hyphens: manual; overflow-wrap: anywhere;
+    max-inline-size: 12em; text-wrap: pretty; hyphens: manual; overflow-wrap: anywhere;
   }
+  :global(html.js) .verse:not(.is-set) > [aria-hidden] { visibility: hidden; animation: verse-show 0s linear 1.6s forwards; }
+  @keyframes verse-show { to { visibility: visible; } }
   .verse__w { color: var(--ink); transition: color 300ms var(--ease-out); }
   /* unlit only while the reading script runs (motion on); otherwise every word is ink.
      Unlit = ink 55 % (3.7:1 on salt, above the 3:1 for large text), lit = ink */

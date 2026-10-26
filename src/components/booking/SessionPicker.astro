@@ -2,19 +2,31 @@
 /**
  * SessionPicker — the time slots of the chosen day, each with its free places (real numbers
  * from the sessions table). Native radios in a fieldset; full or closed slots are shown struck
- * and cannot be chosen. Light-linked slots say "set by sunrise / sunset". Rendered on the server
- * for the selected day (?data=…&orari=…) and re-rendered by src/scripts/booking.ts.
+ * and cannot be chosen. A slot past the online cutoff says so ("Rezervimi online u mbyll": the
+ * trip still runs, only online booking stopped); one that already began says "Ka nisur".
+ * Light-linked slots say "set by sunrise / sunset". Rendered on the server for the selected day
+ * (?data=…&orari=…) and re-rendered by src/scripts/booking.ts with the same dict keys.
  *
- * Props: lang, id, date? (YYYY-MM-DD), sessions (SessionCell[] of that day), selected? (id)
+ * Props: lang, id, date? (YYYY-MM-DD), sessions (SessionCell[] of that day), selected? (id),
+ *        noSeats? (a demo schedule: "Ka vende" instead of the count, PLAN §2)
  */
 import { t } from '../../i18n/ui';
-import { formatDate, seats as seatsLabel } from '../../i18n/format';
+import { formatDate, number } from '../../i18n/format';
 import type { Lang } from '../../i18n/routes';
+import { tirane } from '../../lib/time';
 import type { SessionCell } from './server';
 
-interface Props { lang: Lang; id: string; date?: string | null; sessions: SessionCell[]; selected?: number | null }
-const { lang, id, date = null, sessions, selected = null } = Astro.props;
+interface Props { lang: Lang; id: string; date?: string | null; sessions: SessionCell[]; selected?: number | null; noSeats?: boolean }
+const { lang, id, date = null, sessions, selected = null, noSeats = false } = Astro.props;
+const now = tirane();
 const note = (n: string | null) => (n === 'sunrise' ? t(lang, 'booking.session.sunrise') : n === 'sunset' ? t(lang, 'booking.session.sunset') : '');
+const left = (s: SessionCell) => {
+  if (s.status === 'open' && noSeats) return t(lang, 'booking.session.open');
+  if (s.status === 'open') return s.left === 1 ? t(lang, 'booking.seats1') : t(lang, 'booking.seats', { n: number(s.left, lang) });
+  if (s.status === 'full') return t(lang, 'booking.session.full');
+  if (s.status === 'past') return s.date === now.date && s.time > now.time ? t(lang, 'booking.session.cutoff') : t(lang, 'booking.session.started');
+  return t(lang, 'booking.session.closed');
+};
 ---
 <fieldset class="bk-slots" data-slots data-name={id}>
   <legend class="label bk-slots__legend" data-slots-legend>{date ? t(lang, 'booking.session.for', { date: formatDate(date, lang, 'day-month') }) : t(lang, 'booking.session')}</legend>
@@ -25,7 +37,7 @@ const note = (n: string | null) => (n === 'sunrise' ? t(lang, 'booking.session.s
       <label class:list={['bk-slot', s.status !== 'open' && 'bk-slot--off']}>
         <input type="radio" name={id} value={s.id} checked={selected === s.id} disabled={s.status !== 'open'} data-left={s.left} />
         <span class="bk-slot__time">{s.time}</span>
-        <span class="bk-slot__left mono">{s.status === 'open' ? seatsLabel(s.left, lang) : s.status === 'full' ? t(lang, 'booking.session.full') : t(lang, 'booking.session.closed')}</span>
+        <span class="bk-slot__left mono">{left(s)}</span>
         {note(s.note) && <span class="bk-slot__note mono">{note(s.note)}</span>}
       </label>
     ))}

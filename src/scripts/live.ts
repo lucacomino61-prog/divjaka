@@ -67,7 +67,8 @@ export function initNow() {
   let last = Date.now();
   let busy = false;
 
-  const say = (msg: string) => { if (status) status.textContent = msg; };
+  // the same text again is not re-announced (a stale feed must not interrupt every 10 minutes)
+  const say = (msg: string) => { if (status && status.textContent !== msg) status.textContent = msg; };
 
   async function refresh(manual = false) {
     if (busy) return;
@@ -79,20 +80,50 @@ export function initNow() {
       if (!res.ok) throw new Error(String(res.status));
       const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
       const view = root!.dataset.view;
+      // Focus inside a block that is about to be replaced (a forecast tab, the hours scroller, a
+      // source link) is noted and put back on the same control in the new block, so a keyboard or
+      // screen-reader user is never dropped to <body> by the automatic refresh.
+      const active = document.activeElement as HTMLElement | null;
+      const holder = active?.closest<HTMLElement>('[data-live-block][id]') ?? null;
+      let restore: ((el: HTMLElement) => HTMLElement | null) | null = null;
+      if (active && holder) {
+        if (active.id) { const id = active.id; restore = () => document.getElementById(id); }
+        else if (active.dataset.tab) { const tab = active.dataset.tab; restore = (b) => b.querySelector<HTMLElement>(`[data-tab="${tab}"]`); }
+        else {
+          const sel = 'a[href], button, input, select, textarea, [tabindex]';
+          const i = [...holder.querySelectorAll<HTMLElement>(sel)].indexOf(active);
+          restore = (b) => (i >= 0 ? b.querySelectorAll<HTMLElement>(sel)[i] ?? null : null);
+        }
+      }
+      // 1. replace the blocks both pages have; 2. remove the ones the new page no longer has (data
+      // went stale: old numbers must not stay up); 3. insert the new ones after the nearest earlier
+      // sibling that exists here (#now-head is a stable anchor), in document order.
       document.querySelectorAll<HTMLElement>('[data-live-block][id]').forEach((el) => {
         const next = doc.getElementById(el.id);
         if (next) el.replaceWith(document.importNode(next, true));
+        else el.remove();
       });
-      // blocks that appear only now (data came back after an outage)
       doc.querySelectorAll<HTMLElement>('[data-live-block][id]').forEach((n) => {
         if (document.getElementById(n.id)) return;
-        const prev = n.previousElementSibling?.id ? document.getElementById(n.previousElementSibling.id) : null;
-        prev?.after(document.importNode(n, true));
+        let prev = n.previousElementSibling;
+        while (prev && !(prev.id && document.getElementById(prev.id))) prev = prev.previousElementSibling;
+        const anchor = prev ? document.getElementById(prev.id) : null;
+        if (anchor) anchor.after(document.importNode(n, true));
+        else if (n.parentElement?.id && document.getElementById(n.parentElement.id)) document.getElementById(n.parentElement.id)!.prepend(document.importNode(n, true));
       });
       setTab((view as 'hours' | 'days') || 'hours');
+      if (restore && holder) {
+        const block = document.getElementById(holder.id);
+        const target = (block && restore(block)) || btn;
+        target?.focus({ preventScroll: true });
+      }
       last = Date.now();
-      const stamp = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Tirane', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date());
-      say(tc('now.refreshed', { time: stamp }));
+      const stale = document.getElementById('now-entry')?.dataset.stale === '1';
+      // Screen readers hear a manual refresh and a problem; an automatic refresh with fresh data
+      // updates the visible stamp ("Përditësuar HH:MM") silently.
+      if (stale) say(tc('now.refreshed.stale'));
+      else if (manual) say(tc('now.refreshed', { time: document.getElementById('now-entry')?.dataset.updated || '' }));
+      else say('');
     } catch {
       say(tc('now.refresh.failed'));
     } finally {

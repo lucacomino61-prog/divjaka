@@ -4,7 +4,7 @@
  * No animation loop: every change is a CSS state transition of ≤ 150 ms.
  */
 import { api, flash } from './api';
-import { initForms } from './forms';
+import { initForms, initDateWords } from './forms';
 import { initCharts } from './charts';
 import { tc } from '../../i18n/client';
 
@@ -84,7 +84,11 @@ for (const el of document.querySelectorAll<HTMLElement>('details a[href], detail
   if (txt && !el.hasAttribute('aria-label')) el.setAttribute('aria-label', txt);
 }
 
+/* orders filters: wide screens show every filter (CSS ::details-content; this covers engines without it) */
+if (matchMedia('(min-width: 760px)').matches) for (const d of document.querySelectorAll<HTMLDetailsElement>('details[data-filters-more]')) d.open = true;
+
 initForms();
+initDateWords();
 initCharts();
 
 /* the "new product" menu (a <details>): closes on Esc and on a click outside */

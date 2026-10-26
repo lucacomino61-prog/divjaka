@@ -1,4 +1,9 @@
 ---
 import Bookings from '../../../views/Bookings.astro';
+import { load } from '../../../views/bookings.load';
+
+// the no-JS lookup POST: a match answers 303 to the order page (T5, bookings.load.ts)
+const loaded = await load('en', { request: Astro.request, clientAddress: Astro.clientAddress });
+if ('redirect' in loaded) return Astro.redirect(loaded.redirect, 303);
 ---
-<Bookings lang="en" />
+<Bookings lang="en" data={loaded} />

@@ -10,10 +10,10 @@ const lang = adminLang(Astro);
 const T = tr(lang);
 const owner = (Astro.locals.admin as { role: string } | null)?.role === 'owner';
 const id = String(Astro.params.id ?? '');
-if (!/^\d+$/.test(id)) return Astro.redirect('/admin/klientet/', 303);
+if (!/^\d+$/.test(id)) return Astro.redirect(`/admin/klientet/?notfound=${encodeURIComponent(id.slice(0, 40))}`, 303);
 type O = { id: number; code: string; total: number; status: string; payment_status: string; payment_method: string; test: number; created_at: string };
 const data = await callApi<{ customer: Customer; orders: O[] }>(customerGET as never, Astro, undefined, { id });
-if (!data) return Astro.redirect('/admin/klientet/', 303);
+if (!data) return Astro.redirect(`/admin/klientet/?notfound=${encodeURIComponent(id.slice(0, 40))}`, 303);
 const { customer: c, orders } = data;
 const total = orders.filter((o) => o.status !== 'cancelled' && !o.test && (o.payment_status === 'paid' || o.status === 'confirmed' || o.status === 'completed')).reduce((s, o) => s + o.total, 0);
 ---

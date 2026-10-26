@@ -3,7 +3,7 @@
  * Signals stay in this browser: dv-prefs interests, dv-viewed (newest first) and the cart's
  * slugs go to GET /api/recommend as query parameters (no cookies, no identifiers). The answer
  * re-orders server-rendered cards (each product is in the page once: list or hidden pool) and
- * writes each card's reason. Without any signal the server's popular / in-season order stays.
+ * writes each card's reason. Without any signal the server's in-season / hotel-picked order stays.
  * The "Interesat e mia" sheet toggles interests (aria-pressed chips) and saves dv-prefs; the
  * rail updates as you choose. Failures keep the server order and say so in the status line.
  */
@@ -12,7 +12,7 @@ import { getCart, onChange as onCartChange } from './cart';
 import { modal } from './menu';
 import { tc, lang } from '../i18n/client';
 
-type Reason = 'interests' | 'history' | 'together' | 'season' | 'popular';
+type Reason = 'interests' | 'history' | 'together' | 'season' | 'popular' | 'picked';
 interface Item { slug: string; reason: Reason }
 
 const rails = new WeakSet<HTMLElement>();

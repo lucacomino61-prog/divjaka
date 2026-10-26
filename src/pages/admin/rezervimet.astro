@@ -35,6 +35,9 @@ const byDay = new Map<string, Sess[]>();
 for (const s of data.sessions) { const d = s.starts_at.slice(0, 10); byDay.set(d, [...(byDay.get(d) ?? []), s]); }
 const noteLabel = (n: string | null) => (n === 'sunrise' || n === 'sunset' ? T(`admin.sessions.note.${n}`) : n);
 const roomName = (r: Room) => (lang === 'en' ? r.name_en : r.name_sq);
+// session rows carry name_sq only: take the admin-language name from the product
+const bySlug = new Map(listProducts({ kind: 'experience', status: 'any' }).map((p) => [p.slug, p]));
+const sessName = (s: Sess) => { const p = bySlug.get(s.slug); return lang === 'en' && p ? p.name_en || p.name_sq : s.name_sq; };
 ---
 <Admin lang={lang} title={T('admin.bookings.title')} section="bookings" kicker={T('admin.bookings.kicker')}>
   <div class="range" role="group" aria-label={T('admin.range.label')}>
@@ -46,19 +49,19 @@ const roomName = (r: Room) => (lang === 'en' ? r.name_en : r.name_sq);
     <ul class="range__presets">
       {[[7, 'week'], [14, 'fortnight'], [30, 'month']].map(([n, k]) => <li><a class="chip" href={withParam(Astro.url, { span: n === 14 ? null : n })} aria-current={span === n ? 'true' : undefined}>{T(`admin.bookings.${k}`)}</a></li>)}
     </ul>
-    <form class="range__custom" method="get">
+    <form class="range__custom" method="get" data-range-live data-span={span} novalidate>
       <label class="visually-hidden" for="bk-from">{T('admin.from')}</label>
       <input id="bk-from" class="fld__input fld__input--s" type="date" name="from" value={from} />
       {span !== 14 && <input type="hidden" name="span" value={span} />}
       <button class="pill pill--outline pill--s" type="submit">{T('admin.range.apply')}</button>
     </form>
-    <p class="range__now mono muted">{formatRange(from, addDays(to, -1), lang)}</p>
+    <p class="range__now mono muted" data-range-now aria-live="polite">{formatRange(from, addDays(to, -1), lang)}</p>
   </div>
 
   <section class="blk" aria-labelledby="grid-t">
     <div class="blk__head"><h2 class="blk__title" id="grid-t">{T('admin.bookings.grid')}</h2></div>
     <p class="blk__lede">{T('admin.bookings.grid.desc')}</p>
-    {demoRooms && <p class="note-box note-box--ink small">{T('admin.bookings.demo.units')} <a href="/admin/dhomat/">{T('admin.nav.rooms')}</a></p>}
+    {demoRooms && <p class="note-box note-box--ink small">{T('admin.bookings.demo.units')} <a href="/admin/dhomat/">{T('admin.nav.rooms')}</a>.</p>}
     {data.rooms.length ? (
       <div class="ngrid-wrap" tabindex="0" role="region" aria-labelledby="grid-t">
         <table class="ngrid">
@@ -80,12 +83,13 @@ const roomName = (r: Room) => (lang === 'en' ? r.name_en : r.name_sq);
                   const label = T('admin.bookings.cell', { booked: n.booked, closed: n.closed, left: n.left, units });
                   return (
                     <td>
-                      <button type="button" class:list={['ncell', used >= units && 'is-full', n.closed > 0 && 'has-closed']} style={`--fill:${units ? Math.min(100, (n.booked / units) * 100) : 0}%`}
+                      <button type="button" class:list={['ncell', used >= units && 'is-full', n.closed > 0 && 'has-closed', n.closed > 0 && used >= units && 'is-shut']} style={`--fill:${units ? Math.min(100, (n.booked / units) * 100) : 0}%;--shut:${units ? Math.min(100 - Math.min(100, (n.booked / units) * 100), (n.closed / units) * 100) : 0}%`}
                         data-night={n.night} data-date={formatDate(n.night, lang, 'medium')} data-product={r.id} data-room={roomName(r)} data-units={units} data-booked={n.booked} data-closed={n.closed}
                         aria-label={`${roomName(r)}, ${formatDate(n.night, lang, 'medium')}: ${label}`} title={label}>
                         <span class="ncell__fill"></span>
+                        {n.closed > 0 && <span class="ncell__shut"></span>}
                         <span class="ncell__n">{n.booked}<span class="muted">/{units}</span></span>
-                        {n.closed > 0 && <span class="ncell__closed" aria-hidden="true"></span>}
+                        {n.closed > 0 && <span class="ncell__x">✕{n.closed}</span>}
                       </button>
                     </td>
                   );
@@ -96,7 +100,7 @@ const roomName = (r: Room) => (lang === 'en' ? r.name_en : r.name_sq);
         </table>
       </div>
     ) : <p class="adm-empty mono">{T('admin.rooms.none')}</p>}
-    <p class="legend"><span><i class="lg-booked"></i>{T('admin.sessions.booked')}</span><span><i class="lg-full"></i>{T('admin.rooms.strip.legend.full')}</span><span><i class="lg-closed"></i>{T('admin.sstatus.closed')}</span></p>
+    <p class="legend"><span><i class="lg-booked"></i>{T('admin.bookings.legend.booked')}</span><span><i class="lg-full"></i>{T('admin.bookings.legend.full')}</span><span><i class="lg-closed"></i>✕N {T('admin.bookings.legend.closed')}</span></p>
   </section>
 
   <div class="cols cols--side" style="margin-block-start:clamp(36px,4vw,56px)">
@@ -128,7 +132,7 @@ const roomName = (r: Room) => (lang === 'en' ? r.name_en : r.name_sq);
                 return (
                   <div class:list={['sess', s.status !== 'open' && 'is-closed']} data-action-scope>
                     <span class="sess__time">{s.starts_at.slice(11, 16)}</span>
-                    <span class="sess__name">{s.name_sq}{s.note && <span class="cell-sub mono">{noteLabel(s.note)}</span>}</span>
+                    <span class="sess__name">{sessName(s)}{s.note && <span class="cell-sub mono">{noteLabel(s.note)}</span>}</span>
                     <span class="sess__seats">{T('admin.bookings.seats', { booked: s.booked, capacity: s.capacity })}<span class:list={['meter', full && 'is-full']} aria-hidden="true"><span style={`--w:${s.capacity ? Math.min(100, (s.booked / s.capacity) * 100) : 0}%`}></span></span></span>
                     <div class="sess__more row">
                       {s.status !== 'open' && <Badge tone="signal">{T(`admin.sstatus.${s.status}`)}</Badge>}
@@ -165,7 +169,7 @@ const roomName = (r: Room) => (lang === 'en' ? r.name_en : r.name_sq);
       </div>
       <p class="form-status" data-form-status role="status"></p>
       <div class="adm-dialog__actions">
-        <button type="button" class="pill pill--outline" data-close="night-dlg">{T('admin.cancel')}</button>
+        <button type="button" class="pill pill--outline" data-close="night-dlg">{T('admin.dialog.back')}</button>
         <button type="submit" class="pill pill--primary">{T('admin.save')}</button>
       </div>
     </form>

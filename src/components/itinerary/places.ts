@@ -30,6 +30,8 @@ export interface Activity {
   selfOk?: boolean;
   /** the activity itself moves you there (a tour with transport from the hotel) */
   transportIncluded?: boolean;
+  /** daylight: done on your own it ends by sunset ('sunset') or by civil dusk ('dusk', the sunset viewpoint) */
+  daylight?: 'sunset' | 'dusk';
   /** opening hours: 'open' (outdoors, any time of day), 'check' (no official hours), 'session' (bookable times) */
   hours: 'open' | 'check' | 'session';
   kids: boolean;
@@ -50,7 +52,7 @@ const NESTING = [1, 2, 3, 4, 5, 6];
 
 export const ACTIVITIES: Activity[] = [
   {
-    id: 'dawn-birds', poi: 'bird-hide-godulla', product: 'shpendet-e-lagunes-ne-agim',
+    id: 'dawn-birds', daylight: 'sunset', poi: 'bird-hide-godulla', product: 'shpendet-e-lagunes-ne-agim',
     name: { sq: 'Shpendët e lagunës në agim', en: 'Lagoon birds at dawn' },
     slots: ['dawn'], minutes: 150, interests: ['birds', 'nature'], months: [1, 2, 3, 4, 5, 6, 9, 10, 11, 12],
     hours: 'session', kids: false, base: 3,
@@ -65,10 +67,10 @@ export const ACTIVITIES: Activity[] = [
     id: 'bird-hide', poi: 'bird-hide-godulla',
     name: { sq: 'Vendvëzhgimi i zogjve te Godulla', en: 'The bird hide at Godulla' },
     slots: ['dawn', 'morning', 'afternoon'], minutes: 75, interests: ['birds'], months: ALL,
-    hours: 'open', kids: true, base: 2,
+    hours: 'check', daylight: 'sunset', kids: true, base: 2,
     why: {
-      sq: 'Një strehë vëzhgimi pranë molit në lagunën e Godullës, pa guidë dhe pa orar; merrni dylbitë dhe qëndroni të qetë.',
-      en: 'A hide by the pier on the Godulla lagoon, no guide and no timetable; bring binoculars and keep quiet.',
+      sq: 'OpenStreetMap shënon një vendvëzhgim zogjsh pranë molit të Godullës; aksesin dhe oraret kontrollojini në vend. Merrni dylbitë dhe qëndroni të qetë.',
+      en: 'OpenStreetMap marks a bird hide by the Godulla pier; check access and hours on the spot. Bring binoculars and keep quiet.',
     },
     facts: [], osm: ['bird-hide-godulla', 'pier-godulla'],
     monthNote: { months: NESTING, sq: 'Në këtë stinë pelikanët janë në ishull (janar–qershor); mbani distancë nga ujërat e mbrojtura.', en: 'In this season the pelicans are on their island (January–June); keep away from the protected waters.', facts: ['birds-10'] },
@@ -85,7 +87,7 @@ export const ACTIVITIES: Activity[] = [
     facts: ['visit-01'], osm: ['tower-360'],
   },
   {
-    id: 'tower-sunset', poi: 'tower-360', product: 'qendra-e-vizitoreve-dhe-kulla-360', selfOk: true,
+    id: 'tower-sunset', daylight: 'dusk', poi: 'tower-360', product: 'qendra-e-vizitoreve-dhe-kulla-360', selfOk: true,
     name: { sq: 'Perëndimi nga Kulla 360°', en: 'Sunset from the 360° Tower' },
     slots: ['sunset'], minutes: 75, interests: ['nature', 'birds'], months: ALL,
     hours: 'check', kids: true, base: 4,
@@ -96,7 +98,7 @@ export const ACTIVITIES: Activity[] = [
     facts: ['visit-02'],
   },
   {
-    id: 'boardwalk', poi: 'boardwalk',
+    id: 'boardwalk', daylight: 'sunset', poi: 'boardwalk',
     name: { sq: 'Shtegu prej druri mbi ujë', en: 'The wooden boardwalk' },
     slots: ['morning', 'afternoon'], minutes: 45, interests: ['nature', 'birds'], months: ALL,
     hours: 'open', kids: true, base: 1,
@@ -107,7 +109,7 @@ export const ACTIVITIES: Activity[] = [
     facts: ['prac-12'], osm: ['boardwalk'],
   },
   {
-    id: 'boat', poi: 'lagoon-boat-trips', product: 'shetitje-me-varke-ne-lagune', selfOk: true,
+    id: 'boat', daylight: 'sunset', poi: 'lagoon-boat-trips', product: 'shetitje-me-varke-ne-lagune',
     name: { sq: 'Shëtitje me varkë në lagunë', en: 'A boat trip on the lagoon' },
     slots: ['morning', 'afternoon'], minutes: 60, interests: ['nature', 'birds'], months: [4, 5, 6, 7, 8, 9, 10],
     hours: 'session', kids: true, base: 3,
@@ -116,10 +118,10 @@ export const ACTIVITIES: Activity[] = [
       en: 'The boats take you onto the lagoon’s calm water, through channels and reed islets.',
     },
     facts: ['visit-06'],
-    monthNote: { months: NESTING, sq: 'Varkat qëndrojnë rreth 180 m larg Ishullit të Pelikanit, ku pelikanët folezojnë deri në qershor.', en: 'Boats keep about 180 m from Pelican Island, where the pelicans nest until June.', facts: ['park-23', 'birds-10'] },
+    monthNote: { months: NESTING, sq: 'Ishulli i Pelikanit është i mbyllur për publikun; pelikanët, që folezojnë atje deri në qershor, shihen nga turet me varkë aty pranë, nga larg.', en: 'Pelican Island is closed to the public; the pelicans, which nest there until June, are watched from the boat tours nearby, from a distance.', facts: ['park-23', 'birds-10'] },
   },
   {
-    id: 'pines-walk', poi: 'pine-forest',
+    id: 'pines-walk', daylight: 'sunset', poi: 'pine-forest',
     name: { sq: 'Ecje nëpër pyllin me pisha', en: 'A walk in the pine forest' },
     slots: ['morning', 'afternoon'], minutes: 90, interests: ['nature', 'active'], months: ALL,
     hours: 'open', kids: true, base: 2,
@@ -130,18 +132,18 @@ export const ACTIVITIES: Activity[] = [
     facts: ['flora-02', 'flora-01'],
   },
   {
-    id: 'bike-tour', poi: 'infopoint', product: 'me-biciklete-neper-pyllin-me-pisha',
+    id: 'bike-tour', daylight: 'sunset', poi: 'infopoint', product: 'me-biciklete-neper-pyllin-me-pisha',
     name: { sq: 'Me biçikletë nëpër pyllin me pisha', en: 'By bike through the pine forest' },
     slots: ['morning'], minutes: 150, interests: ['active', 'nature'], months: [3, 4, 5, 6, 7, 8, 9, 10, 11],
     hours: 'session', kids: true, base: 2,
     why: {
-      sq: 'Pylli ka shtigje për biçikletë; një xhiro e lehtë rreth lagunës dhe një më e gjatë nisin pranë parkut.',
-      en: 'The forest has cycling paths; an easy loop round the lagoon and a longer one start near the park.',
+      sq: 'Pylli ka shtigje për biçikletë. Çiklistët kanë hartuar një xhiro të lehtë rreth lagunës nga Divjaka dhe një më të gjatë nga Qendra e Vizitorëve.',
+      en: 'The forest has cycling paths. Cyclists have mapped an easy loop round the lagoon from Divjakë and a longer one from the Visitor Centre.',
     },
     facts: ['flora-02', 'prac-12'],
   },
   {
-    id: 'guided-park', poi: 'visitor-centre', product: 'parku-kombetar-me-guide',
+    id: 'guided-park', daylight: 'sunset', poi: 'visitor-centre', product: 'parku-kombetar-me-guide',
     name: { sq: 'Parku Kombëtar me guidë', en: 'The National Park with a guide' },
     slots: ['morning'], minutes: 150, interests: ['nature', 'birds', 'culture'], months: ALL,
     hours: 'session', kids: true, base: 2,
@@ -152,7 +154,7 @@ export const ACTIVITIES: Activity[] = [
     facts: ['visit-01'],
   },
   {
-    id: 'beach', poi: 'divjaka-beach',
+    id: 'beach', daylight: 'sunset', poi: 'divjaka-beach',
     name: { sq: 'Plazhi i Divjakës', en: 'Divjaka beach' },
     slots: ['afternoon', 'morning', 'sunset'], minutes: 120, interests: ['beach', 'nature'], months: ALL,
     hours: 'open', kids: true, base: 3,
@@ -174,7 +176,7 @@ export const ACTIVITIES: Activity[] = [
     facts: ['hist-02', 'hist-03'], osm: ['altin-nature-collection'],
   },
   {
-    id: 'karavasta', poi: 'karavasta-village',
+    id: 'karavasta', daylight: 'sunset', poi: 'karavasta-village',
     name: { sq: 'Kishat e Karavastasë', en: 'The churches of Karavasta' },
     slots: ['morning', 'afternoon'], minutes: 90, interests: ['culture'], months: ALL,
     hours: 'check', kids: true, base: 2,
@@ -196,7 +198,7 @@ export const ACTIVITIES: Activity[] = [
     facts: ['hist-09', 'hist-14', 'hist-16'],
   },
   {
-    id: 'ardenica', poi: null, far: { km: 35, min: 40, fact: 'hist-13' },
+    id: 'ardenica', daylight: 'sunset', poi: null, far: { km: 35, min: 40, fact: 'hist-13' },
     name: { sq: 'Manastiri i Ardenicës', en: 'Ardenica Monastery' },
     slots: ['morning', 'afternoon'], minutes: 75, interests: ['culture'], months: ALL,
     hours: 'check', kids: true, base: 2,
@@ -207,7 +209,7 @@ export const ACTIVITIES: Activity[] = [
     facts: ['hist-13', 'hist-14', 'hist-15'],
   },
   {
-    id: 'apollonia', poi: null, far: { km: 52, min: 55, fact: 'hist-16' },
+    id: 'apollonia', daylight: 'sunset', poi: null, far: { km: 52, min: 55, fact: 'hist-16' },
     name: { sq: 'Apolonia', en: 'Apollonia' },
     slots: ['morning', 'afternoon'], minutes: 150, interests: ['culture'], months: ALL,
     hours: 'check', kids: true, base: 2,

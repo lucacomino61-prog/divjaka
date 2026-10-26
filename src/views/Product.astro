@@ -13,7 +13,6 @@
  */
 import Base from '../layouts/Base.astro';
 import Breadcrumbs from '../components/site/Breadcrumbs.astro';
-import Photo from '../components/site/Photo.astro';
 import Price from '../components/site/Price.astro';
 import Stamp from '../components/site/Stamp.astro';
 import PermitCard from '../components/site/PermitCard.astro';
@@ -21,6 +20,7 @@ import SourceList, { type Source } from '../components/site/SourceList.astro';
 import Chart from '../components/chart/Chart.astro';
 import RecommendRail from '../components/recommend/RecommendRail.astro';
 import ShareRow from '../components/shop/ShareRow.astro';
+import ProductPhoto from '../components/shop/ProductPhoto.astro';
 import { catNo, giftLimits, readouts } from '../components/shop/shop-data';
 import { getPhoto, siteOriginOf } from '../components/site/site-data';
 import { publicConfig } from '../lib/config';
@@ -38,16 +38,24 @@ const { product: p, detail: d } = data;
 const nr = catNo(p.id);
 const kindLabel = t(lang, `recommend.kind.${p.kind}`);
 const sale = d.sale_price != null && d.sale_price < d.price ? d.sale_price : null;
-const lek = sale ?? d.price;
-const compare = sale != null ? d.price : d.compare_at;
 const reads = readouts(d, lang, roomsVerified());
 const soldOut = reads.soldOut;
+// JSON-LD tells the truth about the real stock even while the page hides a demo count (the quote
+// refuses an item at 0 whatever the demo flag says)
+const outOfStock = soldOut || (p.kind !== 'gift' && p.kind !== 'room' && p.kind !== 'experience' && d.left != null && d.left <= 0);
 const gift = p.kind === 'gift' ? giftLimits(p.slug) : null;
+// a gift card is sold "from" the lowest amount the owner allows (never from its default amount)
+const lek = gift ? gift.min : sale ?? d.price;
+const compare = gift ? null : sale != null ? d.price : d.compare_at;
+// preset amounts are the owner's data (products.options.amount_presets, demo until confirmed);
+// 5 000 / 10 000 / 20 000 only when the owner has not set any
+const ownerPresets = Array.isArray(p.options.amount_presets) ? (p.options.amount_presets as unknown[]).map(Number).filter((v) => Number.isFinite(v) && v > 0) : [];
 const presets = gift
-  ? [...new Set([gift.min, 5000, 10000, 20000].filter((v) => v >= gift.min && v <= gift.max && (v - gift.min) % gift.step === 0))].sort((a, b) => a - b)
+  ? [...new Set([gift.min, ...(ownerPresets.length ? ownerPresets : [5000, 10000, 20000])].filter((v) => v >= gift.min && v <= gift.max && (v - gift.min) % gift.step === 0))].sort((a, b) => a - b)
   : [];
 const defaultAmount = gift ? (presets.includes(d.price) ? d.price : presets[0]) : null;
-const stock = p.stock;
+// a demo stock count is never shown or used as a client-side cap (PLAN §2): the cart's quote checks it
+const stock = p.demo ? null : p.stock;
 const offerNames = d.offers.map((o) => o.name).filter(Boolean);
 const excludes = ((lang === 'en' ? p.options.excludes_en : p.options.excludes_sq) as string[] | undefined) ?? [];
 const sources = ((p.options.sources as Source[] | undefined) ?? []).filter((s) => s?.url);
@@ -79,14 +87,24 @@ const jsonld = {
   category: t(lang, `shop.kind.${p.kind}`),
   ...(imgAbs.length ? { image: imgAbs } : {}),
   brand: { '@type': 'Brand', name: 'Hotel Pelikan' },
-  offers: {
-    '@type': 'Offer',
-    url: pageUrl,
-    price: lek,
-    priceCurrency: 'ALL',
-    availability: soldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
-    seller: { '@id': `${origin}/#hotel` },
-  },
+  offers: gift
+    ? {
+        '@type': 'AggregateOffer',
+        url: pageUrl,
+        lowPrice: gift.min,
+        highPrice: gift.max,
+        priceCurrency: 'ALL',
+        availability: outOfStock ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+        seller: { '@id': `${origin}/#hotel` },
+      }
+    : {
+        '@type': 'Offer',
+        url: pageUrl,
+        price: lek,
+        priceCurrency: 'ALL',
+        availability: outOfStock ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+        seller: { '@id': `${origin}/#hotel` },
+      },
 };
 const clientData = {
   slug: p.slug, kind: p.kind, name: d.name, price: lek, stock,
@@ -118,8 +136,9 @@ const ogImage = imgAbs[0];
         </figure>
       )}
       {images.map((im, i) => (
-        <Photo
+        <ProductPhoto
           slug={im.slug ?? null}
+          src={im.src ?? null}
           lang={lang}
           ratio={i === 0 && !isChart ? '4 / 3' : '3 / 2'}
           sizes="(min-width: 1024px) 60vw, 100vw"
@@ -155,7 +174,7 @@ const ogImage = imgAbs[0];
             </div>
             <div class="amount__custom" data-amount-custom-wrap hidden>
               <label class="buy__label mono" for="amount-custom">{t(lang, 'product.amount.customLabel')}</label>
-              <input id="amount-custom" class="amount__input" type="text" inputmode="numeric" name="vlera" autocomplete="off" placeholder={String(gift.min * 2)} data-amount-custom aria-describedby="amount-hint" />
+              <input id="amount-custom" class="amount__input" type="text" inputmode="numeric" name="vlera" autocomplete="off" placeholder={String(gift.min * 2)} data-amount-custom aria-describedby="amount-hint buy-error" />
               <p id="amount-hint" class="amount__hint mono">{t(lang, 'product.amount.hint', { min: money(gift.min, lang), max: money(gift.max, lang), step: money(gift.step, lang) })}</p>
             </div>
           </fieldset>
@@ -173,7 +192,7 @@ const ogImage = imgAbs[0];
           </div>
         )}
 
-        <p class="buy__error mono" role="alert" data-buy-error hidden></p>
+        <p id="buy-error" class="buy__error mono" role="alert" data-buy-error hidden></p>
 
         {soldOut ? (
           <div class="buy__soldout">
@@ -241,7 +260,7 @@ const ogImage = imgAbs[0];
     <div class="buy-pill" data-buy-pill data-show="off">
       <p class="buy-pill__info">
         <span class="buy-pill__name">{d.name}</span>
-        <span class="buy-pill__price mono" data-price-lek={lek} data-pill-price><span data-price-main>{money(lek, lang)}</span><span data-price-alt hidden></span></span>
+        <span class="buy-pill__price mono" data-price-lek={defaultAmount ?? lek} data-pill-price><span data-price-main>{money(defaultAmount ?? lek, lang)}</span><span data-price-alt hidden></span></span>
       </p>
       <button type="button" class="buy-pill__add" data-pill-add aria-label={t(lang, 'product.pill.label')}>{t(lang, 'product.pill.add')}</button>
     </div>
@@ -284,8 +303,8 @@ const ogImage = imgAbs[0];
   .buy__label { display: block; font-size: var(--step--2); color: var(--muted); margin-block-end: 6px; }
   .amount { border: 0; padding: 0; margin: 0; min-inline-size: 0; }
   .amount__row { display: flex; flex-wrap: wrap; gap: 8px; }
-  .apill { position: relative; display: inline-flex; align-items: center; min-block-size: 44px; padding: 0 14px; border: 1px solid var(--ink); border-radius: var(--radius-pill); cursor: pointer; font-family: var(--font-mono); font-size: var(--step--1); touch-action: manipulation; transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out); }
-  .apill input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .apill { position: relative; display: inline-flex; align-items: center; min-block-size: 46px; padding: 0 14px; border: 1px solid var(--ink); border-radius: var(--radius-pill); cursor: pointer; font-family: var(--font-mono); font-size: var(--step--1); touch-action: manipulation; transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out); }
+  .apill input { position: absolute; inset: -1px; opacity: 0; margin: 0; cursor: pointer; border-radius: inherit; }
   .apill:has(input:checked) { background: var(--ink); color: var(--salt); }
   .apill:has(input:focus-visible) { outline: 2px solid var(--pouch); outline-offset: 2px; }
   .amount__custom { margin-block-start: 12px; }
@@ -330,6 +349,8 @@ const ogImage = imgAbs[0];
     inset-block-end: max(12px, env(safe-area-inset-bottom));
     display: flex; align-items: center; gap: 12px; min-block-size: 60px; padding: 6px 6px 6px 20px;
     background: var(--ink); color: var(--salt); border-radius: var(--radius-pill);
+    /* a salt ring keeps the pill its own object over the dark footer */
+    box-shadow: 0 0 0 1px var(--salt), 0 0 0 2px var(--ink-40);
     transition: opacity 200ms var(--ease-out), visibility 0s linear 0s;
   }
   .buy-pill[data-show="off"] { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 160ms var(--ease-out), visibility 0s linear 160ms; }

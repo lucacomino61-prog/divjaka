@@ -57,10 +57,11 @@ const typeLabel = (r: SearchResult) => t(lang, `lost.type.${r.type}`);
         <Pill type="submit">{t(lang, 'search.submit')}</Pill>
       </div>
     </form>
-    <div id="nf-results" class="nf__results" data-nf-results aria-live="polite">
+    <div id="nf-results" class="nf__results" data-nf-results>
+      {/* only the count line is announced (role=status), not every title on each keystroke */}
+      <p class="nf__count mono" role="status" data-nf-count>{q.length >= 2 ? (results.length === 0 ? t(lang, 'lost.none', { q }) : results.length === 1 ? t(lang, 'lost.result', { q }) : t(lang, 'lost.results', { n: String(results.length), q })) : ''}</p>
       {q.length >= 2 && (
         <>
-          <p class="nf__count mono">{results.length === 0 ? t(lang, 'lost.none', { q }) : results.length === 1 ? t(lang, 'lost.result', { q }) : t(lang, 'lost.results', { n: String(results.length), q })}</p>
           {results.length > 0 && (
             <ol class="res">
               {results.map((r) => <li><a href={r.url}><span class="res__t mono">{typeLabel(r)}</span><span class="res__n">{r.title}</span>{r.snippet && <span class="res__s">{r.snippet}</span>}</a></li>)}
@@ -97,6 +98,7 @@ const typeLabel = (r: SearchResult) => t(lang, `lost.type.${r.type}`);
   .nf__row input:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
   .nf__results { max-inline-size: 760px; }
   .nf__results :global(.nf__count) { font-size: var(--step--1); padding-block: 8px; }
+  .nf__results :global(.nf__count:empty) { display: none; }
   .nf__results :global(.res) { list-style: none; margin: 0; padding: 0; border-block-start: 1px solid var(--ink); }
   .nf__results :global(.res a) { display: grid; grid-template-columns: 8em minmax(0, 1fr); gap: 2px 16px; padding-block: 12px; border-block-end: 1px solid var(--rule); text-decoration: none; min-block-size: 44px; }
   .nf__results :global(.res__t) { font-size: var(--step--2); color: var(--muted); grid-row: span 2; padding-block-start: 4px; }
@@ -121,12 +123,10 @@ const typeLabel = (r: SearchResult) => t(lang, `lost.type.${r.type}`);
     let timer: number | undefined;
     let ctl: AbortController | null = null;
     const render = (q: string, results: { type: string; title: string; url: string; snippet: string }[]) => {
-      out.replaceChildren();
-      if (q.length < 2) return;
-      const count = document.createElement('p');
-      count.className = 'nf__count mono';
+      const count = out.querySelector<HTMLElement>('[data-nf-count]')!;
+      out.querySelectorAll('.res').forEach((n) => n.remove());
+      if (q.length < 2) { count.textContent = ''; return; }
       count.textContent = results.length === 0 ? tc('lost.none', { q }) : results.length === 1 ? tc('lost.result', { q }) : tc('lost.results', { n: String(results.length), q });
-      out.append(count);
       if (!results.length) return;
       const ol = document.createElement('ol');
       ol.className = 'res';

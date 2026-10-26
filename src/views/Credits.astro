@@ -14,6 +14,7 @@ import { photos, readResearch } from '../components/site/site-data';
 import { facts, publisherOf, hostOf } from '../components/heritage/facts';
 import { t } from '../i18n/ui';
 import { path, type Lang } from '../i18n/routes';
+import { liveSources } from '../lib/live';
 
 interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
 const { lang } = Astro.props;
@@ -40,6 +41,7 @@ for (const f of facts().values()) {
 }
 const research = [...groups.values()].sort((a, b) => b.n - a.n);
 const nFacts = facts().size;
+const licenseLabel = (x: string) => (/^public domain$/i.test(x) ? t(lang, 'credits.weather.pd') : x);
 
 const FONTS = [
   { name: 'Bricolage Grotesque', use: 'credits.fonts.bricolage', license: '/fonts/LICENSES/BricolageGrotesque-OFL.txt', source: 'https://github.com/ateliertriay/bricolage' },
@@ -63,7 +65,7 @@ const toc = [
 <Base lang={lang} title={t(lang, 'page.credits.title')} description={t(lang, 'page.credits.description')} routeKey="credits">
   <section class="wrap cr__head" aria-labelledby="cr-h">
     <Breadcrumbs lang={lang} items={[{ label: t(lang, 'nav.credits') }]} />
-    <SectionHead as="h1" id="cr-h" index="—" kicker={t(lang, 'credits.kicker')} title={t(lang, 'credits.poster')} size="poster" />
+    <SectionHead as="h1" id="cr-h" kicker={t(lang, 'credits.kicker')} title={t(lang, 'credits.poster')} size="poster" />
     <div class="cr__intro">
       <p class="lede cr__lead">{t(lang, 'credits.lead')}</p>
       <nav class="cr__toc" aria-label={t(lang, 'credits.toc')}>
@@ -110,7 +112,14 @@ const toc = [
     <SectionHead id="moti-h" index="03" title={t(lang, 'credits.weather.title')} size="heading" />
     <div class="cr__cols">
       <p class="cr__p">{t(lang, 'credits.weather.body')}</p>
-      <p class="cr__weather mono" data-weather-credit><span class="muted">{t(lang, 'credits.weather.provider')}:</span> <span data-weather-credit-text>{t(lang, 'credits.weather.pending')}</span></p>
+      <div class="cr__weather mono" data-weather-credit data-license-word={t(lang, 'credits.weather.license')} data-pd={t(lang, 'credits.weather.pd')}>
+        <p class="muted">{t(lang, 'credits.weather.provider')}:</p>
+        <ul class="cr__links" data-weather-credit-text>
+          {liveSources().map((s) => (
+            <li><a href={s.url} rel="noopener">{lang === 'en' ? s.en : s.sq}</a>{s.license && <Fragment> · <a href={s.license_url} rel="noopener license">{t(lang, 'credits.weather.license')}: {licenseLabel(s.license)}</a></Fragment>}</li>
+          ))}
+        </ul>
+      </div>
     </div>
   </section>
 
@@ -159,7 +168,7 @@ const toc = [
   .cr__toc ol { list-style: none; margin: 0; padding: 0; border-block-start: 1px solid var(--rule); }
   .cr__toc a { display: flex; gap: 14px; align-items: baseline; padding-block: 10px; border-block-end: 1px solid var(--rule); text-decoration: none; min-block-size: 44px; }
   .cr__toc .mono { font-size: var(--step--2); color: var(--muted); }
-  @media (min-width: 900px) { .cr__intro { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: end; } }
+  @media (min-width: 900px) { .cr__intro { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: start; } }
   .cr__sec { scroll-margin-block-start: var(--header-h); }
   .ph { list-style: none; margin: 28px 0 0; padding: 0; }
   .ph__row { display: grid; gap: 10px 20px; padding-block: 16px; border-block-end: 1px solid var(--rule); grid-template-columns: 112px minmax(0, 1fr); grid-template-areas: "plate main" "meta meta"; scroll-margin-block-start: calc(var(--header-h) + 16px); }
@@ -174,7 +183,7 @@ const toc = [
   .ph__meta dd { margin: 2px 0 0; overflow-wrap: anywhere; }
   .ph__meta a, .fonts__links a, .cr__links a, .rs td a, .cr__weather a, .cr__sec > p > a { display: inline-flex; align-items: center; min-block-size: 24px; }
   .rs td a { min-block-size: 24px; padding-block: 2px; }
-  @media (pointer: coarse) { .ph__meta a, .fonts__links a, .cr__links a { min-block-size: 44px; } }
+  @media (pointer: coarse) { .ph__meta a, .fonts__links a, .cr__links a, .cr__sec > p > a { min-block-size: 44px; min-inline-size: 44px; } }
   @media (min-width: 900px) { .ph__row { grid-template-columns: 160px minmax(0, 5fr) minmax(0, 6fr); grid-template-areas: "plate main meta"; align-items: center; } }
   .cr__cols { display: grid; gap: 24px; margin-block-start: 22px; }
   @media (min-width: 900px) { .cr__cols { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); } }
@@ -182,7 +191,10 @@ const toc = [
   .cr__sub { margin-block-start: 18px; color: var(--muted); }
   .cr__links { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
   .cr__links--row { margin-block-start: 20px; display: flex; flex-wrap: wrap; gap: 10px 28px; }
-  .cr__weather { font-size: var(--step--1); text-transform: none; letter-spacing: 0.02em; }
+  .cr__weather { font-size: var(--step--1); text-transform: none; letter-spacing: 0.02em; display: grid; gap: 10px; align-content: start; }
+  /* the provider link is written by the script below (no scoped class on it) */
+  .cr__weather :global(a) { display: inline-flex; align-items: center; min-block-size: 24px; }
+  @media (pointer: coarse) { .cr__weather :global(a) { min-block-size: 44px; } }
   .fonts { list-style: none; margin: 24px 0 0; padding: 0; }
   .fonts__row { display: grid; gap: 6px 24px; padding-block: 18px; border-block-end: 1px solid var(--rule); align-items: baseline; }
   .fonts__specimen { font-size: var(--step-4); line-height: 1; overflow-wrap: anywhere; }
@@ -204,15 +216,34 @@ const toc = [
 
 <script>
   import { getLive } from '../scripts/livefeed';
+  import type { LiveX } from '../scripts/home';
+  // every provider /api/live reports (weather, sea, air/waves when used, sun), each with its own
+  // link and licence link; the server line stays when the readings cannot be loaded
   const el = document.querySelector<HTMLElement>('[data-weather-credit-text]');
+  const box = el?.closest<HTMLElement>('[data-weather-credit]');
+  const word = box?.dataset.licenseWord ?? 'licence';
+  const licName = (x: string) => (/^public domain$/i.test(x) ? box?.dataset.pd || x : x);
   if (el) {
     getLive().then((l) => {
-      if (!l?.attribution) return;
-      const a = document.createElement('a');
-      a.href = l.attribution.url;
-      a.rel = 'noopener';
-      a.textContent = document.documentElement.lang === 'en' ? l.attribution.en : l.attribution.sq;
-      el.replaceChildren(a);
-    });
+      const en = document.documentElement.lang === 'en';
+      const sources = (l as LiveX | null)?.sources ?? [];
+      const rows = sources.length ? sources : l?.attribution ? [{ sq: l.attribution.sq, en: l.attribution.en, url: l.attribution.url, license: '', license_url: '' }] : [];
+      if (!rows.length) return;
+      el.replaceChildren(...rows.map((s) => {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = s.url; a.rel = 'noopener'; a.textContent = en ? s.en : s.sq;
+        li.append(a);
+        if (s.license) {
+          li.append(' · ');
+          if (s.license_url) {
+            const lic = document.createElement('a');
+            lic.href = s.license_url; lic.rel = 'noopener license'; lic.textContent = `${word}: ${licName(s.license)}`;
+            li.append(lic);
+          } else li.append(`${word}: ${licName(s.license)}`);
+        }
+        return li;
+      }));
+    }).catch(() => { /* the server line stays */ });
   }
 </script>

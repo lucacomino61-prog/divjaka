@@ -3,11 +3,12 @@ slug: pelikani-kacurrel
 lang: en
 title: The Dalmatian pelican
 description: The park’s emblem and its only breeding place in Albania: the island, the season, the colony’s numbers and how to watch without disturbing it.
-updated: 2026-10-23
+updated: 2026-10-26
 order: 2
 topic: birds
 kicker: Birds
 hero: pelicans-karavasta
+hero_focus: 50% 85%
 pins: pelican-island*, bird-hide-godulla
 related: shpendet-e-lagunes-ne-agim, fundjave-me-pelikanet, dylbi-me-qira
 place: pelican-island

@@ -7,19 +7,23 @@ import { GET as orderGET } from '../../../api/admin/orders/[id]';
 import type { Order, OrderItem } from '../../../../lib/db/repo/orders';
 import { formatDate, formatRange, nights as nightsWord, tirane } from '../../../../i18n/format';
 import { daysBetween } from '../../../../lib/time';
+import { getProduct } from '../../../../lib/db/repo/products';
 import { business } from '../../../../components/site/site-data';
 
 const lang = adminLang(Astro);
 const T = tr(lang);
 const code = String(Astro.params.code ?? '');
 const data = await callApi<{ order: Order; items: OrderItem[] }>(orderGET as never, Astro, undefined, { id: code });
-if (!data) return Astro.redirect('/admin/porosite/', 303);
+if (!data) return Astro.redirect(`/admin/porosite/?notfound=${encodeURIComponent(code.slice(0, 40))}`, 303);
 const { order: o, items } = data;
 const b = await business();
+// Line names in the admin's language (the order keeps the name in the guest's language).
+const itemName = (it: OrderItem) => { const p = it.product_id ? getProduct(it.product_id) : undefined; return p ? (lang === 'en' ? p.name_en || p.name_sq : p.name_sq) || it.name : it.name; };
 const meta = (it: OrderItem) => {
   const m = (it.meta ?? {}) as { starts_at?: string; amount?: number };
   if (it.kind === 'room' && it.date_from && it.date_to) return `${formatRange(it.date_from, it.date_to, lang)} · ${nightsWord(daysBetween(it.date_from, it.date_to), lang)} · ${T('admin.order.rooms', { n: it.qty })}${it.guests ? ' · ' + T('admin.order.guests', { n: it.guests }) : ''}`;
   if (it.kind === 'experience' && m.starts_at) return `${T('admin.order.session', { date: formatDate(m.starts_at.slice(0, 10), lang, 'long'), time: m.starts_at.slice(11, 16) })} · ${T('admin.order.guests', { n: it.guests ?? it.qty })}`;
+  if (it.kind === 'gift' && m.amount) return `${T('admin.order.amount', { amount: lek(m.amount, lang) })} · × ${it.qty}`;
   return `× ${it.qty}`;
 };
 ---
@@ -44,7 +48,7 @@ const meta = (it: OrderItem) => {
       </header>
       <div class="osheet__body">
         <ul class="lines">
-          {items.map((it) => <li class="lines__row"><span class="lines__name">{it.name}</span><span class="mono">{lek(it.line_total, lang)}</span><span class="lines__meta mono">{meta(it)}</span></li>)}
+          {items.map((it) => <li class="lines__row"><span class="lines__name">{itemName(it)}{itemName(it) !== it.name && <span class="cell-sub muted" lang={o.lang === 'en' ? 'en' : 'sq'}>{it.name}</span>}</span><span class="mono">{lek(it.line_total, lang)}</span><span class="lines__meta mono">{meta(it)}</span></li>)}
         </ul>
         <dl class="sums">
           <dt>{T('admin.order.subtotal')}</dt><dd>{lek(o.subtotal, lang)}</dd>

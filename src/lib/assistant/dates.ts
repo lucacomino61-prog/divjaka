@@ -13,7 +13,11 @@ import { addDays, daysBetween, isDate, weekday } from '../time';
  * korrik); 'past' — the start has passed (dje / yesterday, an explicit past date). The assistant
  * then asks again instead of answering for dates nobody asked about.
  */
-export interface ParsedDates { from: string | null; to: string | null; nights: number | null; guests: number | null; explicit: boolean; problem: 'invalid' | 'order' | 'past' | null }
+export interface ParsedDates {
+  from: string | null; to: string | null; nights: number | null; guests: number | null; explicit: boolean; problem: 'invalid' | 'order' | 'past' | null;
+  /** the text gave a stay, not just a day: an end date, a number of nights, "sonte" or a weekend */
+  range: boolean;
+}
 
 const MONTHS: [string, number][] = [
   ['january', 1], ['janar', 1], ['jan', 1], ['february', 2], ['shkurt', 2], ['feb', 2], ['march', 3], ['mars', 3], ['mar', 3],
@@ -36,14 +40,17 @@ const NUM_WORDS: Record<string, number> = {
 };
 const num = (s: string): number | null => (/^\d+$/.test(s) ? Number(s) : NUM_WORDS[s] ?? null);
 
+// Indefinite and definite forms, with or without the article: "e premte", "të premten",
+// "nga e premtja", "e shtuna", "të dielën", "e hëna" (folded: hena) … plus English.
 const WEEKDAYS: [RegExp, number][] = [
-  [/\b(e )?hene?n?\b|\bmonday\b|\bmon\b/, 1],
-  [/\b(e )?marte?n?\b|\btuesday\b/, 2],
-  [/\b(e )?merkure?n?\b|\bwednesday\b/, 3],
-  [/\b(e )?enjte?n?\b|\bthursday\b/, 4],
-  [/\b(e )?premte?n?\b|\bfriday\b/, 5],
-  [/\b(e )?shtune?n?\b|\bsaturday\b/, 6],
-  [/\b(e )?diele?n?\b|\bsunday\b/, 0],
+  [/\b(e |te )?hen(e|en|a)\b|\bmonday\b|\bmon\b/, 1],
+  [/\b(e |te )?mart(e|en|a)\b|\btuesday\b/, 2],
+  [/\b(e |te )?merkur(e|en|a)\b|\bwednesday\b/, 3],
+  [/\b(e |te )?enjt(e|en|ja)\b|\bthursday\b/, 4],
+  [/\b(e |te )?premt(e|en|ja)\b|\bfriday\b/, 5],
+  [/\b(e |te )?shtun(e|en|a)\b|\bsaturday\b/, 6],
+  // the Sunday word has no ending in its indefinite form: "e diel", "të diel"
+  [/\b(e |te )?diel(e|en|a)?\b|\bsunday\b/, 0],
 ];
 
 const MONTH_WORD = '([a-z]{3,9})';
@@ -104,7 +111,11 @@ export function parseDates(text: string, today: string): ParsedDates {
   // (a time) is not taken for one.
   if (!from && !invalid) {
     const nums = [...t.matchAll(/\b(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?\b/g)]
-      .filter((x) => Number(x[1]) >= 1 && Number(x[1]) <= 31 && Number(x[2]) >= 1 && Number(x[2]) <= 12);
+      .filter((x) => Number(x[1]) >= 1 && Number(x[1]) <= 31 && Number(x[2]) >= 1 && Number(x[2]) <= 12)
+      // a clock time written with a dot ("në orën 12.10", "at 9.30 pm") is not a day.month
+      .filter((x) => !(x[0].includes('.') && !x[3] && (
+        /\b(ora|oren|ore|at|around|rreth|deri ne|until|till)\s*$/.test(t.slice(0, x.index))
+        || /^\s*(am|pm|h\b|e mengjesit|e mbremjes|e pasdites)/.test(t.slice((x.index ?? 0) + x[0].length)))));
     const ds = nums.map((x) => res(today, Number(x[2]), Number(x[1]), x[3] ? Number(x[3]) : undefined));
     if (ds.length && ds.every(Boolean)) { from = ds[0]; to = ds[1] ?? null; }
   }
@@ -156,7 +167,7 @@ export function parseDates(text: string, today: string): ParsedDates {
   if (!from && !invalid && !order) {
     if (/\b(dje|pardje|yesterday)\b/.test(t)) { from = addDays(today, -1); past = true; }
     else if (/\b(pasneser|day after tomorrow)\b/.test(t)) from = addDays(today, 2);
-    else if (/\b(neser|tomorrow)\b/.test(t)) from = addDays(today, 1);
+    else if (/\b(neser|nesr|tomorrow|tomorow|tommorow|tommorrow|tmrw)\b/.test(t)) from = addDays(today, 1);
     else if (/\b(sot|sonte|today|tonight)\b/.test(t)) from = today;
     else if (/\b(fundjav\w*|weekend)\b/.test(t)) {
       const wd = weekday(today);
@@ -180,16 +191,23 @@ export function parseDates(text: string, today: string): ParsedDates {
   else if (/\b(nje jave|a week|one week|1 week|1 jave)\b/.test(t)) nights = 7;
   else if (/\b(sonte|tonight)\b/.test(t)) nights = 1;
   let guests: number | null = null;
-  if ((m = /\b(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|nje|dy|tre|tri|kater|pese|gjashte|shtate|tete|nente|dhjete)\s*(?:persona|person|personat|vete|veta|njerez|people|persons|guests|guest|adults|adult|te rritur|pax)\b/.exec(t))) guests = num(m[1]);
+  if ((m = /\b(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|nje|dy|tre|tri|kater|pese|gjashte|shtate|tete|nente|dhjete)\s*(?:persona|person|personat|vete|veta|njerez|njeri|people|persons|guests|guest|adults|adult|te rritur|pax)\b/.exec(t))) guests = num(m[1]);
+  // "7-9 nëntor për 2", "room 12-14 july for 3": a bare number after për/for is people, unless a
+  // unit or a month follows (nights, days, hours, km, %, "për 2 korrik")
+  else if ((m = /\b(?:per|for)\s+(\d{1,2}|dy|tre|tri|kater|pese|two|three|four|five|six)\b(?!\s*(?:net|nat|night|dit|day|jav|week|or|hour|min|km|%|[./-]\d))/.exec(t))) {
+    const after = t.slice(m.index + m[0].length).trim().split(' ')[0] ?? '';
+    if (!after || !monthOf(after)) guests = num(m[1]);
+  }
 
   if (from && to && to <= from) { order = true; to = null; }
   if (from && from < today) past = true;
   const problem = invalid ? 'invalid' : order ? 'order' : past ? 'past' : null;
-  if (problem) return { from: problem === 'past' ? from : null, to: null, nights: null, guests, explicit: true, problem };
+  const range = !!to || nights != null || weekend;
+  if (problem) return { from: problem === 'past' ? from : null, to: null, nights: null, guests, explicit: true, problem, range };
   if (from && !to) {
     const n = nights ?? (weekend ? 2 : 1);
     to = addDays(from, n);
   }
   if (from && to) nights = daysBetween(from, to);
-  return { from, to, nights, guests, explicit: !!from, problem: null };
+  return { from, to, nights, guests, explicit: !!from, problem: null, range };
 }

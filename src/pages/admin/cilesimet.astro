@@ -30,7 +30,7 @@ const PRIV = ['events_days', 'messages_days', 'orders_days', 'inventory_log_days
 const pages = Object.entries(ROUTES).filter(([, v]) => !v.sq.includes('['));
 const origin = env?.site_url || Astro.url.origin;
 const dis = !owner;
-const toc = [['hoteli', 'business'], ['vleresimet', 'proof'], ['pagesat', 'payments'], ['kursi', 'currency'], ['rrjetet', 'social'], ['seo', 'seo'], ['inventari', 'inventory'], ['privatesia', 'privacy'], ['asistenti', 'assistant'], ['utm', 'utm'], ['fjalekalimi', 'password'], ['serveri', 'env']];
+const toc = [['hoteli', 'business'], ['vleresimet', 'proof'], ['pagesat', 'payments'], ['kursi', 'currency'], ['rrjetet', 'social'], ['seo', 'seo'], ['rezervimi', 'booking'], ['inventari', 'inventory'], ['privatesia', 'privacy'], ['asistenti', 'assistant'], ['utm', 'utm'], ['fjalekalimi', 'password'], ['serveri', 'env']];
 const humanKey = (k: string) => k.replace(/_/g, ' ');
 ---
 <Admin lang={lang} title={T('admin.settings.title')} section="settings" kicker={T('admin.settings.kicker')}>
@@ -49,7 +49,7 @@ const humanKey = (k: string) => k.replace(/_/g, ' ');
             <div class="fld">
               <label class="fld__label mono" for={`b-${f}`}>{T(`admin.settings.b.${f}`)}{ph.has(f) && <span class="unconf mono">{T('admin.settings.unconfirmed')}</span>}</label>
               <input id={`b-${f}`} class="fld__input" type={(type ?? 'text') as 'text'} name={`business.${f}`} value={String(b[f] ?? '')} />
-              {ph.has(f) && b[f] && <label class="fld--check fld" style="min-block-size:36px"><input class="check" type="checkbox" data-confirm-field={`business.${f}`} /><span class="fld__label">{T('admin.settings.confirm.field')}</span></label>}
+              {ph.has(f) && b[f] && <label class="fld--check fld"><input class="check" type="checkbox" data-confirm-field={`business.${f}`} /><span class="fld__label">{T('admin.settings.confirm.field')}</span></label>}
             </div>
           ))}
           <div class="fields">
@@ -132,6 +132,17 @@ const humanKey = (k: string) => k.replace(/_/g, ' ');
             </li>
           ))}
         </ol>
+        <template data-proof-template>
+          <li class="fields proofrow" data-proof-row data-extra="{}">
+            <div class="fld"><label class="fld__label mono">{T('admin.settings.proof.label_sq')}<input class="fld__input" data-k="label_sq" /></label></div>
+            <div class="fld"><label class="fld__label mono">{T('admin.settings.proof.label_en')}<input class="fld__input" data-k="label_en" /></label></div>
+            <div class="fld"><label class="fld__label mono">{T('admin.settings.proof.value')}<input class="fld__input" data-k="value" /></label></div>
+            <div class="fld"><label class="fld__label mono">{T('admin.settings.proof.count')}<input class="fld__input" type="number" min="0" data-k="count" /></label></div>
+            <div class="fld span-2"><label class="fld__label mono">{T('admin.settings.proof.url')}<input class="fld__input" type="url" data-k="source_url" /></label></div>
+            <div class="fld"><label class="fld__label mono">{T('admin.settings.proof.date')}<input class="fld__input" type="date" data-k="date" /></label></div>
+            <div class="fld" style="align-self:end"><button type="button" class="btn-text btn-text--danger" data-proof-remove>{T('admin.remove')}</button></div>
+          </li>
+        </template>
         {owner && <div class="form-actions"><button type="button" class="btn-text" data-proof-add>+ {T('admin.settings.proof.add')}</button><button class="pill pill--primary pill--s" type="submit">{T('admin.save')}</button></div>}
       </fieldset>
     </form>
@@ -145,7 +156,7 @@ const humanKey = (k: string) => k.replace(/_/g, ' ');
         <fieldset class="group" disabled={dis} style="gap:14px">
           {socialKeys.map((k) => <div class="fld"><label class="fld__label mono" for={`so-${k}`}>{humanKey(k)}</label><input id={`so-${k}`} class="fld__input" type="url" name={`social.${k}`} value={s.social[k] ?? ''} placeholder="https://" inputmode="url" /></div>)}
           <div class="fields" data-social-new>
-            <div class="fld"><label class="fld__label mono" for="so-new-k">{T('admin.settings.social.other')} · {T('admin.settings.social.key')}</label><input id="so-new-k" class="fld__input" data-social-key pattern="[a-z0-9_-]{1,30}" /></div>
+            <div class="fld"><label class="fld__label mono" for="so-new-k">{T('admin.settings.social.other')} · {T('admin.settings.social.key')}</label><input id="so-new-k" class="fld__input" data-social-key data-pattern="^([a-z0-9_-]{1,30})?$" data-pattern-msg="admin.field.e.key" /></div>
             <div class="fld"><label class="fld__label mono" for="so-new-v">{T('admin.settings.social.url')}</label><input id="so-new-v" class="fld__input" type="url" data-social-url placeholder="https://" /></div>
           </div>
           {owner && <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.save')}</button></div>}
@@ -160,6 +171,22 @@ const humanKey = (k: string) => k.replace(/_/g, ' ');
           <fieldset class="group" disabled={dis} style="gap:16px">
             <div class="fld"><label class="fld__label mono" for="se-url">{T('admin.settings.seo.site_url')}{!s.seo.site_url && <span class="unconf mono">{T('admin.settings.unconfirmed')}</span>}</label><input id="se-url" class="fld__input" type="url" name="seo.site_url" value={s.seo.site_url} placeholder="https://" /><p class="fld__help">{T('admin.settings.seo.site_url.help')}</p></div>
             <div class="fld"><label class="fld__label mono" for="se-img">{T('admin.settings.seo.default_image')}</label><input id="se-img" class="fld__input" name="seo.default_image" value={s.seo.default_image} placeholder="/og-default.png" /></div>
+            {owner && <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.save')}</button></div>}
+          </fieldset>
+        </form>
+        <div class="fld" style="margin-block-start:20px">
+          <label class="fld__label mono" for="se-feed">{T('admin.settings.feed')}</label>
+          <div class="row" style="flex-wrap:nowrap"><input id="se-feed" class="fld__input mono-lc" readonly value={`${origin}/feed/products.xml`} aria-describedby="se-feed-help" /><button type="button" class="pill pill--outline pill--s" data-copy="#se-feed">{T('admin.copy')}</button></div>
+          <p class="fld__help" id="se-feed-help">{T('admin.settings.feed.help')}{!env?.site_url && <> {T('admin.settings.utm.nosite')}</>}</p>
+        </div>
+      </section>
+
+      <section class="blk" id="rezervimi" aria-labelledby="bk-t">
+        <div class="blk__head"><h2 class="blk__title" id="bk-t">{T('admin.settings.booking')}</h2></div>
+        <form data-api="/api/admin/settings" data-method="PUT" data-field-prefix="booking.">
+          <fieldset class="group" disabled={dis} style="gap:12px">
+            <label class="fld fld--check"><input class="check" type="checkbox" name="booking.best_rate_direct" data-type="bool" checked={s.booking.best_rate_direct} aria-describedby="bk-best-help" /><span class="fld__label">{T('admin.settings.booking.best')}</span></label>
+            <p class="fld__help" id="bk-best-help">{T('admin.settings.booking.best.help')}</p>
             {owner && <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.save')}</button></div>}
           </fieldset>
         </form>

@@ -20,7 +20,7 @@ const mailto = (email: string, subject: string | null) => `mailto:${email}?subje
   <div class="range">
     <ul class="range__presets" aria-label={T('admin.status')}>
       <li><a class="chip" href={withParam(Astro.url, { status: null, offset: null })} aria-current={!status ? 'true' : undefined}>{T('admin.all')}</a></li>
-      {['new', 'read', 'done'].map((s) => <li><a class="chip" href={withParam(Astro.url, { status: s, offset: null })} aria-current={status === s ? 'true' : undefined}>{T(`admin.messages.status.${s}`)}{s === 'new' && data.unread ? ` · ${data.unread}` : ''}</a></li>)}
+      {['new', 'read', 'done'].map((s) => <li><a class="chip" href={withParam(Astro.url, { status: s, offset: null })} aria-current={status === s ? 'true' : undefined}>{T(`admin.messages.status.${s}`)}{s === 'new' && data.unread > 0 && <span data-chip-new> · <span data-chip-n>{data.unread}</span></span>}</a></li>)}
     </ul>
     <ul class="range__presets" aria-label={T('admin.messages.kind')}>
       <li><a class="chip" href={withParam(Astro.url, { kind: null, offset: null })} aria-current={!kind ? 'true' : undefined}>{T('admin.all')}</a></li>
@@ -36,7 +36,7 @@ const mailto = (email: string, subject: string | null) => `mailto:${email}?subje
             <span class="msg__dot" aria-hidden="true"></span>
             <span class="msg__from">{m.name || m.email || T('admin.messages.anon')} <span class="mono muted" style="font-size:10.5px">· {T(`admin.messages.kind.${m.kind}`)}</span></span>
             <span class="msg__when mono">{when(m.created_at, lang)}</span>
-            <span class="msg__subj">{m.status === 'new' && <span class="visually-hidden">{T('admin.messages.status.new')} · </span>}{m.subject || m.body.slice(0, 120)}</span>
+            <span class="msg__subj">{m.status === 'new' && <span class="visually-hidden" data-new-prefix>{T('admin.messages.status.new')} · </span>}{m.subject || m.body.slice(0, 120)}</span>
           </summary>
           <div class="msg__body" data-action-scope>
             <p class="msg__text">{m.body}</p>
@@ -44,13 +44,13 @@ const mailto = (email: string, subject: string | null) => `mailto:${email}?subje
               {m.email && <><dt>{T('admin.customer.email')}</dt><dd><a href={mailto(m.email, m.subject)}>{m.email}</a></dd></>}
               {m.phone && <><dt>{T('admin.customer.phone')}</dt><dd><a href={`tel:${m.phone.replace(/[^\d+]/g, '')}`}>{m.phone}</a></dd></>}
               <dt>{T('admin.order.lang')}</dt><dd class="mono">{(m.lang ?? 'sq').toUpperCase()}</dd>
-              <dt>{T('admin.status')}</dt><dd><Badge tone={m.status === 'new' ? 'signal' : m.status === 'done' ? 'ink' : 'muted'}>{T(`admin.messages.status.${m.status}`)}</Badge></dd>
+              <dt>{T('admin.status')}</dt><dd data-msg-status><Badge tone={m.status === 'new' ? 'signal' : m.status === 'done' ? 'ink' : 'muted'}>{T(`admin.messages.status.${m.status}`)}</Badge></dd>
             </dl>
             <div class="row">
               {m.email && <a class="pill pill--primary pill--s" href={mailto(m.email, m.subject)}>{T('admin.messages.reply')}</a>}
               {m.phone && <a class="pill pill--outline pill--s" href={`tel:${m.phone.replace(/[^\d+]/g, '')}`}>{T('admin.messages.call')}</a>}
               {m.status !== 'done' && <button type="button" class="pill pill--outline pill--s" data-action={`/api/admin/messages/${m.id}`} data-method="PATCH" data-body='{"status":"done"}'>{T('admin.messages.mark.done')}</button>}
-              {m.status !== 'new' && <button type="button" class="btn-text" data-action={`/api/admin/messages/${m.id}`} data-method="PATCH" data-body='{"status":"new"}'>{T('admin.messages.mark.new')}</button>}
+              <button type="button" class="btn-text" data-mark-new hidden={m.status === 'new'} data-action={`/api/admin/messages/${m.id}`} data-method="PATCH" data-body='{"status":"new"}'>{T('admin.messages.mark.new')}</button>
             </div>
           </div>
         </details>
@@ -63,12 +63,42 @@ const mailto = (email: string, subject: string | null) => `mailto:${email}?subje
   </nav>
   <script>
     import { api } from '../../scripts/admin/api';
-    // Opening a new message marks it read (quietly, no reload).
+    import { tc } from '../../i18n/client';
+    /** One message fewer in the nav counts (sidebar, phone menu, phone bar); a count at 0 goes. */
+    function countDown(): void {
+      for (const c of document.querySelectorAll<HTMLElement>('.adm-nav__count[data-count="messages"], .adm-phonebar__count')) {
+        const nEl = c.querySelector<HTMLElement>('[data-count-n]');
+        const n = Math.max(0, Number(nEl?.textContent ?? 0) - 1);
+        if (!n) { c.remove(); continue; }
+        if (nEl) nEl.textContent = String(n);
+        const label = c.querySelector<HTMLElement>('[data-count-label]');
+        if (label) { label.textContent = tc('admin.nav.unread', { n }); c.title = label.textContent; }
+      }
+      // the filter chip “I ri · N” on this page, too
+      const chip = document.querySelector<HTMLElement>('[data-chip-new]');
+      const cn = chip?.querySelector<HTMLElement>('[data-chip-n]');
+      if (chip && cn) { const n = Math.max(0, Number(cn.textContent) - 1); if (n) cn.textContent = String(n); else chip.remove(); }
+    }
+    // Opening a new message marks it read (quietly, no reload) and the page says so at once.
     for (const d of document.querySelectorAll<HTMLDetailsElement>('details[data-msg]')) {
       d.addEventListener('toggle', async () => {
         if (!d.open || d.dataset.status !== 'new') return;
         d.dataset.status = 'read';
-        try { await api(`/api/admin/messages/${d.dataset.msg}`, 'PATCH', { status: 'read' }); d.classList.remove('is-new'); } catch { d.dataset.status = 'new'; }
+        try {
+          await api(`/api/admin/messages/${d.dataset.msg}`, 'PATCH', { status: 'read' });
+          d.classList.remove('is-new');
+          d.querySelector('[data-new-prefix]')?.remove();
+          const badge = d.querySelector<HTMLElement>('[data-msg-status] .badge');
+          if (badge) {
+            const mark = badge.querySelector('.badge__mark');
+            badge.replaceChildren(...(mark ? [mark] : []), tc('admin.messages.status.read'));
+            badge.classList.replace('badge--signal', 'badge--muted');
+          }
+          // opened by mistake? it can be marked new again without a reload
+          const again = d.querySelector<HTMLElement>('[data-mark-new]');
+          if (again) again.hidden = false;
+          countDown();
+        } catch { d.dataset.status = 'new'; }
       });
     }
   </script>

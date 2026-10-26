@@ -70,7 +70,8 @@ const defTag = Astro.props.tags ?? (mode === 'signature' ? 'number' : mode === '
 const showLetters = Astro.props.lettering ?? mode !== 'mini';
 const showScale = Astro.props.scale ?? true;
 
-const L = layers();
+// mini = a thumbnail: a lighter layer set (README → Chart, point budget)
+const L = layers(mode === 'mini' ? 'mini' : 'full');
 
 // pins → resolved points (unknown ids are dropped, never guessed)
 interface Placed { key: string; x: number; y: number; name: string; n: string; selected: boolean; side: 'left' | 'right'; fixedSide: boolean; down: boolean; zone: boolean; tag: string; home: boolean; approx: boolean }
@@ -147,23 +148,22 @@ const fmtKm = (k: number) => `${k} km`;
           </g>
           <path class="chart__park" d={L.park} data-layer="park" />
           <g class="chart__forest" data-layer="forest">
-            <path d={L.forest} fill={`url(#${uid}-hatch)`} class="chart__forest-fill" />
-            <path d={L.forest} class="chart__forest-edge" />
+            <path d={L.forest} fill={`url(#${uid}-hatch)`} class="chart__forest-fill chart__forest-main" />
             {L.forestOther.map((d) => <path d={d} fill={`url(#${uid}-hatch)`} class="chart__forest-fill chart__forest-fill--other" />)}
           </g>
           <g class="chart__waters" data-layer="waters">
             {L.lagoonsOther.map((o) => <path d={o.d} fill-rule="evenodd" />)}
             {L.islands.map((d) => <path d={d} class="chart__island" />)}
           </g>
-          <path class="chart__water" d={L.lagoon} fill-rule="evenodd" data-layer="water" />
+          <path class:list={['chart__water', mode === 'mini' && 'chart__water--shore']} d={L.lagoon} fill-rule="evenodd" data-layer="water" />
           <g class="chart__waterlines" data-layer="waterlines">
             {L.waterlines.map((d, i) => <path d={d} data-waterline={i} />)}
           </g>
           <g class="chart__rivers" data-layer="rivers">{L.rivers.map((r) => <path d={r.d} />)}</g>
           <g class="chart__roads" data-layer="roads">{L.roads.map((d) => <path d={d} />)}</g>
           <path class="chart__coast" d={L.coast} data-draw="coast" />
-          <path class="chart__shore" d={L.shore} fill="none" data-draw="shore" />
-          <path class="chart__shore chart__islets" d={L.islets} fill="none" data-layer="islets" />
+          {mode !== 'mini' && <path class="chart__shore" d={L.shore} fill="none" data-draw="shore" />}
+          {mode !== 'mini' && <path class="chart__shore chart__islets" d={L.islets} fill="none" data-layer="islets" />}
           {routePts.length > 1 && (
             <g class:list={['chart__route', `chart__route--${routeTone}`]} data-layer="route">
               {routePts.slice(1).map((p, i) => (
@@ -180,12 +180,14 @@ const fmtKm = (k: number) => `${k} km`;
       <div class="chart__nodata mono">{t(lang, 'chart.nodata')}</div>
     )}
     <div class="chart__layer" data-chart-layer aria-hidden="true">
-      {L && showLetters && L.lettering.map((l) => (
+      {/* a place name is drawn only when its dot is inside the crop (else its text hangs cut at the edge: "DIVJA") */}
+      {L && showLetters && L.lettering.filter((l) => l.kind !== 'place' || (l.x >= cx + 4 && l.x <= cx + cw - 4 && l.y >= cy + 4 && l.y <= cy + ch - 4)).map((l) => (
         <span
           class:list={['chart__letter', `chart__letter--${l.kind}`, l.size && `chart__letter--${l.size}`, l.kind === 'place' && l.x > cx + cw * 0.72 && 'chart__letter--end']}
           data-letter={l.key}
           data-x={l.x.toFixed(1)}
           data-y={l.y.toFixed(1)}
+          data-w={l.w ? l.w.toFixed(1) : undefined}
           style={`left:${pct(l.x, cx, cw)};top:${pct(l.y, cy, ch)}`}
         ><span class="chart__letter-in" data-letter-text>{l.text[lang]}</span></span>
       ))}
@@ -218,7 +220,7 @@ const fmtKm = (k: number) => `${k} km`;
         <span class="chart__scale-bar" aria-hidden="true"></span>
         <span class="chart__scale-label">0 — {fmtKm(kmStep)}</span>
       </span>
-      <span class="chart__north" aria-label={t(lang, 'chart.north')}><span aria-hidden="true">↑</span> {lang === 'sq' ? 'V' : 'N'}</span>
+      <span class="chart__north"><span aria-hidden="true">↑ {lang === 'sq' ? 'V' : 'N'}</span><span class="visually-hidden">{t(lang, 'chart.north')}</span></span>
       <a class="chart__osm" href="https://www.openstreetmap.org/copyright" rel="noopener">© OpenStreetMap</a>
       <slot name="caption" />
     </figcaption>
@@ -237,13 +239,14 @@ const fmtKm = (k: number) => `${k} km`;
   .chart__sea path { fill: none; stroke: var(--ink-40); stroke-width: 0.75; }
   .chart__park { fill: none; stroke: var(--ink-70); stroke-width: 1; stroke-dasharray: 5 4; }
   .chart__hatch-line { stroke: var(--ink-40); stroke-width: 0.55; vector-effect: none !important; }
-  .chart__forest-edge { fill: none; stroke: var(--ink-40); stroke-width: 0.75; }
+  .chart__forest-main { stroke: var(--ink-40); stroke-width: 0.75; }
   .chart__forest-fill--other { opacity: 0.55; }
   .chart__waters path { fill: var(--salt-2); stroke: var(--ink-70); stroke-width: 0.75; }
   .chart__waters .chart__island { fill: var(--salt); stroke: var(--ink); stroke-width: 1; }
   .chart__water { fill: var(--salt-2); stroke: none; }
+  .chart__water--shore { stroke: var(--ink); stroke-width: 1.1; stroke-linejoin: round; }
   .chart__waterlines path { fill: none; stroke: var(--ink-40); stroke-width: 0.75; }
-  .chart__waterlines path:nth-child(n + 4) { stroke-width: 0.6; }
+  .chart__waterlines path:nth-child(n + 3) { stroke-width: 0.6; }
   .chart__rivers path { fill: none; stroke: var(--ink-40); stroke-width: 1.25; stroke-linecap: round; }
   .chart__roads path { fill: none; stroke: var(--ink-70); stroke-width: 0.75; stroke-dasharray: 1 0; }
   .chart__coast { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }

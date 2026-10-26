@@ -17,12 +17,13 @@ import Pill from '../components/site/Pill.astro';
 import SourceList from '../components/site/SourceList.astro';
 import Chart from '../components/chart/Chart.astro';
 import StaySearch from '../components/booking/StaySearch.astro';
+import BookingSheet from '../components/booking/BookingSheet.astro';
 import RoomTags from '../components/stay/RoomTags.astro';
 import { hotelInfo, amenities, proofLine } from '../components/stay/facts';
 import { fromHotelKm, kmLabel, poi } from '../components/chart/geo';
 import { hotelSpot, siteOriginOf, business, confirmed } from '../components/site/site-data';
 import {
-  bestRateConfirmed, horizonDate, pickMonth, publishedRooms, rangeFromParams, stayDays, todayLocal, ymOf,
+  bestRateConfirmed, horizonDate, pickMonth, publishedRooms, rangeFromParams, rangeProblem, stayDays, todayLocal, ymOf,
 } from '../components/booking/server';
 import { findPublished } from '../lib/catalog';
 import { t } from '../i18n/ui';
@@ -39,8 +40,11 @@ const numbers = Object.fromEntries(rooms.map((r, i) => [r.slug, String(i + 1).pa
 const view = sp.get('pamja') === 'liste' ? 'list' : 'tags';
 
 // search card state from the URL (?nga=&deri=&persona=&muaji=)
-const range = rangeFromParams(sp.get('nga'), sp.get('deri'));
-const guests = Math.min(20, Math.max(1, Number(sp.get('persona')) || 2));
+const problem = rangeProblem(sp.get('nga'), sp.get('deri'));
+const range = problem ? null : rangeFromParams(sp.get('nga'), sp.get('deri'));
+const rangeNote = problem ? t(lang, problem.key, { ...problem.vars, ...(problem.vars?.date ? { date: formatDate(String(problem.vars.date), lang, 'medium') } : {}) }) : null;
+const maxGuests = 5 * Math.max(1, ...rooms.map((r) => r.capacity ?? 2));
+const guests = Math.min(maxGuests, Math.max(1, Math.trunc(Number(sp.get('persona'))) || 2));
 const maxYm = ymOf(horizonDate());
 const ym = pickMonth(sp.get('muaji'), range ? ymOf(range.from) : ymOf(todayLocal()), maxYm);
 const days = stayDays(rooms, ym);
@@ -70,19 +74,20 @@ const sources = [
   ...(proof ? [{ title: lang === 'sq' ? 'Vlerësimi i mysafirëve' : 'Guest score', url: proof.url, publisher: proof.site, accessed: proof.date }] : []),
 ];
 
+// JSON-LD: the SAME node as Base's Hotel (@id /#hotel), extended with what this page adds. Name,
+// url, address and geo stay Base's only (no second, conflicting value on one entity).
+// checkinTime/checkoutTime only once the owner saved them (the listing's values are shown on the
+// page with their source, but not sent to search engines as the hotel's own).
+const langs = info.languages;
 const jsonld = {
   '@context': 'https://schema.org',
   '@type': 'Hotel',
   '@id': `${origin}/#hotel`,
-  name: 'Hotel Pelikan',
-  url: new URL(base, origin).href,
-  ...(address ? { address: { '@type': 'PostalAddress', streetAddress: address, addressLocality: 'Divjakë', postalCode: '9022', addressCountry: 'AL' } } : {}),
-  ...(spot.verified ? { geo: { '@type': 'GeoCoordinates', latitude: spot.lat, longitude: spot.lon } } : {}),
-  ...(info.checkin ? { checkinTime: info.checkin } : {}),
-  ...(info.checkout ? { checkoutTime: info.checkout } : {}),
+  ...(info.checkinOwner ? { checkinTime: info.checkinOwner } : {}),
+  ...(info.checkoutOwner ? { checkoutTime: info.checkoutOwner } : {}),
   amenityFeature: amenities(lang).map((name) => ({ '@type': 'LocationFeatureSpecification', name, value: true })),
-  petsAllowed: lang === 'sq' ? 'Me kërkesë' : 'On request',
-  availableLanguage: ['sq', 'en', 'it'],
+  ...(info.rows.some((r) => r.key === 'pets') ? { petsAllowed: lang === 'sq' ? 'Me kërkesë' : 'On request' } : {}),
+  ...(langs.length ? { availableLanguage: langs } : {}),
   containsPlace: rooms.map((r) => ({
     '@type': 'HotelRoom', '@id': new URL(path('room', lang, { slug: r.slug }), origin).href + '#room',
     name: lang === 'en' ? r.name_en : r.name_sq, url: new URL(path('room', lang, { slug: r.slug }), origin).href,
@@ -93,11 +98,11 @@ const jsonld = {
 <Base lang={lang} title={t(lang, 'page.stay.title')} description={t(lang, 'stay.meta.description')} routeKey="stay" jsonld={jsonld} clientKeys={['booking.', 'stay.search.']}>
   <div class="stay">
     <section class="stay-hero wrap" aria-labelledby="stay-h">
-      <Breadcrumbs lang={lang} items={[{ label: t(lang, 'nav.stay') }]} class="stay-hero__crumbs" />
-      <SectionHead as="h1" id="stay-h" index={t(lang, 'stay.index')} kicker={t(lang, 'stay.kicker')} title={t(lang, 'stay.title')} size="poster">
-        <span slot="aside" class="mono stay-hero__coords">{coords(spot.lat, spot.lon)}</span>
-      </SectionHead>
-      <div class="stay-hero__grid">
+      <div class="stay-hero__main">
+        <Breadcrumbs lang={lang} items={[{ label: t(lang, 'nav.stay') }]} class="stay-hero__crumbs" />
+        <SectionHead as="h1" id="stay-h" index={t(lang, 'stay.index')} kicker={t(lang, 'stay.kicker')} title={t(lang, 'stay.title')} size="poster">
+          <span slot="aside" class="mono stay-hero__coords">{coords(spot.lat, spot.lon)}</span>
+        </SectionHead>
         <div class="stay-hero__text">
           <p class="lede stay-hero__lead">{t(lang, 'stay.lead')}</p>
           <dl class="stay-facts">
@@ -115,16 +120,14 @@ const jsonld = {
               <span class="muted"> · {t(lang, 'stay.proofDate', { date: formatDate(proof.date, lang, 'medium') })}</span>
             </p>
           )}
-          <p class="stay-direct">
-            <span class="stay-direct__pin" aria-hidden="true"></span>
-            <span>{t(lang, 'stay.direct.title')}</span>
-          </p>
-        </div>
-        <div class="stay-hero__card">
-          <StaySearch lang={lang} rooms={rooms} ym={ym} days={days} min={ymOf(todayLocal())} max={maxYm} hrefFor={hrefFor} from={range?.from} to={range?.to} guests={guests} bestRate={bestRate} />
+          <p class="stay-direct mono">{t(lang, 'stay.direct.title')}</p>
         </div>
       </div>
+      <div class="stay-hero__card" data-bk-slot>
+        <StaySearch lang={lang} rooms={rooms} ym={ym} days={days} min={ymOf(todayLocal())} max={maxYm} hrefFor={hrefFor} from={range?.from} to={range?.to} note={rangeNote} guests={guests} bestRate={bestRate} />
+      </div>
     </section>
+    <BookingSheet lang={lang} label={t(lang, 'booking.permit.stay')} text={t(lang, 'booking.pill.stay')} cta={t(lang, 'booking.pill.stayCta')} />
 
     <section class="sheet wrap" id="dhomat" aria-labelledby="rooms-h">
       <SectionHead id="rooms-h" index={t(lang, 'stay.rooms.index')} kicker={t(lang, 'stay.rooms.kicker')} title={t(lang, 'stay.rooms.title')} size="heading" />
@@ -202,12 +205,17 @@ const jsonld = {
 </script>
 
 <style>
-  .stay-hero { display: grid; gap: clamp(14px, 2vw, 24px); padding-block: clamp(10px, 1.6vw, 20px) var(--section-gap); }
+  /* first screen (DESIGN §6): the poster and the hotel's own facts on the left, the search card
+     beside them from the top on desktop — dates, guests and "Shiko dhomat e lira" visible at rest.
+     Phones: the card lives in the sheet opened by the sticky pill (BookingSheet). */
+  .stay-hero { display: grid; gap: clamp(28px, 4vw, 56px); align-items: start; padding-block: clamp(10px, 1.6vw, 20px) var(--section-gap); }
+  .stay-hero__main { display: grid; gap: clamp(14px, 2vw, 24px); min-inline-size: 0; }
   .stay-hero :global(.stay-hero__crumbs) { margin-block-end: -4px; }
   .stay-hero__coords { color: var(--muted); font-size: var(--step--2); }
-  .stay-hero__grid { display: grid; gap: clamp(28px, 4vw, 64px); align-items: start; margin-block-start: clamp(12px, 2.4vw, 44px); }
-  .stay-hero__text { display: grid; gap: 18px; align-content: start; }
-  .stay-hero__lead { max-inline-size: 22ch; }
+  .stay-hero__text { display: grid; gap: 18px; align-content: start; margin-block-start: clamp(4px, 1.2vw, 20px); }
+  .stay-hero__card { min-inline-size: 0; }
+  :global(html:has(.stay-hero)) { scroll-padding-block-end: 88px; }
+  .stay-hero__lead { max-inline-size: 30ch; }
   .stay-facts { margin: 6px 0 0; display: grid; }
   .stay-facts__row { display: grid; grid-template-columns: minmax(7em, 1fr) minmax(0, 2.6fr); gap: 4px 18px; padding-block: 12px; border-block-start: 1px solid var(--rule); }
   .stay-facts__row:last-child { border-block-end: 1px solid var(--rule); }
@@ -217,12 +225,13 @@ const jsonld = {
   .stay-proof { margin: 0; font-size: var(--step--1); }
   .stay-proof a, .info__terms a { display: inline-flex; align-items: center; min-block-size: 24px; }
   @media (pointer: coarse) { .stay-proof a, .info__terms a { min-block-size: 44px; } }
-  .stay-direct { display: flex; align-items: center; gap: 12px; margin: 6px 0 0; font-weight: 650; font-stretch: 90%; font-size: var(--step-1); }
-  .stay-direct__pin { inline-size: 14px; block-size: 14px; border-radius: var(--radius-pill); border: 2px solid var(--ink); background: var(--salt); flex: none; }
+  /* supporting line in the mono note style (not a call to action: the search card is the action) */
+  .stay-direct { margin: 0; font-size: var(--step--2); color: var(--muted); }
   @media (min-width: 1000px) {
-    .stay-hero__grid { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); }
-    .stay-hero__card { position: sticky; inset-block-start: calc(var(--header-h) + var(--ticker-h) + 16px); align-self: start; }
+    .stay-hero { grid-template-columns: minmax(0, 1fr) minmax(380px, 440px); }
+    .stay-hero__card { padding: 0 6px 6px 0; margin-block-start: 44px; }
   }
+  @media (max-width: 999px) { .stay { padding-block-end: 84px; } }
   .stay-bar { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; margin-block: 16px 28px; }
   .stay-bar .stay-sub { margin: 0; }
   .viewsw { display: inline-flex; gap: 4px; font-size: var(--step--2); }

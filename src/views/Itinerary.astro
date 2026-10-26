@@ -14,7 +14,7 @@ import SourceList from '../components/site/SourceList.astro';
 import Chart from '../components/chart/Chart.astro';
 import PlannerForm from '../components/itinerary/PlannerForm.astro';
 import PlanDay from '../components/itinerary/PlanDay.astro';
-import { buildPlan, parseInput, toQuery } from '../components/itinerary/engine';
+import { buildPlan, horizonDays, parseInput, toQuery } from '../components/itinerary/engine';
 import { SHEET_CROP } from '../components/chart/geo';
 import { siteOriginOf } from '../components/site/site-data';
 import { t } from '../i18n/ui';
@@ -48,7 +48,7 @@ const jsonld = {
         <SectionHead as="h1" id="it-h" index={t(lang, 'itinerary.index')} kicker={t(lang, 'itinerary.kicker')} title={t(lang, 'itinerary.title')} size="poster" class="it__title" />
         <p class="it__lead">{t(lang, 'itinerary.lead')}</p>
         {problems.length > 0 && (
-          <ul class="it__problems mono" role="alert">{problems.map((p) => <li>{t(lang, `itinerary.problem.${p}`)}</li>)}</ul>
+          <ul class="it__problems mono" role="alert">{problems.map((p) => <li>{t(lang, `itinerary.problem.${p}`, { n: String(horizonDays()) })}</li>)}</ul>
         )}
         <PlannerForm lang={lang} input={input} submitted={submitted} />
 
@@ -70,7 +70,7 @@ const jsonld = {
                 {plan.notes.length > 0 && (
                   <section class="plan__notes" aria-labelledby="plan-notes-h">
                     <h3 id="plan-notes-h" class="plan__h mono">{t(lang, 'itinerary.notes.title')}</h3>
-                    <ul>{plan.notes.map((n) => <li>{n[lang]}{n.refs.length > 0 && <sup class="mono"> <a href="#plan-burimet">[{n.refs.join(', ')}]</a></sup>}</li>)}</ul>
+                    <ul>{plan.notes.map((n) => <li>{n[lang]}{n.refs.length > 0 && <sup class="mono"> <a href="#plan-burimet" aria-label={t(lang, 'itinerary.refs', { n: n.refs.join(', ') })}>[{n.refs.join(', ')}]</a></sup>}</li>)}</ul>
                   </section>
                 )}
                 <div class="plan__actions" data-plan-actions>
@@ -94,7 +94,7 @@ const jsonld = {
 
       <aside class="it__side" aria-label={plan ? t(lang, 'itinerary.chart.title') : t(lang, 'itinerary.chart.empty')}>
         <div class="it__sticky" data-route-chart data-legdays={legDays}>
-          {plan && !plan.empty && plan.route.length > 1 ? (
+          {plan && !plan.empty && (plan.route.length > 1 || plan.pins.length > 0) ? (
             <Chart lang={lang} mode="route" route={plan.route} pins={plan.pins.map((p) => ({ id: p.id, n: p.n, tag: 'number' as const, key: `p-${p.id}` }))} title={t(lang, 'itinerary.chart.title')}>
               <span slot="caption" class="it__legend">{t(lang, 'itinerary.chart.legend')}</span>
             </Chart>
@@ -144,7 +144,10 @@ const jsonld = {
   .plan__est { font-size: var(--step--2); color: var(--muted); }
   .plan__h { font-size: var(--step--2); color: var(--muted); padding-block-end: 8px; border-block-end: 1px solid var(--rule); }
   .plan__notes ul { margin: 0; padding: 0 0 0 1.1em; display: grid; gap: 8px; margin-block-start: 10px; max-inline-size: 62ch; }
-  .plan__notes sup a { color: var(--muted); font-size: 0.6875rem; display: inline-block; min-inline-size: 24px; min-block-size: 24px; line-height: 24px; text-align: center; }
+  /* footnote marks: 24 px targets (44 px on touch) whose negative block margins keep the line height */
+  .plan__notes sup { line-height: 0; }
+  .plan__notes sup a { color: var(--muted); font-size: 0.6875rem; display: inline-block; min-inline-size: 24px; min-block-size: 24px; line-height: 24px; margin-block: -8px; text-align: center; }
+  @media (pointer: coarse) { .plan__notes sup a { min-inline-size: 44px; min-block-size: 44px; line-height: 44px; margin-block: -18px; } }
   .plan__link a { display: inline-flex; align-items: center; min-block-size: 44px; }
   /* SourceList links: full-size targets (24 px, 44 px on touch) */
   .plan :global(.sources__body a) { display: inline-flex; align-items: center; min-block-size: 24px; }

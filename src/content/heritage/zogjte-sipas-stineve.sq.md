@@ -3,7 +3,7 @@ slug: zogjte-sipas-stineve
 lang: sq
 title: Zogjtë sipas stinëve
 description: Kur vijnë, kur folezojnë dhe kur ikin: shpendët e parkut muaj pas muaji, me burimin e çdo vëzhgimi.
-updated: 2026-10-23
+updated: 2026-10-26
 order: 3
 topic: birds
 kicker: Zogjtë
@@ -11,7 +11,7 @@ hero: flamingos-flock-lagoon
 pins: bird-hide-godulla, tower-360, pelican-island*
 related: shpendet-e-lagunes-ne-agim, shetitje-me-varke-ne-lagune, dylbi-me-qira
 ---
-Sa lloje shpendësh janë regjistruar në park? Buletini i Agjencisë Kombëtare të Zonave të Mbrojtura jep rreth 260; burime të tjera japin nga 228 deri në 265.[^birds-15] Parku mund të strehojë deri në 84 000 shpendë uji që dimërojnë dhe rreth 12 000 shpendë që folezojnë.[^birds-17] Këtu takohen rreth 15 lloje të rrezikuara në shkallë botërore dhe të paktën 80 lloje të Aneksit I të Direktivës së Shpendëve të BE-së.[^birds-16]
+Sa lloje shpendësh janë regjistruar në park? Buletini i Agjencisë Kombëtare të Zonave të Mbrojtura jep rreth 260;[^birds-15] burime të tjera japin nga 228[^birds-15@1] deri në 265.[^birds-15@4] Parku mund të strehojë deri në 84 000 shpendë uji që dimërojnë dhe rreth 12 000 shpendë folezues (AOS jep 12–15 000 çifte).[^birds-17][^birds-17@1] Këtu takohen rreth 15 lloje të rrezikuara në shkallë botërore dhe të paktën 80 lloje të Aneksit I të Direktivës së Shpendëve të BE-së.[^birds-16]
 
 ::seasons
 
@@ -33,7 +33,7 @@ Në vitin 2020, në ishujt e lagunës folezuan 240–270 çifte dallëndyshe det
 
 ## Nga kulla e vëzhgimit
 
-Në mars 2020, nga kulla e vëzhgimit të pelikanëve u panë flamingo, çafka, karabullakë të vegjël, pulëbardha, shqipe të kënetës, rosa dhe shpendë bregujorë.[^birds-25] Pelikani kaçurrel ka [fletën e vet](/trashegimia/pelikani-kacurrel/).
+Në mars 2020, nga kulla e vëzhgimit të pelikanëve (në OpenStreetMap shënohet si e shkatërruar; gjendja e saj sot nuk është e konfirmuar) u panë flamingo, çafka, karabullakë të vegjël, pulëbardha, huta të kënetës, rosa dhe shpendë bregujorë.[^birds-25] Pelikani kaçurrel ka [fletën e vet](/trashegimia/pelikani-kacurrel/).
 
 ## Këshilla
 

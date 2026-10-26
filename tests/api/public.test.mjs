@@ -76,7 +76,7 @@ test('assistant: FAQ, date availability in both languages, miss → hand-off', a
   assert.equal(en.data.dates.nights, 2);
   const miss = await ask('en', 'Can I bring my pet tortoise to the karaoke night?');
   assert.ok(['miss', 'llm'].includes(miss.data.intent));
-  const contact = await ask('en', 'Please call me', { contact: { name: 'API Test', email: 'api-test@example.com', question: 'API test hand-off' } });
+  const contact = await ask('en', 'Please call me', { contact: { name: 'API Test', email: 'api-test@example.com', question: 'API test hand-off', elapsed_ms: 4000 } });
   assert.equal(contact.data.intent, 'contact');
 });
 

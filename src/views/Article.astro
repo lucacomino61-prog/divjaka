@@ -8,7 +8,6 @@
  * position is known) for sheets about one place.
  */
 import Base from '../layouts/Base.astro';
-import SectionHead from '../components/site/SectionHead.astro';
 import Breadcrumbs from '../components/site/Breadcrumbs.astro';
 import Photo from '../components/site/Photo.astro';
 import SourceList from '../components/site/SourceList.astro';
@@ -23,6 +22,7 @@ import { t } from '../i18n/ui';
 import { formatDate } from '../i18n/format';
 import { path, type Lang } from '../i18n/routes';
 import type { ArticleData } from './article.load';
+import { posterEm, posterLayout } from '../assets/poster-metrics';
 
 interface Props { lang: Lang; params?: Record<string, string>; data?: ArticleData }
 const { lang, params = {}, data } = Astro.props;
@@ -31,8 +31,21 @@ const s = d.sheet;
 const origin = await siteOriginOf(Astro.url, Astro.site);
 const url = new URL(path('article', lang, { slug: s.slug }), origin).href;
 const hero = getPhoto(s.hero);
-const firstPin = d.pins.find((p) => !p.zone)?.id ?? d.pins[0]?.id;
-const km = firstPin && firstPin !== 'hotel-pelikan' ? fromHotelKm(firstPin) : null;
+// a distance only to the sheet's own place, when that is a real, visitable point of geo.json
+// (never a chart spot we placed, a closed zone or an area), and it says which point it is
+const placePoi = s.place ? poi(s.place) : undefined;
+const CLOSED = new Set(['pelican-island', 'pelican-tower']);
+const km = placePoi && !placePoi.virtual && !CLOSED.has(placePoi.id) && placePoi.id !== 'hotel-pelikan' ? fromHotelKm(placePoi.id) : null;
+
+// the title as a poster capped at two lines (a one-word title keeps the full poster fit), so the
+// lead, the meta row and the hero reach the first screen
+const words = s.title.split(/\s+/).filter(Boolean);
+let poster = posterLayout(s.title);
+if (words.length > 1) {
+  let floor = posterEm(s.title) / 2;
+  poster = posterLayout(s.title, floor);
+  while (poster.lines.length > 2 && floor < 40) { floor *= 1.06; poster = posterLayout(s.title, floor); }
+}
 
 // the place this sheet is about (JSON-LD)
 const L = layers();
@@ -41,11 +54,10 @@ const PLACES: Record<string, () => Record<string, unknown> | null> = {
     const c = L ? unproject(L.lagoonCentre.x, L.lagoonCentre.y) : null;
     return { '@type': ['TouristAttraction', 'BodyOfWater'], name: t(lang, 'water.lagoon'), sameAs: 'https://en.wikipedia.org/wiki/Karavasta_Lagoon', ...(c ? { geo: { '@type': 'GeoCoordinates', latitude: Number(c.lat.toFixed(4)), longitude: Number(c.lon.toFixed(4)) } } : {}) };
   },
-  'pelican-island': () => ({ '@type': 'TouristAttraction', name: lang === 'sq' ? 'Ishulli i Pelikanit' : 'Pelican Island', sameAs: 'https://en.wikipedia.org/wiki/Pelican_Island_(Albania)', publicAccess: false }),
-  'pine-forest': () => {
-    const p = poi('pine-forest');
-    return { '@type': ['TouristAttraction', 'Landform'], name: lang === 'sq' ? 'Pylli me pisha i Divjakës' : 'Divjaka coastal pine forest', ...(p ? { geo: { '@type': 'GeoCoordinates', latitude: p.lat, longitude: p.lon } } : {}) };
-  },
+  // closed to visitors: a place, not an attraction
+  'pelican-island': () => ({ '@type': ['Place', 'Landform'], name: lang === 'sq' ? 'Ishulli i Pelikanit' : 'Pelican Island', sameAs: 'https://en.wikipedia.org/wiki/Pelican_Island_(Albania)', publicAccess: false }),
+  // no geo: our chart spot inside the forest polygon is not the forest's coordinates
+  'pine-forest': () => ({ '@type': ['TouristAttraction', 'Landform'], name: lang === 'sq' ? 'Pylli me pisha i Divjakës' : 'Divjaka coastal pine forest' }),
   'visitor-centre': () => {
     const p = poi('visitor-centre');
     return { '@type': ['TouristAttraction', 'Park'], name: lang === 'sq' ? 'Parku Kombëtar Divjakë-Karavasta' : 'Divjakë-Karavasta National Park', sameAs: 'https://en.wikipedia.org/wiki/Divjak%C3%AB-Karavasta_National_Park', ...(p ? { geo: { '@type': 'GeoCoordinates', latitude: p.lat, longitude: p.lon } } : {}) };
@@ -64,29 +76,40 @@ const jsonld = [
     ...(place ? { about: { '@context': 'https://schema.org', ...place } } : {}),
   },
 ];
+// on phones the rail stacks under the body: a body that already shows the chart skips the rail's copy
+const inlineChart = d.blocks.some((b) => b.type === 'chart');
 const nums = (n: number) => String(n).padStart(2, '0');
 ---
 <Base lang={lang} title={`${s.title} · ${t(lang, 'article.crumb')}`} description={s.description} routeKey="article" params={params} jsonld={jsonld} image={hero ? photoSrc(hero.slug, 1280, 'webp') : undefined}>
   <article class="art">
     <header class="wrap art__head">
       <Breadcrumbs lang={lang} items={[{ label: t(lang, 'article.crumb'), href: path('heritage', lang) }, { label: s.title }]} />
-      <SectionHead as="h1" index={`${t(lang, 'heritage.sheet', { n: nums(d.index) })}`} kicker={s.kicker} title={s.title} size="poster" />
-      <div class="art__lead-row">
-        <p class="lede art__lead">{s.description}</p>
-        <p class="art__meta mono">
-          <span>{t(lang, 'heritage.minutes', { n: String(s.minutes) })}</span>
-          <span>{t(lang, 'heritage.sourcesCount', { n: String(d.sources.length) })}</span>
-          {s.updated && <span>{t(lang, 'heritage.updated', { date: formatDate(s.updated, lang, 'medium') })}</span>}
-          {km != null && <span>{t(lang, 'article.fromHotel', { km: kmLabel(km, lang) })}</span>}
-        </p>
+      <div class="section-head section-head--poster">
+        <p class="section-head__rule mono"><span class="section-head__index">{t(lang, 'heritage.sheet', { n: nums(d.index) })}</span>{s.kicker && <span class="section-head__kicker">{s.kicker}</span>}</p>
+        {/* desktop: the poster, lead and meta on the left, the hero plate (LCP) beside them */}
+        <div class="art__split">
+          <div class="art__left">
+            <div class="poster-wrap">
+              <h1 class="poster section-head__title art__title" style={`--fit-em:${poster.fitEm.toFixed(3)};--poster-fb:"Poster Fallback ${poster.fallback}"`}>{poster.lines.map((l, i) => <Fragment>{i > 0 ? ' ' : ''}<span class="poster__line">{l}</span></Fragment>)}</h1>
+            </div>
+            <div class="art__lead-row">
+              <p class="lede art__lead">{s.description}</p>
+              <p class="art__meta mono">
+                <span>{t(lang, 'heritage.minutes', { n: String(s.minutes) })}</span>
+                <span>{t(lang, 'heritage.sourcesCount', { n: String(d.sources.length) })}</span>
+                {s.updated && <span>{t(lang, 'heritage.updated', { date: formatDate(s.updated, lang, 'medium') })}</span>}
+                {km != null && placePoi && <span>{t(lang, 'article.fromHotelTo', { km: kmLabel(km, lang), place: placePoi.name[lang] })}</span>}
+              </p>
+            </div>
+          </div>
+          {hero && (
+            <div class="art__hero" style={s.heroFocus ? `--hero-focus:${s.heroFocus}` : undefined}>
+              <Photo slug={hero.slug} lang={lang} sizes="(min-width: 1100px) calc((100vh - 286px) * 0.8), 100vw" priority caption parallax ratio="16 / 9" />
+            </div>
+          )}
+        </div>
       </div>
     </header>
-
-    {hero && (
-      <div class="art__hero wrap">
-        <Photo slug={hero.slug} lang={lang} sizes="(min-width: 1440px) 1360px, 100vw" priority caption parallax ratio="16 / 9" />
-      </div>
-    )}
 
     <div class="wrap art__grid">
       <div class="art__body">
@@ -113,7 +136,7 @@ const nums = (n: number) => String(n).padStart(2, '0');
 
       <aside class="art__rail" aria-label={t(lang, 'article.related')}>
         {d.pins.length > 0 && (
-          <section class="art__rail-block">
+          <section class:list={['art__rail-block', inlineChart && 'art__rail-block--wide-only']}>
             <h2 class="art__rail-h mono">{t(lang, 'article.onChart')}</h2>
             <Chart lang={lang} mode="pin" pins={d.pins.map((p) => ({ id: p.id, zone: p.zone, tag: 'name' as const }))} />
           </section>
@@ -151,12 +174,28 @@ const nums = (n: number) => String(n).padStart(2, '0');
 
 <style>
   .art__head { padding-block-start: clamp(16px, 2vw, 28px); display: grid; gap: 18px; }
-  .art__lead-row { display: grid; gap: 18px; align-items: end; padding-block-end: clamp(20px, 3vw, 40px); }
+  /* poster size on phones too: two lines fill the column (the fit still caps each line to the width) */
+  .art__title { --poster-max: clamp(5rem, 1rem + 26vw, 11rem); }
+  .art__split { display: grid; gap: 0 clamp(32px, 4vw, 64px); }
+  .art__lead-row { display: grid; gap: 18px; align-items: end; padding-block: 18px clamp(20px, 3vw, 40px); }
   .art__lead { max-inline-size: 36ch; }
   .art__meta { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: var(--step--2); color: var(--muted); }
   @media (min-width: 900px) { .art__lead-row { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); } .art__meta { justify-content: flex-end; } }
-  .art__hero { margin-block-end: clamp(32px, 5vw, 72px); }
+  .art__hero { margin-block-end: clamp(32px, 5vw, 72px); min-inline-size: 0; }
+  /* wide screens: the sheet's first screen is poster + lead on the left and a tall plate on the right */
+  @media (min-width: 1100px) {
+    .art__split { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: start; padding-block-start: 14px; container-type: inline-size; }
+    /* the poster at the top, lead + meta set on the hero's foot line: one composed first screen */
+    .art__split:has(.art__hero) .art__left { display: flex; flex-direction: column; justify-content: space-between; gap: 24px; /* = the hero frame: 4:5 of the 5fr column, capped like the frame */
+      min-block-size: min(calc(100svh - var(--header-h) - 190px), calc((100cqi - clamp(32px, 4vw, 64px)) * 5 / 12 * 1.25)); }
+    .art__left .art__lead-row { padding-block-end: 0; }
+    .art__split .art__lead-row { grid-template-columns: minmax(0, 1fr); }
+    .art__split .art__meta { justify-content: flex-start; }
+    .art__hero :global(.plate__frame) { aspect-ratio: 4 / 5 !important; max-block-size: calc(100svh - var(--header-h) - 190px) !important; }
+  }
   .art__hero :global(.plate__frame) { max-block-size: 72svh; }
+  /* a sheet may say where its wide crop sits (frontmatter hero_focus), e.g. the pelicans at the foot of the frame */
+  .art__hero[style] :global(.plate__frame img) { object-position: var(--hero-focus) !important; }
   .art__grid { display: grid; gap: clamp(40px, 6vw, 96px); }
   @media (min-width: 1000px) { .art__grid { grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); align-items: start; } }
   .art__body { min-inline-size: 0; }
@@ -168,7 +207,10 @@ const nums = (n: number) => String(n).padStart(2, '0');
   .art__ul li { padding-inline-start: 22px; position: relative; line-height: 1.55; }
   .art__ul li::before { content: ""; position: absolute; inset-inline-start: 2px; inset-block-start: 0.7em; inline-size: 9px; block-size: 1px; background: var(--ink); }
   .art__body :global(sup.ref) { font-family: var(--font-mono); font-size: 0.66em; line-height: 0; margin-inline-start: 2px; }
-  .art__body :global(sup.ref a) { text-decoration: none; padding: 0 2px; border-block-end: 1px solid currentColor; display: inline-block; min-inline-size: 24px; min-block-size: 24px; line-height: 24px; text-align: center; }
+  .art__body :global(sup.ref a) { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; padding: 0 2px; display: inline-block; min-inline-size: 24px; min-block-size: 24px; line-height: 24px; text-align: center; }
+    /* the hit area reaches 15 px past the mark: less than the 16 px page gutter, so a mark at a line end never widens the page */
+  /* vertical padding stays inside the line ((line-height − 14 px) / 2), so a mark never takes the taps of a link on the line above or below; 24 px tall, wide sideways */
+  @media (pointer: coarse) { .art__body :global(sup.ref a) { padding: 5px 15px; margin: -5px -15px; box-sizing: content-box; min-inline-size: 14px; min-block-size: 14px; line-height: 14px; } }
   .art__body :global(em) { font-family: var(--font-serif); font-style: italic; font-size: 1.08em; }
   .art__plate { margin-block: 2em !important; }
   .art__note { font-size: var(--step--2); margin-block-start: 6px; text-transform: none; letter-spacing: 0; color: var(--muted); }
@@ -176,6 +218,7 @@ const nums = (n: number) => String(n).padStart(2, '0');
   .art__rail { display: grid; gap: 40px; }
   @media (min-width: 1000px) { .art__rail { position: sticky; inset-block-start: calc(var(--header-h) + 24px); max-block-size: calc(100svh - var(--header-h) - 48px); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; } }
   .art__rail-block { display: grid; gap: 12px; }
+  @media (max-width: 999px) { .art__rail-block--wide-only { display: none; } }
   .art__rail-h { font-size: var(--step--2); padding-block: 10px 0; border-block-start: 2px solid var(--ink); }
   .art__rail-lead { color: var(--muted); font-size: var(--step--1); }
   .art__sources { padding-block: clamp(48px, 7vw, 96px) 0; display: grid; gap: 16px; }

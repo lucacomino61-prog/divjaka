@@ -3,11 +3,12 @@ slug: pelikani-kacurrel
 lang: sq
 title: Pelikani kaçurrel
 description: Simboli i parkut dhe i vetmi vend folezimi i tij në Shqipëri: ishulli, sezoni, numrat e kolonisë dhe si ta shihni pa e shqetësuar.
-updated: 2026-10-23
+updated: 2026-10-26
 order: 2
 topic: birds
 kicker: Zogjtë
 hero: pelicans-karavasta
+hero_focus: 50% 85%
 pins: pelican-island*, bird-hide-godulla
 related: shpendet-e-lagunes-ne-agim, fundjave-me-pelikanet, dylbi-me-qira
 place: pelican-island

@@ -4,9 +4,19 @@
 .sums__row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .sums__row dt { font-size: var(--step--2); color: var(--muted); }
 .sums__row dd { margin: 0; font-variant-numeric: tabular-nums; }
-.sums__row--note dt { color: var(--pouch-text); }
+.sums__note { margin: 10px 0 0; font-size: var(--step--2); color: var(--pouch-text); text-transform: none; letter-spacing: .02em; }
 .sums__row--total { padding-block-start: 10px; border-block-start: 2px solid var(--ink); }
 .sums__row--total dt { color: var(--ink); }
 .sums__total { font-size: var(--step-3); font-weight: 800; font-stretch: 75%; letter-spacing: -0.03em; line-height: 1; }
 .sums--big .sums__total { font-size: var(--step-4); }
 .sums__row--eur dd { color: var(--muted); font-size: var(--step--2); }
+
+/* The cart page and the checkout are forms with their own way to the hotel ("Shkruajini hotelit"):
+   the fixed "Pyet" pill would sit on the inputs and on "Konfirmo porosinë", so it steps aside here. */
+html:has([data-checkout-root], [data-cartpage], .ord-card) .assistant-pill { display: none; }
+
+/* the order this tab placed last (scripts/checkout.ts paintLastOrder): a ruled log line, not a panel */
+.lastorder { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; padding-block: 14px; margin-block: 18px 6px; border-block: 1px solid var(--ink); border-inline-start: 4px solid var(--pouch); padding-inline: 14px; }
+.lastorder[hidden] { display: none; }
+.lastorder__text { font-weight: 650; font-stretch: 88%; overflow-wrap: anywhere; }
+.lastorder__links { display: flex; flex-wrap: wrap; gap: 8px; }

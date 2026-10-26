@@ -84,7 +84,9 @@ export function isUnavailable(key: string): boolean { return goneKeys().has(key)
 
 function countOf(items: CartItem[]) {
   const gone = goneKeys();
-  return items.reduce((n, i) => n + (gone.has(i.key) ? 0 : i.qty), 0);
+  // one rule site-wide (header, drawer, cart page, checkout): units, an experience booking = 1
+  // whatever its party size (T5 fix round 1)
+  return items.reduce((n, i) => n + (gone.has(i.key) ? 0 : i.kind === 'experience' ? 1 : i.qty), 0);
 }
 export function count(): number { return countOf(getCart()); }
 
@@ -163,6 +165,12 @@ export function updateItem(key: string, patch: Partial<Omit<CartItem, 'key'>>) {
 }
 
 export function clear() { save([]); }
+
+/** The promo code the cart page validated (sessionStorage 'dv-promo', T5): every quote of this
+ *  tab sends it, so the drawer, the cart page and the checkout show the same total. */
+const PROMO = 'dv-promo';
+export function getPromo(): string { try { return sessionStorage.getItem(PROMO) || ''; } catch { return ''; } }
+export function setPromo(code: string) { try { if (code) sessionStorage.setItem(PROMO, code); else sessionStorage.removeItem(PROMO); } catch { /* blocked */ } }
 
 /** The body for POST /api/quote. */
 export function quoteBody(lang: 'sq' | 'en', promo?: string) {

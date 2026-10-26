@@ -22,15 +22,15 @@ import ExperiencePermit from '../components/booking/ExperiencePermit.astro';
 import BookingSheet from '../components/booking/BookingSheet.astro';
 import ExpStrip from '../components/experiences/ExpStrip.astro';
 import { lines } from '../components/experiences/lineup';
-import { seasonRows, rulesFor, ruleText, ruleSource } from '../components/experiences/seasons';
+import { seasonRows, rulesFor, ruleText, ruleSource, distinctTitle } from '../components/experiences/seasons';
 import { fromHotelKm, kmLabel, poi } from '../components/chart/geo';
-import { siteOriginOf } from '../components/site/site-data';
+import { siteOriginOf, business, confirmed } from '../components/site/site-data';
 import {
   bestRateConfirmed, duration, experienceMonth, lastSessionMonth, maxPeoplePerSlot, nextSession, pickMonth, tiraneOffset, todayLocal, ymOf,
 } from '../components/booking/server';
 import { nextSessions } from '../lib/availability';
 import type { Source } from '../components/site/SourceList.astro';
-import { t } from '../i18n/ui';
+import { t, has } from '../i18n/ui';
 import { MONTHS_SHORT } from '../i18n/format';
 import { path, type Lang } from '../i18n/routes';
 import type { ExperienceData } from './experience.load';
@@ -60,7 +60,7 @@ const ym = pickMonth(sp.get('muaji'), wantDate ? ymOf(wantDate) : next ? ymOf(ne
 const month = experienceMonth(p, ym);
 const date = wantDate && month.days.some((d) => d.date === wantDate && d.status === 'open') ? wantDate : null;
 const session = Number(sp.get('orari')) || null;
-const people = Math.max(1, Number(sp.get('persona')) || 2);
+const people = Math.max(1, Math.trunc(Number(sp.get('persona'))) || 2);
 const self = path('experience', lang, { slug: p.slug });
 const hrefFor = (m: string) => { const q = new URLSearchParams(sp); q.set('muaji', m); q.delete('data'); q.delete('orari'); return `${self}?${q}`; };
 
@@ -85,22 +85,32 @@ const addSrc = (s: Source | null | undefined) => { if (s && /^https:\/\//.test(s
 ((Array.isArray(o.sources) ? o.sources : []) as Source[]).forEach(addSrc);
 seasons.sources.forEach(addSrc);
 ruleIds.forEach((id) => addSrc(ruleSource(id)));
+const sourceList = sources.map((s) => distinctTitle(s, sources));
 
-// JSON-LD: the trip + its next sessions as events (times are Europe/Tirane wall clock)
+// JSON-LD: the trip + its next sessions as events (times are Europe/Tirane wall clock). The
+// audience in words of the page language (internal tag codes such as 'rainy' are not audiences).
+const audience = p.tags.filter((tag) => has(lang, `xp.audience.${tag}`)).map((tag) => t(lang, `xp.audience.${tag}`));
 const url = new URL(self, origin).href;
-const upcoming = nextSessions(p.id, 5);
+// the next sessions go out as Events only for a confirmed schedule: a demo one (products.demo,
+// NEEDS_VERIFICATION) is not published to search engines as real dated events (PLAN §2)
+const upcoming = p.demo ? [] : nextSessions(p.id, 5);
+const biz = await business();
 const endOf = (start: string) => {
   const d = new Date(`${start}:00Z`); d.setUTCMinutes(d.getUTCMinutes() + (p.duration_min ?? 60));
   return d.toISOString().slice(0, 16);
 };
 const place = (id?: string | null) => {
   const q = id ? poi(id) : null;
-  return q ? { '@type': 'Place', name: q.name[lang], geo: { '@type': 'GeoCoordinates', latitude: q.lat, longitude: q.lon } } : { '@type': 'Place', name: 'Divjakë' };
+  // Event rich results need an address: the hotel's street address (once the owner saved it) for a
+  // meeting at the hotel, the town for the park's points
+  const street = id === 'hotel-pelikan' ? confirmed(biz, 'address') : '';
+  const address = { '@type': 'PostalAddress', addressLocality: 'Divjakë', addressCountry: 'AL', ...(street ? { streetAddress: street } : {}) };
+  return q ? { '@type': 'Place', name: q.name[lang], address, geo: { '@type': 'GeoCoordinates', latitude: q.lat, longitude: q.lon } } : { '@type': 'Place', name: 'Divjakë', address };
 };
 const jsonld = [
   {
     '@context': 'https://schema.org', '@type': 'TouristTrip', '@id': `${url}#trip`, name, url, description: summary,
-    touristType: p.tags, provider: { '@id': `${origin}/#hotel` },
+    ...(audience.length ? { touristType: audience } : {}), provider: { '@id': `${origin}/#hotel` },
     ...(p.poi ? { itinerary: { '@type': 'ItemList', itemListElement: [{ '@type': 'ListItem', position: 1, item: place(p.poi) }] } } : {}),
     offers: { '@type': 'Offer', price: p.price, priceCurrency: 'ALL', url, availability: next ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut', priceSpecification: { '@type': 'UnitPriceSpecification', price: p.price, priceCurrency: 'ALL', unitText: lang === 'sq' ? 'person' : 'person' } },
   },
@@ -225,9 +235,9 @@ const jsonld = [
           </section>
         )}
       </div>
-      <aside class="xp-card" data-bk-slot data-lenis-prevent aria-label={t(lang, 'booking.permit.exp', { n })}>
+      <div class="xp-card" data-bk-slot>
         <ExperiencePermit lang={lang} product={p} n={n} ym={ym} days={month.days} sessions={month.sessions} min={ymOf(todayLocal())} max={maxYm} hrefFor={hrefFor} date={date} session={session} people={people} maxGroup={maxPeoplePerSlot()} bestRate={bestRateConfirmed()} />
-      </aside>
+      </div>
     </div>
 
     {others.length > 0 && (
@@ -237,7 +247,7 @@ const jsonld = [
       </section>
     )}
     <RecommendRail lang={lang} index="06" title={t(lang, 'xp.recommend.title')} exclude={[p.slug]} limit={4} id="rekomanduar-eksperienca" />
-    <div class="wrap xp-sources"><SourceList lang={lang} items={sources} title={t(lang, 'xp.sources.title')} id="burimet-eksperienca" /></div>
+    <div class="wrap xp-sources"><SourceList lang={lang} items={sourceList} title={t(lang, 'xp.sources.title')} id="burimet-eksperienca" /></div>
     <BookingSheet lang={lang} priceLek={p.price} per="person" label={`${name} · ${t(lang, 'booking.permit.exp', { n })}`} />
   </div>
 </Base>
@@ -257,6 +267,14 @@ const jsonld = [
   .xp-spec > div { display: grid; gap: 6px; align-content: start; padding: 14px 16px 16px 0; }
   .xp-spec > div + div { border-inline-start: 1px solid var(--rule); padding-inline-start: 16px; }
   .xp-spec dt { color: var(--muted); }
+  /* phones: a ledger (label · value per ruled line) — the meeting point is a sentence and needs
+     the full width */
+  @media (max-width: 699px) {
+    .xp-spec { grid-template-columns: minmax(0, 1fr); }
+    .xp-spec > div, .xp-spec > div + div { grid-template-columns: minmax(6.5em, 2fr) minmax(0, 5fr); align-items: baseline; gap: 4px 14px; padding: 10px 0; border-inline-start: 0; }
+    .xp-spec > div + div { border-block-start: 1px solid var(--rule); }
+    .xp-spec > div > dd { font-size: var(--step-0); overflow-wrap: anywhere; }
+  }
   .xp-spec dd { margin: 0; font-size: var(--step-1); font-weight: 600; font-stretch: 90%; line-height: 1.2; }
   .xp-plate, .xp-plate2 { display: grid; gap: 8px; }
   .xp-note { margin: 0; font-size: var(--step--2); color: var(--muted); max-inline-size: 64ch; }
@@ -311,9 +329,15 @@ const jsonld = [
   .xp-sources { padding-block-end: var(--section-gap); }
   @media (min-width: 1000px) {
     .xp-split { grid-template-columns: minmax(0, 1fr) minmax(380px, 440px); }
-    .xp-card { scroll-padding-block-end: 260px; position: sticky; inset-block-start: calc(var(--header-h) + 16px); align-self: start; max-block-size: calc(100svh - var(--header-h) - var(--ticker-h) - 112px); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 0 6px 6px 0; }
+    .xp-card { align-self: start; padding: 0 6px 6px 0; margin-block-start: -12px; }
     .xp-plate { margin-inline-start: calc(-1 * var(--page-pad)); }
     .xp-plate :global(.plate--mat .plate__frame) { margin-inline-start: 0; outline-offset: 0; }
   }
+  /* the card follows the page only where all of it fits under the header (no scroll inside it) */
+  @media (min-width: 1000px) and (min-height: 850px) {
+    .xp-card { position: sticky; inset-block-start: calc(var(--header-h) + 12px); }
+  }
   @media (max-width: 999px) { .xp-page { padding-block-end: 84px; } }
+  /* the fixed Pyet pill never hides a focused control */
+  :global(html:has(.xp-page)) { scroll-padding-block-end: 88px; }
 </style>

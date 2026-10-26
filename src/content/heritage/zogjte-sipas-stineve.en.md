@@ -3,7 +3,7 @@ slug: zogjte-sipas-stineve
 lang: en
 title: Birds through the year
 description: When they arrive, when they nest and when they leave: the park’s birds month by month, with the source of every sighting.
-updated: 2026-10-23
+updated: 2026-10-26
 order: 3
 topic: birds
 kicker: Birds
@@ -11,7 +11,7 @@ hero: flamingos-flock-lagoon
 pins: bird-hide-godulla, tower-360, pelican-island*
 related: shpendet-e-lagunes-ne-agim, shetitje-me-varke-ne-lagune, dylbi-me-qira
 ---
-How many bird species have been recorded in the park? The bulletin of the National Agency of Protected Areas gives about 260; other sources give anything from 228 to 265.[^birds-15] The park can hold up to 84,000 wintering waterbirds and about 12,000 breeding birds.[^birds-17] About 15 globally threatened species occur here, and at least 80 species listed in Annex I of the EU Birds Directive.[^birds-16]
+How many bird species have been recorded in the park? The bulletin of the National Agency of Protected Areas gives about 260;[^birds-15] other sources give anything from 228[^birds-15@1] to 265.[^birds-15@4] The park can hold up to 84,000 wintering waterbirds and about 12,000 breeding birds (AOS gives 12,000–15,000 pairs).[^birds-17][^birds-17@1] About 15 globally threatened species occur here, and at least 80 species listed in Annex I of the EU Birds Directive.[^birds-16]
 
 ::seasons
 
@@ -33,7 +33,7 @@ In 2020 the lagoon islets held 240–270 pairs of common tern, 60–70 pairs of 
 
 ## From the observation tower
 
-In March 2020, greater flamingos, herons, pygmy cormorants, gulls, marsh harriers, ducks and waders were seen from the pelican observation tower.[^birds-25] The Dalmatian pelican has [its own sheet](/en/heritage/pelikani-kacurrel/).
+In March 2020, greater flamingos, herons, pygmy cormorants, gulls, marsh harriers, ducks and waders were seen from the pelican observation tower (OpenStreetMap tags it as destroyed; its current state is not confirmed).[^birds-25] The Dalmatian pelican has [its own sheet](/en/heritage/pelikani-kacurrel/).
 
 ## Tips
 

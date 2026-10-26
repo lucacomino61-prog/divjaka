@@ -1,10 +1,11 @@
 ---
 /**
  * /admin/produktet/:id/ and /admin/produktet/i-ri/?lloji=<kind> — the bilingual product editor
- * (T6): SQ/EN tabs, markdown-lite body with preview, includes/excludes lists, price and
+ * (T6): SQ/EN tabs, plain-paragraph body with preview, includes/excludes lists, price and
  * kind-specific quantities, poi from research/geo.json, interests + months chips, images from
  * research/photos.json or uploaded (resized in the browser to WebP 480/960/1600), bundle
- * contents, status/featured/sort/slug. Saving clears the DEMO flag (the API does it).
+ * contents, status/featured/sort/slug. The DEMO flag is cleared only when the owner ticks
+ * "these values are real" (verify_demo); a plain save keeps it.
  * Unknown `options` keys (sources, meeting point, beds …) are kept exactly as they were.
  */
 import Admin from '../../../layouts/Admin.astro';
@@ -26,9 +27,9 @@ const owner = user?.role === 'owner';
 type Loaded = { item: Product; bundle: { product_id: number; qty: number }[]; rates: unknown[]; sessions: { id: number; starts_at: string; left: number; capacity: number; status: string }[]; orders: number };
 let data: Loaded | null = null;
 if (!isNew) {
-  if (!/^\d+$/.test(raw)) return Astro.redirect('/admin/produktet/', 303);
+  if (!/^\d+$/.test(raw)) return Astro.redirect(`/admin/produktet/?notfound=${encodeURIComponent(raw.slice(0, 40))}`, 303);
   data = await callApi<Loaded>(productGET as never, Astro, undefined, { id: raw });
-  if (!data) return Astro.redirect('/admin/produktet/', 303);
+  if (!data) return Astro.redirect(`/admin/produktet/?notfound=${encodeURIComponent(raw.slice(0, 40))}`, 303);
 }
 const qKind = Astro.url.searchParams.get('lloji') ?? 'goods';
 const kind: Kind = data?.item.kind ?? ((KINDS as readonly string[]).includes(qKind) ? (qKind as Kind) : 'goods');
@@ -54,6 +55,7 @@ const seed = { id: p.id ?? null, kind, options: opt, images: (p.images ?? []).ma
 const json = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c');
 const ownerDis = !owner;
 const statusLocked = !owner && p.status === 'published';
+const pname = (o: { name_sq: string; name_en: string }) => (lang === 'en' ? o.name_en || o.name_sq : o.name_sq);
 ---
 <Admin lang={lang} title={title} titleSize="s" section="products" kicker={isNew ? T('admin.products.new') : `NR. ${String(p.id).padStart(3, '0')} · ${T(`admin.kind.${kind}`)}`}>
   <Fragment slot="actions">
@@ -61,7 +63,7 @@ const statusLocked = !owner && p.status === 'published';
     {publicUrl && <a class="pill pill--outline pill--s" href={publicUrl} target="_blank" rel="noopener">{T('admin.product.view')} ↗</a>}
   </Fragment>
 
-  {p.demo && <p class="note-box row" style="margin-block-end:24px"><Stamp kind="demo" lang={lang} />{T('admin.product.demo')}</p>}
+  {p.demo && <p class="note-box row" style="margin-block-end:24px"><Stamp kind="demo" lang={lang} />{owner ? T('admin.product.demo') : T('admin.product.demo.staff')}</p>}
   {!owner && <p class="note-box note-box--ink" style="margin-block-end:24px">{T('admin.product.owner.fields')}</p>}
 
   <form class="editor" id="product-form" data-product-form novalidate data-endpoint={isNew ? '/api/admin/products' : `/api/admin/products/${p.id}`} data-method={isNew ? 'POST' : 'PATCH'}>
@@ -69,7 +71,7 @@ const statusLocked = !owner && p.status === 'published';
       <section class="blk" aria-labelledby="tx-t">
         <div class="blk__head"><h2 class="blk__title" id="tx-t">{T('admin.product.texts')}</h2></div>
         <div class="tabs" role="tablist" aria-label={T('admin.product.texts')}>
-          {(['sq', 'en'] as const).map((l, i) => <button type="button" class="tab" role="tab" id={`tab-${l}`} aria-controls={`panel-${l}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1} data-tab={l}>{T(`admin.product.lang.${l}`)}<span class="tab__warn" data-tab-warn hidden aria-label={T(`admin.product.missing.${l}`)}>●</span></button>)}
+          {(['sq', 'en'] as const).map((l, i) => <button type="button" class="tab" role="tab" id={`tab-${l}`} aria-controls={`panel-${l}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1} data-tab={l}>{T(`admin.product.lang.${l}`)}<span class="tab__warn" data-tab-warn hidden><span aria-hidden="true">●</span><span class="visually-hidden">, {T(`admin.product.missing.${l}`)}</span></span></button>)}
         </div>
         {(['sq', 'en'] as const).map((l, i) => (
           <div class="vstack" role="tabpanel" id={`panel-${l}`} aria-labelledby={`tab-${l}`} hidden={i !== 0} data-panel={l} style="gap:22px;padding-block-start:8px" lang={l}>
@@ -87,9 +89,9 @@ const statusLocked = !owner && p.status === 'published';
                 <label class="fld__label mono" for={`body_${l}`}>{T('admin.product.body')}</label>
                 <button type="button" class="btn-text" data-preview={l} aria-pressed="false" data-label-write={T('admin.product.write')} data-label-preview={T('admin.product.preview')}>{T('admin.product.preview')}</button>
               </div>
-              <textarea id={`body_${l}`} class="fld__input fld__input--tall" name={`body_${l}`} data-nullable maxlength="20000">{p[`body_${l}` as 'body_sq'] ?? ''}</textarea>
+              <textarea id={`body_${l}`} class="fld__input fld__input--tall" name={`body_${l}`} data-nullable maxlength="20000" aria-describedby={`body_${l}-help`}>{p[`body_${l}` as 'body_sq'] ?? ''}</textarea>
               <div class="preview" data-preview-out={l} hidden aria-live="polite"></div>
-              <p class="fld__help">{T('admin.product.body.help')}</p>
+              <p class="fld__help" id={`body_${l}-help`} lang={lang}>{T('admin.product.body.help')}</p>
             </div>
             <fieldset class="group" data-path={`includes_${l}`}>
               <legend>{T('admin.product.includes')}</legend>
@@ -130,7 +132,7 @@ const statusLocked = !owner && p.status === 'published';
             {bundle.map((b) => (
               <li class="listed__row listed__row--bundle">
                 <select class="fld__input fld__input--s" data-bundle-product aria-label={T('admin.products.name')}>
-                  {others.map((o) => <option value={o.id} selected={o.id === b.product_id}>{o.name_sq} · {T(`admin.kind.${o.kind}`)}</option>)}
+                  {others.map((o) => <option value={o.id} selected={o.id === b.product_id}>{pname(o)} · {T(`admin.kind.${o.kind}`)}</option>)}
                 </select>
                 <span class="listed__tools"><input class="fld__input fld__input--s" type="number" min="1" max="99" value={b.qty} data-bundle-qty aria-label={T('admin.product.bundle.qty')} style="inline-size:76px" /><button type="button" class="btn-icon" data-remove aria-label={T('admin.remove')}>×</button></span>
               </li>
@@ -140,7 +142,7 @@ const statusLocked = !owner && p.status === 'published';
           <template data-bundle-template>
             <li class="listed__row listed__row--bundle">
               <select class="fld__input fld__input--s" data-bundle-product aria-label={T('admin.products.name')}>
-                {others.map((o) => <option value={o.id}>{o.name_sq} · {T(`admin.kind.${o.kind}`)}</option>)}
+                {others.map((o) => <option value={o.id}>{pname(o)} · {T(`admin.kind.${o.kind}`)}</option>)}
               </select>
               <span class="listed__tools"><input class="fld__input fld__input--s" type="number" min="1" max="99" value="1" data-bundle-qty aria-label={T('admin.product.bundle.qty')} style="inline-size:76px" /><button type="button" class="btn-icon" data-remove aria-label={T('admin.remove')}>×</button></span>
             </li>
@@ -211,7 +213,14 @@ const statusLocked = !owner && p.status === 'published';
             <div class="fld"><label class="fld__label mono" for="amin">{T('admin.product.gift.min')}</label><input id="amin" class="fld__input" name="options.amount_min" type="number" min="0" data-type="int" value={(opt.amount_min as number | undefined) ?? ''} disabled={ownerDis} /></div>
             <div class="fld"><label class="fld__label mono" for="amax">{T('admin.product.gift.max')}</label><input id="amax" class="fld__input" name="options.amount_max" type="number" min="0" data-type="int" value={(opt.amount_max as number | undefined) ?? ''} disabled={ownerDis} /></div>
             <div class="fld"><label class="fld__label mono" for="astep">{T('admin.product.gift.step')}</label><input id="astep" class="fld__input" name="options.amount_step" type="number" min="1" data-type="int" value={(opt.amount_step as number | undefined) ?? ''} disabled={ownerDis} /></div>
+            <div class="fld"><label class="fld__label mono" for="apresets">{T('admin.product.gift.presets')}</label><input id="apresets" class="fld__input mono-lc" name="options.amount_presets" data-type="intlist" data-gift-presets inputmode="numeric" autocomplete="off" value={Array.isArray(opt.amount_presets) ? (opt.amount_presets as number[]).join(', ') : ''} placeholder="5000, 10000, 20000" disabled={ownerDis} aria-describedby="apresets-help" /><p class="fld__help" id="apresets-help">{T('admin.product.gift.presets.help')}</p></div>
           </>}
+          {p.demo && (
+            <div class="price-verify">
+              <Badge tone="signal">DEMO</Badge>
+              {owner && <label class="fld fld--check price-verify__check"><input class="check" type="checkbox" name="verify_demo" data-type="bool" /><span class="fld__label">{T(kind === 'room' ? 'admin.product.verify.room' : 'admin.product.verify')}</span></label>}
+            </div>
+          )}
         </div>
       </section>
 
@@ -232,7 +241,7 @@ const statusLocked = !owner && p.status === 'published';
           </div>
           <div class="fld">
             <label class="fld__label mono" for="slug">{T('admin.product.slug')}</label>
-            <input id="slug" class="fld__input mono-lc" name="slug" value={p.slug ?? ''} required pattern="[a-z0-9]+(-[a-z0-9]+)*" spellcheck="false" autocapitalize="off" data-slug />
+            <input id="slug" class="fld__input mono-lc" name="slug" value={p.slug ?? ''} required data-pattern="^[a-z0-9]+(-[a-z0-9]+)*$" data-pattern-msg="admin.field.e.slug" spellcheck="false" autocapitalize="off" data-slug />
             <p class="fld__help">{T('admin.product.slug.help')}</p>
           </div>
         </div>
@@ -254,7 +263,6 @@ const statusLocked = !owner && p.status === 'published';
 
     <div class="savebar" style="grid-column:1 / -1">
       <button class="pill pill--primary" type="submit">{isNew ? T('admin.product.create') : T('admin.save')}</button>
-      {p.demo && <Badge tone="signal">DEMO</Badge>}
       <p class="form-status" data-form-status role="status"></p>
     </div>
   </form>

@@ -27,13 +27,25 @@ if (form) {
       run.hidden = false;
     } catch (err) { showError(form, err); }
   });
+  // One run at a time: a second tap while the dialog is open or the request is in flight is ignored.
+  let busy = false;
   run.addEventListener('click', async () => {
-    if (!last) return;
-    const ok = await confirmDialog({ body: tc('admin.orders.flood.confirm', { n: last.codes.length }), list: last.codes, danger: true });
-    if (!ok) return;
+    if (!last || busy) return;
+    busy = true;
+    run.setAttribute('aria-busy', 'true');
+    const label = run.textContent;
     try {
-      const r = await api<{ count: number }>('/api/admin/orders/cancel-unconfirmed', 'POST', { minutes: last.minutes, methods: last.methods, dry_run: false });
-      reloadWith(tc('admin.orders.flood.done', { n: r.count }));
-    } catch (err) { showError(form, err); }
+      const approved = last;
+      const ok = await confirmDialog({ body: tc('admin.orders.flood.confirm', { n: approved.codes.length }), list: approved.codes, danger: true, ok: tc('admin.orders.flood.ok', { n: approved.codes.length }) });
+      if (!ok) return;
+      run.textContent = tc('admin.saving');
+      // Only the codes the owner saw and approved: an order placed after the check is never touched.
+      const r = await api<{ count: number; requested: number }>('/api/admin/orders/cancel-unconfirmed', 'POST', { minutes: approved.minutes, methods: approved.methods, codes: approved.codes, dry_run: false });
+      reloadWith(r.count === approved.codes.length ? tc('admin.orders.flood.done', { n: r.count }) : tc('admin.orders.flood.done.part', { n: r.count, m: approved.codes.length }));
+    } catch (err) { showError(form, err); } finally {
+      busy = false;
+      run.removeAttribute('aria-busy');
+      run.textContent = label;
+    }
   });
 }

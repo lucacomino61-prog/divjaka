@@ -73,6 +73,7 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
     inventory_log_days: z.number().int().min(0).max(3650),
   }).partial(),
   // T0 (2026-10-23): verified third-party scores; `items` replaces the list when given.
+  booking: z.object({ best_rate_direct: z.boolean() }).partial(),
   proof: z.object({
     show: z.boolean(),
     items: z.array(z.object({

@@ -7,8 +7,8 @@
  * Filters live in the URL (?lloji=&interes=&q=&rendit=&pamja=liste — components/shop/filters.ts)
  * and work without JavaScript (a GET form, the server filters and sorts); with JavaScript
  * scripts/shop.ts applies them in place and keeps the URL in step (Back/Forward work).
- * Below: the offers running now (automatic offers; strike-through prices on the cards), the
- * empty state, and the product feed for partners.
+ * Below: the offers running now (automatic offers; strike-through prices on the cards) and the
+ * empty state. (The partners' product feed /feed/products.xml is not advertised to visitors.)
  */
 import Base from '../layouts/Base.astro';
 import SectionHead from '../components/site/SectionHead.astro';
@@ -206,11 +206,6 @@ const titleText = t(lang, 'nav.shop');
     </section>
   )}
 
-  <aside class="feed wrap" aria-labelledby="shop-feed-h">
-    <h2 id="shop-feed-h" class="feed__title mono">{t(lang, 'shop.feed.title')}</h2>
-    <p class="feed__body">{t(lang, 'shop.feed.body')}</p>
-    <a class="feed__link mono" href="/feed/products.xml" type="application/rss+xml">{t(lang, 'shop.feed.link')} · /feed/products.xml</a>
-  </aside>
 </Base>
 
 <script>
@@ -249,7 +244,7 @@ const titleText = t(lang, 'nav.shop');
     .fpill { flex: none; }
   }
   .fpill {
-    position: relative; display: inline-flex; align-items: center; gap: 8px; min-block-size: 44px; padding: 0 16px;
+    position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-block-size: 44px; min-inline-size: 48px; padding: 0 16px;
     border: 1px solid var(--ink); border-radius: var(--radius-pill); cursor: pointer; font-size: var(--step--1); line-height: 1.1;
     transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out), transform 120ms var(--ease-out);
     touch-action: manipulation; -webkit-tap-highlight-color: transparent; white-space: nowrap;
@@ -265,6 +260,8 @@ const titleText = t(lang, 'nav.shop');
   .filters__tools { display: grid; gap: 12px; align-items: end; grid-template-columns: minmax(0, 1fr) auto; padding-block-start: 6px; }
   .field--search { grid-column: 1 / -1; }
   @media (min-width: 720px) { .filters__tools { grid-template-columns: minmax(0, 1fr) minmax(0, 15rem) auto auto; } .field--search { grid-column: auto; } }
+  /* narrow phones: sort and view stack, each full width, so the sort label is never clipped */
+  @media (max-width: 379px) { .filters__tools { grid-template-columns: minmax(0, 1fr); } .viewswitch__row { display: flex; } .vs { flex: 1 1 0; justify-content: center; } }
   .field { display: grid; gap: 6px; min-inline-size: 0; }
   .field__label { font-size: var(--step--2); color: var(--muted); }
   .field__input {
@@ -303,7 +300,8 @@ const titleText = t(lang, 'nav.shop');
   .ledger tbody tr[hidden] { display: none; }
   .ledger__nr { font-size: var(--step--2); color: var(--muted); inline-size: 4.5rem; }
   .ledger__name { font-size: var(--step-1); font-weight: 650; font-stretch: 88%; line-height: 1.15; overflow-wrap: anywhere; }
-  .ledger__name a { text-decoration: none; }
+  /* the row's link keeps a 44 px tap height on phones (the text line alone is ~24 px) */
+  .ledger__name a { text-decoration: none; display: inline-block; padding-block: 11px; margin-block: -11px; }
   .ledger__name a:hover { text-decoration: underline; text-underline-offset: 3px; }
   .ledger__name :global(.stamp) { margin-inline-start: 10px; vertical-align: middle; }
   .ledger__kind, .ledger__status { font-size: var(--step--2); }
@@ -342,9 +340,4 @@ const titleText = t(lang, 'nav.shop');
   }
   .offers__note { margin-block-start: 14px; font-size: var(--step--1); }
 
-  /* ---------- partners feed ---------- */
-  .feed { display: grid; gap: 8px; margin-block: clamp(48px, 6vw, 96px) 0; padding-block: 18px; border-block-start: 3px double var(--ink); }
-  .feed__title { font-size: var(--step--2); }
-  .feed__body { color: var(--muted); max-inline-size: 60ch; font-size: var(--step--1); }
-  .feed__link { font-size: var(--step--2); justify-self: start; min-block-size: 44px; display: inline-flex; align-items: center; overflow-wrap: anywhere; text-underline-offset: 3px; }
 </style>

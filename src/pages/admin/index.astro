@@ -2,25 +2,36 @@
 /** /admin/ — Paneli (T6): KPIs, revenue + orders per day, funnel, occupancy, latest orders, low stock, assistant misses, env warnings. */
 import Admin from '../../layouts/Admin.astro';
 import Kpi from '../../components/admin/Kpi.astro';
+import Stamp from '../../components/site/Stamp.astro';
 import SeriesChart from '../../components/admin/SeriesChart.astro';
 import RangePicker from '../../components/admin/RangePicker.astro';
 import OrderBadges from '../../components/admin/OrderBadges.astro';
-import { adminLang, tr, lek, num, when, wall, rangeOf, callApi, WARN_LINK, type MeEnv } from '../../components/admin/admin-data';
+import { adminLang, tr, lek, num, when, wall, rangeOf, callApi, demoInRange, WARN_LINK, type MeEnv } from '../../components/admin/admin-data';
 import { stats } from '../../lib/stats';
 import { GET as meGET } from '../api/admin/me';
 import { number, percent, money } from '../../i18n/format';
 import { eurRate } from '../../components/site/site-data';
 import { getSetting } from '../../lib/db/repo/settings';
+import { listProducts } from '../../lib/db/repo/products';
 
 const lang = adminLang(Astro);
 const T = tr(lang);
 const range = rangeOf(Astro.url);
 const s = stats(range.from, range.to);
+const demo = demoInRange(range.from, range.to);
 const me = await callApi<{ env: MeEnv }>(meGET as never, Astro);
 const env = me?.env;
 const rate = await eurRate();
 const k = s.kpis;
 const lowLimit = getSetting('inventory').low_stock ?? 5;
+// Product names in the admin's language (the stats rows carry the Albanian name only).
+const products = listProducts({ status: 'any' });
+// the occupancy KPI and chart F divide by room unit counts: while a published room type still
+// carries demo units (PLAN §2), both are flagged DEMO, like Rezervimet does
+const demoRooms = products.some((p) => p.kind === 'room' && p.demo && p.status === 'published');
+const byId = new Map(products.map((p) => [p.id, p]));
+const bySlug = new Map(products.map((p) => [p.slug, p]));
+const pname = (p: { name_sq: string; name_en: string } | undefined, fallback: string) => (p ? (lang === 'en' ? p.name_en || p.name_sq : p.name_sq) : fallback);
 
 const warnText = (w: string) => {
   if (w === 'pending_surge' && env) return T('admin.warn.pending_surge', { n: env.held_last_hour.orders, r: env.held_last_hour.roomNights, s: env.held_last_hour.seats });
@@ -51,19 +62,25 @@ const eurNote = rate > 0 ? T('admin.approx.eur', { eur: number(Math.round(k.reve
     </section>
   )}
 
-  <RangePicker lang={lang} url={Astro.url} from={range.from} to={range.to} preset={range.preset} />
+  <RangePicker lang={lang} url={Astro.url} from={range.from} to={range.to} preset={range.preset} capped={range.capped} />
+  {(demo.orders > 0 || demo.visitors > 0 || demoRooms) && (
+    <p class="demo-figures" role="note"><Stamp kind="demo" lang={lang} tilt={false} /><span>
+      {(demo.orders > 0 || demo.visitors > 0) && T(demo.orders > 0 ? 'admin.demo.figures' : 'admin.demo.figures.events', { orders: number(demo.orders, lang), visitors: number(demo.visitors, lang) })}
+      {demoRooms && <>{(demo.orders > 0 || demo.visitors > 0) && ' '}{T('admin.dash.demo.rooms')} <a href="/admin/dhomat/">{T('admin.nav.rooms')}</a>.</>}
+    </span></p>
+  )}
 
   <section class="kpis" aria-label={T('admin.dash.kicker')}>
     <Kpi hero label={T('admin.dash.revenue')} value={revenueCompact(k.revenue)} unit={`${T('admin.lek')}${eurNote ? ' · ' + eurNote : ''}`} note={T('admin.dash.revenue.note')} />
     <Kpi chars={kpiChars} label={T('admin.dash.orders')} value={number(k.orders, lang)} note={T('admin.dash.orders.note', { n: k.confirmed_orders, p: k.pending_orders })} href="/admin/porosite/" />
     <Kpi chars={kpiChars} label={T('admin.dash.aov')} value={number(k.aov, lang)} unit={T('admin.lek')} note={T('admin.dash.aov.note')} />
     <Kpi chars={kpiChars} label={T('admin.dash.repeat')} value={number(k.repeat_rate, lang, k.repeat_rate % 1 ? 1 : 0)} unit="%" note={T('admin.dash.repeat.note', { n: k.customers })} />
-    <Kpi chars={kpiChars} label={T('admin.dash.occupancy')} value={number(s.occupancy.avg, lang, s.occupancy.avg % 1 ? 1 : 0)} unit="%" note={T('admin.dash.occupancy.note')} href="/admin/rezervimet/" />
+    <Kpi chars={kpiChars} label={T('admin.dash.occupancy')} value={number(s.occupancy.avg, lang, s.occupancy.avg % 1 ? 1 : 0)} unit="%" note={T('admin.dash.occupancy.note')} href="/admin/rezervimet/">{demoRooms && <Stamp kind="demo" lang={lang} tilt={false} />}</Kpi>
   </section>
   <p class="row mono small muted" style="margin-block-start:12px;font-size:11px">
     <span>{T('admin.dash.pending.revenue', { amount: money(k.pending_revenue, lang), n: k.pending_orders })}</span>
     <span>·</span>
-    <span>{T('admin.dash.visitors', { n: number(k.visitors, lang), c: percent(k.conversion, lang) })}</span>
+    <span>{T('admin.dash.visitors', { n: number(k.visitors, lang), c: `${number(k.conversion, lang, 1)}${lang === 'sq' ? ' ' : ''}%` })}</span>
     {k.test_orders > 0 && <><span>·</span><span class="signal-text">{T('admin.dash.test.excluded', { n: k.test_orders })}</span></>}
   </p>
 
@@ -84,7 +101,7 @@ const eurNote = rate > 0 ? T('admin.approx.eur', { eur: number(Math.round(k.reve
             <span class="funnel__label">{T(`admin.funnel.${f.step}`)}</span>
             <span class="funnel__count">{number(f.count, lang)}</span>
             <span class="funnel__bar" aria-hidden="true"><span style={`--w:${Math.max(0.6, (f.count / funnelTop) * 100).toFixed(1)}%`}></span></span>
-            {i > 0 && <span class="funnel__rate mono">{T('admin.funnel.of.prev', { p: pct(f.count, s.funnel[i - 1].count) })}</span>}
+            {i > 0 && <span class="funnel__rate mono">{T('admin.funnel.of.prev', { p: pct(f.count, s.funnel[i - 1].count) })}{f.step === 'order' && <> · {T('admin.funnel.order.note')}</>}</span>}
           </li>
         ))}
       </ol>
@@ -112,7 +129,7 @@ const eurNote = rate > 0 ? T('admin.approx.eur', { eur: number(Math.round(k.reve
         <ul class="ledger">
           {s.low_stock.map((p) => (
             <li class="ledger__row">
-              <span class="ledger__main"><a href={`/admin/produktet/${p.id}/`}>{p.name_sq}</a></span>
+              <span class="ledger__main"><a href={`/admin/produktet/${p.id}/`}>{pname(byId.get(p.id), p.name_sq)}</a></span>
               <span class:list={['ledger__side mono', p.stock === 0 && 'signal-text']}>{T('admin.dash.low.left', { n: p.stock })}</span>
             </li>
           ))}
@@ -123,7 +140,7 @@ const eurNote = rate > 0 ? T('admin.approx.eur', { eur: number(Math.round(k.reve
         <ul class="ledger">
           {s.full_sessions.map((x) => (
             <li class="ledger__row">
-              <span class="ledger__main"><a href={`/admin/rezervimet/?from=${x.starts_at.slice(0, 10)}#sessions`}>{x.name_sq}</a></span>
+              <span class="ledger__main"><a href={`/admin/rezervimet/?from=${x.starts_at.slice(0, 10)}#sessions`}>{pname(bySlug.get(x.slug), x.name_sq)}</a></span>
               <span class:list={['ledger__side mono', x.capacity - x.booked <= 0 && 'signal-text']}>{T('admin.dash.full.left', { n: Math.max(0, x.capacity - x.booked) })}</span>
               <span class="ledger__sub mono">{wall(x.starts_at, lang)}</span>
             </li>
@@ -152,6 +169,7 @@ const eurNote = rate > 0 ? T('admin.approx.eur', { eur: number(Math.round(k.reve
   <div class="cols cols--2" style="margin-block-start:clamp(36px,4vw,56px)">
     <section class="blk" aria-labelledby="oc-t">
       <div class="blk__head"><h2 class="blk__title" id="oc-t"><span class="mono">F</span>{T('admin.dash.occ.chart')}</h2><a class="mono blk__meta" href="/admin/rezervimet/">{T('admin.nav.bookings')}</a></div>
+      {demoRooms && <p class="demo-figures demo-figures--s" role="note"><Stamp kind="demo" lang={lang} tilt={false} /><span>{T('admin.dash.demo.rooms')} <a href="/admin/dhomat/">{T('admin.nav.rooms')}</a>.</span></p>}
       <SeriesChart lang={lang} title={T('admin.dash.occupancy')} desc={T('admin.dash.occ.chart.desc')} points={s.occupancy.days.map((d) => ({ day: d.date, value: d.rate }))} kind="bars" format="pct" height={150} size="s" />
     </section>
     <section class="blk" aria-labelledby="tp-t">
@@ -162,7 +180,7 @@ const eurNote = rate > 0 ? T('admin.approx.eur', { eur: number(Math.round(k.reve
             <thead><tr><th scope="col">{T('admin.products.name')}</th><th scope="col" class="num">{T('admin.orders.title')}</th><th scope="col" class="num">{T('admin.dash.revenue')}</th></tr></thead>
             <tbody>
               {s.top_products.map((p) => (
-                <tr><td><a href={`/admin/produktet/${p.product_id}/`}>{p.name}</a><span class="cell-sub mono">{T(`admin.kind.${p.kind}`)}</span></td><td class="num mono">{num(p.orders, lang)}</td><td class="num mono">{lek(p.revenue, lang)}</td></tr>
+                <tr><td><a href={`/admin/produktet/${p.product_id}/`}>{pname(byId.get(p.product_id), p.name)}</a><span class="cell-sub mono">{T(`admin.kind.${p.kind}`)}</span></td><td class="num mono">{num(p.orders, lang)}</td><td class="num mono">{lek(p.revenue, lang)}</td></tr>
               ))}
             </tbody>
           </table>

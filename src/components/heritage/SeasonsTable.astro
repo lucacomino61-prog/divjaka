@@ -82,6 +82,7 @@ const typeLabel = (type: string) => t(lang, `seasons.type.${['birds', 'nature', 
   .seasons__items li { display: grid; gap: 2px; max-inline-size: 68ch; }
   .seasons__type { font-size: var(--step--2); color: var(--muted); }
   .seasons__src { font-size: var(--step--2); color: var(--muted); justify-self: start; min-block-size: 24px; display: inline-flex; align-items: center; }
+  @media (pointer: coarse) { .seasons__src { min-block-size: 44px; min-inline-size: 44px; } }
   .seasons__low { color: var(--muted); }
   .seasons__caveat { font-size: var(--step--2); color: var(--muted); margin-block-start: 12px; max-inline-size: 70ch; text-transform: none; letter-spacing: 0; }
   @media (max-width: 599px) {

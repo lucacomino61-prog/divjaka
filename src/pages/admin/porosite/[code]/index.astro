@@ -8,12 +8,13 @@ import type { Order, OrderItem } from '../../../../lib/db/repo/orders';
 import type { Customer } from '../../../../lib/db/repo/customers';
 import { formatDate, formatRange, nights as nightsWord, number } from '../../../../i18n/format';
 import { daysBetween } from '../../../../lib/time';
+import { getProduct } from '../../../../lib/db/repo/products';
 
 const lang = adminLang(Astro);
 const T = tr(lang);
 const code = String(Astro.params.code ?? '');
 const data = await callApi<{ order: Order & { consent_pending: boolean }; items: OrderItem[]; customer: Customer | null; log: { reason: string; delta: number; ts: string; night: string | null; name_sq: string | null }[] }>(orderGET as never, Astro, undefined, { id: code });
-if (!data) return Astro.redirect('/admin/porosite/', 303);
+if (!data) return Astro.redirect(`/admin/porosite/?notfound=${encodeURIComponent(code.slice(0, 40))}`, 303);
 const { order: o, items, customer, log } = data;
 const api = `/api/admin/orders/${o.id}`;
 const reviewText = o.review ? o.review.split(',').map((x) => T(`admin.review.${x}`)).join(', ') : '';
@@ -28,16 +29,18 @@ const itemMeta = (it: OrderItem) => {
   return `× ${it.qty}`;
 };
 const active = o.status !== 'cancelled';
+// Line names in the admin's language (the order keeps the name in the guest's language).
+const itemName = (it: OrderItem) => { const p = it.product_id ? getProduct(it.product_id) : undefined; return p ? (lang === 'en' ? p.name_en || p.name_sq : p.name_sq) || it.name : it.name; };
 const holding = o.hold_until && o.status === 'pending' && Date.parse(o.hold_until) > Date.now();
-const actions: { label: string; body: Record<string, unknown>; confirm?: string; danger?: boolean; primary?: boolean }[] = [];
-if (o.status === 'pending') actions.push({ label: T('admin.order.act.confirm'), body: { status: 'confirmed' }, confirm: 'admin.order.c.confirm', primary: true });
+const actions: { label: string; body: Record<string, unknown>; confirm?: string; ok?: string; danger?: boolean; primary?: boolean }[] = [];
+if (o.status === 'pending') actions.push({ label: T('admin.order.act.confirm'), body: { status: 'confirmed' }, confirm: 'admin.order.c.confirm', ok: 'admin.order.ok.confirm', primary: true });
 if (o.status === 'confirmed') actions.push({ label: T('admin.order.act.complete'), body: { status: 'completed' }, primary: true });
-if (active && o.payment_status !== 'paid') actions.push({ label: T('admin.order.act.paid'), body: { payment_status: 'paid' }, confirm: 'admin.order.c.paid' });
-if (o.payment_status === 'paid') actions.push({ label: T('admin.order.act.refunded'), body: { payment_status: 'refunded' }, confirm: 'admin.order.c.refunded' });
+if (active && o.payment_status !== 'paid') actions.push({ label: T('admin.order.act.paid'), body: { payment_status: 'paid' }, confirm: 'admin.order.c.paid', ok: 'admin.order.ok.paid' });
+if (o.payment_status === 'paid') actions.push({ label: T('admin.order.act.refunded'), body: { payment_status: 'refunded' }, confirm: 'admin.order.c.refunded', ok: 'admin.order.ok.refunded' });
 if (o.payment_status === 'refunded' || o.payment_status === 'failed') actions.push({ label: T('admin.order.act.unpaid'), body: { payment_status: 'unpaid' } });
-if (o.consent_pending) actions.push({ label: T('admin.order.act.consent'), body: { confirm_consent: true }, confirm: 'admin.order.c.consent' });
-if (active) actions.push({ label: T('admin.order.act.cancel'), body: { status: 'cancelled' }, confirm: 'admin.order.c.cancel', danger: true });
-else actions.push({ label: T('admin.order.act.reopen'), body: { status: 'pending' }, confirm: 'admin.order.c.reopen' });
+if (o.consent_pending) actions.push({ label: T('admin.order.act.consent'), body: { confirm_consent: true }, confirm: 'admin.order.c.consent', ok: 'admin.order.ok.consent' });
+if (active) actions.push({ label: T('admin.order.act.cancel'), body: { status: 'cancelled' }, confirm: 'admin.order.c.cancel', ok: 'admin.order.ok.cancel', danger: true });
+else actions.push({ label: T('admin.order.act.reopen'), body: { status: 'pending' }, confirm: 'admin.order.c.reopen', ok: 'admin.order.ok.reopen' });
 const timeline = [
   { label: T('admin.order.tl.created'), at: o.created_at },
   o.paid_at && { label: T('admin.order.tl.paid'), at: o.paid_at },
@@ -65,7 +68,7 @@ const reasonLabel = (r: string) => { const k = `admin.inv.${r}`; const s = T(k);
         <ul class="lines">
           {items.map((it) => (
             <li class="lines__row">
-              <span class="lines__name">{it.product_id ? <a href={`/admin/produktet/${it.product_id}/`}>{it.name}</a> : it.name} <span class="mono muted" style="font-size:10.5px">{T(`admin.kind.${it.kind}`)}</span></span>
+              <span class="lines__name">{it.product_id ? <a href={`/admin/produktet/${it.product_id}/`}>{itemName(it)}</a> : it.name} <span class="mono muted" style="font-size:10.5px">{T(`admin.kind.${it.kind}`)}</span>{itemName(it) !== it.name && <span class="cell-sub muted" lang={o.lang === 'en' ? 'en' : 'sq'}>{it.name}</span>}</span>
               <span class="mono">{lek(it.line_total, lang)}</span>
               <span class="lines__meta mono">{itemMeta(it)} · {lek(it.unit_price, lang)}</span>
             </li>
@@ -102,7 +105,7 @@ const reasonLabel = (r: string) => { const k = `admin.inv.${r}`; const s = T(k);
         {o.consent_pending && <p class="note-box">{T('admin.order.consent.pending')}</p>}
         <div class="vstack">
           {actions.map((a) => (
-            <button type="button" class:list={['pill', 'pill--block', a.danger ? 'pill--danger' : a.primary ? 'pill--primary' : 'pill--outline']} data-action={api} data-method="PATCH" data-body={JSON.stringify(a.body)} data-confirm={a.confirm} data-danger={a.danger ? '' : undefined}>{a.label}</button>
+            <button type="button" class:list={['pill', 'pill--block', a.danger ? 'pill--danger' : a.primary ? 'pill--primary' : 'pill--outline']} data-action={api} data-method="PATCH" data-body={JSON.stringify(a.body)} data-confirm={a.confirm} data-confirm-ok={a.ok} data-danger={a.danger ? '' : undefined}>{a.label}</button>
           ))}
         </div>
         <p class="form-status" data-form-status role="status"></p>

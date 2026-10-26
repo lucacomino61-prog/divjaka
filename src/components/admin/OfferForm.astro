@@ -28,7 +28,7 @@ const has = (arr: (string | number)[] | undefined, v: string | number) => !!arr?
         </select>
       </div>
       <div class="fld"><label class="fld__label mono" for={`${id}-val`}>{T('admin.offers.value')}</label><input id={`${id}-val`} class="fld__input" type="number" min="0" name="value" data-type="int" value={offer?.value ?? 10} required /></div>
-      <div class="fld"><label class="fld__label mono" for={`${id}-code`}>{T('admin.offers.code')}</label><input id={`${id}-code`} class="fld__input mono-lc" name="code" data-nullable value={offer?.code ?? ''} pattern="[A-Za-z0-9_\-]{8,40}" autocapitalize="characters" spellcheck="false" /><p class="fld__help">{T('admin.offers.code.help')}</p></div>
+      <div class="fld"><label class="fld__label mono" for={`${id}-code`}>{T('admin.offers.code')}</label><input id={`${id}-code`} class="fld__input mono-lc" name="code" data-nullable value={offer?.code ?? ''} data-pattern="^([A-Za-z0-9_-]{8,40})?$" data-pattern-msg="admin.field.e.code" autocapitalize="characters" spellcheck="false" /><p class="fld__help">{T('admin.offers.code.help')}</p></div>
       <div class="fld"><label class="fld__label mono" for={`${id}-max`}>{T('admin.offers.max_uses')}</label><input id={`${id}-max`} class="fld__input" type="number" min="0" name="max_uses" data-type="int" data-nullable value={offer?.max_uses ?? ''} /></div>
     </div>
     <div class="fields">

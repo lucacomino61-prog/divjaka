@@ -8,6 +8,7 @@ import { listProducts, type Kind, type Product } from '../../../lib/db/repo/prod
 import { fold } from '../../../lib/text';
 
 const lang = adminLang(Astro);
+const notFound = (Astro.url.searchParams.get('notfound') ?? '').slice(0, 40);
 const T = tr(lang);
 const sp = Astro.url.searchParams;
 const kind = (KINDS as readonly string[]).includes(sp.get('lloji') ?? '') ? (sp.get('lloji') as Kind) : undefined;
@@ -28,6 +29,7 @@ const stTone = (s: string) => (s === 'published' ? 'ink' : s === 'archived' ? 's
 const name = (p: Product) => (lang === 'en' ? p.name_en || p.name_sq : p.name_sq);
 ---
 <Admin lang={lang} title={T('admin.products.title')} section="products" kicker={T('admin.products.kicker')}>
+  {notFound && <p class="note-box" role="status" style="margin-block-end:24px">{T('admin.notfound.product', { id: notFound })}</p>}
   <Fragment slot="actions">
     <details class="newmenu">
       <summary class="pill pill--primary pill--s">+ {T('admin.products.new')}</summary>
@@ -98,7 +100,7 @@ const name = (p: Product) => (lang === 'en' ? p.name_en || p.name_sq : p.name_sq
             return (
               <tr class:list={[p.status === 'archived' && 'is-muted']}>
                 <td data-label="" class="cell-hide-s">{th ? <img class="thumb" src={th} alt="" loading="lazy" width="56" height="42" /> : <span class="thumb spec__plate--empty" style="display:block"></span>}<span class="cell-sub mono">{nr(p)}</span></td>
-                <td data-label="" class="cell-wide"><a class="rowlink" href={`/admin/produktet/${p.id}/`}>{name(p)}</a><span class="cell-sub">{lang === 'en' ? p.name_sq : p.name_en}</span></td>
+                <td data-label="" class="cell-wide"><a class="rowlink" href={`/admin/produktet/${p.id}/`} lang={lang === 'en' && !p.name_en ? 'sq' : undefined}>{name(p)}</a><span class="cell-sub" lang={lang === 'en' ? 'sq' : 'en'}>{lang === 'en' ? p.name_sq : p.name_en}</span></td>
                 <td data-label={T('admin.products.kind')}>{T(`admin.kind.${p.kind}`)}</td>
                 <td data-label={T('admin.products.price')} class="num mono">{lek(p.price, lang)}<span class="cell-sub">{per(p).replace(' / ', '/ ')}</span></td>
                 <td data-label={T('admin.products.stock')} class="mono" style="font-size:12px">{amount(p)}</td>

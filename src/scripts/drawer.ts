@@ -7,7 +7,7 @@
  * The cart pill (an <a href> to the cart page) opens the drawer instead when JS is running.
  */
 import { modal } from './menu';
-import { getCart, onChange, removeItem, restoreItem, setQty, count, setUnavailable, type CartItem } from './cart';
+import { getCart, onChange, removeItem, restoreItem, setQty, count, setUnavailable, getPromo, setPromo, type CartItem } from './cart';
 import { getCurrency, eurRate } from './prefs';
 import { tc, lang } from '../i18n/client';
 import { money, formatRange, formatDate, time, nights as fmtNights, guests as fmtGuests, pad2 } from '../i18n/format';
@@ -31,10 +31,13 @@ export async function fetchQuote(items: CartItem[], signal?: AbortSignal): Promi
   const r = await fetch('/api/quote', {
     method: 'POST', signal,
     headers: { 'content-type': 'application/json', accept: 'application/json' },
-    body: JSON.stringify({ lang: lang(), items }),
+    // the promo code accepted on the cart page (T5) — the drawer shows the same total
+    body: JSON.stringify({ lang: lang(), items, ...(getPromo() ? { promo: getPromo() } : {}) }),
   });
   if (!r.ok) throw new Error(`quote ${r.status}`);
-  return r.json();
+  const q: Quote = await r.json();
+  if (q.promo && !q.promo.valid) setPromo('');
+  return q;
 }
 
 /** Lines the server no longer sells (retired or unknown slug). */
@@ -112,7 +115,7 @@ export function initDrawer() {
     const rate = eurRate() || q.eur_rate;
     const cur = getCurrency();
     const rows: [string, string, string?][] = [[tc('cart.subtotal'), money(q.subtotal, L)]];
-    if (q.discount > 0) rows.push([tc('cart.discount'), `−${money(q.discount, L)}`]);
+    if (q.discount > 0) rows.push([q.promo?.valid ? `${tc('cart.discount')} · ${q.promo.code}` : tc('cart.discount'), `−${money(q.discount, L)}`]);
     rows.push([tc('cart.total'), money(q.total, L), 'total']);
     const dl = h('dl', 'drawer__sums');
     for (const [k, v, cls] of rows) {

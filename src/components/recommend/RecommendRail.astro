@@ -1,33 +1,34 @@
 ---
 /**
  * RecommendRail — "Rekomanduar për ju" (PLAN §1: automatic recommendations, personalised by
- * history and preferences). Server: the popular / in-season picks from lib/recommend.ts, words and
+ * history and preferences). Server: the in-season / hotel-picked order (no demo data counts as popularity) from lib/recommend.ts, words and
  * prices in the HTML. Client (scripts/recommend.ts): reads dv-prefs interests, dv-viewed and the
  * cart, asks GET /api/recommend and re-orders the cards, each with its reason ("Sipas interesave
  * tuaja", "Sipas atyre që patë së fundi", "Shkon bashkë me zgjedhjet tuaja", "Në stinë tani",
- * "Ndër më të kërkuarat"). Every published product is server-rendered once (a hidden pool), so a
+ * "E parë nga vizitorë të tjerë", "Zgjedhur nga hoteli"). Every published product is server-rendered once (a hidden pool), so a
  * personalised card has the same plate, credit and price markup as the first paint.
  * "Interesat e mia" opens a sheet of interest chips that writes dv-prefs.
  *
  * Props: lang · index? (section number, e.g. "04") · title? · lead? (false hides it) · limit? (4–8, default 6)
  *        kinds? (Kind[] filter) · exclude? (slugs, e.g. the product on screen) · prefs? (show the
  *        "Interesat e mia" button, default true) · id? (unique per page when there are two rails)
+ *        variant? ('cards' default: plates; phones get a horizontal snap rail · 'list': a ruled text
+ *        index nr · reason · name · kind · price, for pages that already show the same plates)
  *        class?
  */
 import SectionHead from '../site/SectionHead.astro';
-import Photo from '../site/Photo.astro';
-import Price from '../site/Price.astro';
+import RecCard from './RecCard.astro';
 import { recommend, type Reason } from '../../lib/recommend';
-import { listProducts, pname, type Kind, type Product } from '../../lib/db/repo/products';
+import { listProducts, type Kind, type Product } from '../../lib/db/repo/products';
 import { t } from '../../i18n/ui';
 import type { Lang } from '../../i18n/routes';
-import { productUrl } from '../../lib/urls';
 
 interface Props {
   lang: Lang; index?: string; title?: string; lead?: string | false; limit?: number;
   kinds?: Kind[]; exclude?: string[]; prefs?: boolean; id?: string; class?: string;
+  variant?: 'cards' | 'list';
 }
-const { lang, index, title, lead, limit = 6, kinds = [], exclude = [], prefs = true, id = 'rekomanduar', class: cls } = Astro.props;
+const { lang, index, title, lead, limit = 6, kinds = [], exclude = [], prefs = true, id = 'rekomanduar', class: cls, variant = 'cards' } = Astro.props;
 const lim = Math.min(8, Math.max(4, limit));
 let first: { slug: string; reason: Reason }[] = [];
 try { first = recommend({ lang, limit: lim, kinds, exclude }).map((r) => ({ slug: r.slug, reason: r.reason })); } catch { first = []; }
@@ -37,10 +38,9 @@ const shown = first.map((f) => ({ p: bySlug.get(f.slug), reason: f.reason })).fi
 const pool = all.filter((p) => !shown.some((s) => s.p.slug === p.slug));
 const INTERESTS = ['birds', 'nature', 'beach', 'culture', 'food', 'active', 'family', 'couple', 'slow'];
 const sheetId = `${id}-interesat`;
-const img = (p: Product) => p.images[0]?.slug ?? null;
-const alt = (p: Product) => (lang === 'en' ? p.images[0]?.alt_en : p.images[0]?.alt_sq) ?? undefined;
+const isList = variant === 'list';
 ---
-<section class:list={['rec sheet', cls]} id={id} aria-labelledby={`${id}-h`} data-rec data-limit={lim} data-kinds={kinds.join(',')} data-exclude={exclude.join(',')}>
+<section class:list={['rec sheet', isList && 'rec--list', cls]} id={id} aria-labelledby={`${id}-h`} data-rec data-limit={lim} data-kinds={kinds.join(',')} data-exclude={exclude.join(',')}>
   <div class="wrap">
     <SectionHead id={`${id}-h`} index={index} kicker={t(lang, 'recommend.kicker')} title={title ?? t(lang, 'recommend.title')} size="heading">
       {prefs && (
@@ -53,34 +53,10 @@ const alt = (p: Product) => (lang === 'en' ? p.images[0]?.alt_en : p.images[0]?.
     {lead !== false && <p class="rec__lead">{lead ?? t(lang, 'recommend.lead')}</p>}
     <p class="rec__status mono" data-rec-status role="status" aria-live="polite"></p>
     <ol class="rec__list" data-rec-list>
-      {shown.map(({ p, reason }) => (
-        <li class="rec-card" data-rec-card={p.slug} data-reason={reason}>
-          <div class="rec-card__link">
-            <Photo slug={img(p)} lang={lang} ratio="4 / 3" sizes="(min-width: 1100px) 22vw, (min-width: 640px) 45vw, 80vw" alt={alt(p)} crosshair={false} />
-            <p class="rec-card__reason mono"><span class="rec-card__dot" aria-hidden="true"></span><span data-rec-reason>{t(lang, `recommend.reason.${reason}`)}</span></p>
-            <h3 class="rec-card__name"><a href={productUrl(p.kind, p.slug, lang)} class="rec-card__a"><span class="rec-card__nm">{pname(p, lang)}</span></a></h3>
-            <p class="rec-card__row mono">
-              <span>{t(lang, `recommend.kind.${p.kind}`)}</span>
-              <Price lek={p.price} lang={lang} from={p.kind === 'room' || p.kind === 'gift'} per={p.kind === 'room' ? 'night' : p.kind === 'experience' ? 'person' : null} />
-            </p>
-          </div>
-        </li>
-      ))}
+      {shown.map(({ p, reason }) => <RecCard p={p} lang={lang} reason={reason} variant={variant} />)}
     </ol>
     <ol hidden data-rec-pool>
-      {pool.map((p) => (
-        <li class="rec-card" data-rec-card={p.slug}>
-          <div class="rec-card__link">
-            <Photo slug={img(p)} lang={lang} ratio="4 / 3" sizes="(min-width: 1100px) 22vw, (min-width: 640px) 45vw, 80vw" alt={alt(p)} crosshair={false} />
-            <p class="rec-card__reason mono"><span class="rec-card__dot" aria-hidden="true"></span><span data-rec-reason></span></p>
-            <h3 class="rec-card__name"><a href={productUrl(p.kind, p.slug, lang)} class="rec-card__a"><span class="rec-card__nm">{pname(p, lang)}</span></a></h3>
-            <p class="rec-card__row mono">
-              <span>{t(lang, `recommend.kind.${p.kind}`)}</span>
-              <Price lek={p.price} lang={lang} from={p.kind === 'room' || p.kind === 'gift'} per={p.kind === 'room' ? 'night' : p.kind === 'experience' ? 'person' : null} />
-            </p>
-          </div>
-        </li>
-      ))}
+      {pool.map((p) => <RecCard p={p} lang={lang} variant={variant} />)}
     </ol>
   </div>
 
@@ -112,6 +88,7 @@ const alt = (p: Product) => (lang === 'en' ? p.images[0]?.alt_en : p.images[0]?.
   .rec__lead { max-inline-size: 52ch; color: var(--muted); margin-block-start: 14px; }
   .rec__status { min-block-size: 1.4em; font-size: var(--step--2); color: var(--muted); margin-block: 10px 6px; }
   .rec__prefs-btn {
+    white-space: nowrap; flex: none;
     display: inline-flex; align-items: center; gap: 8px; min-block-size: 36px; padding: 0 14px; margin-block: -6px;
     border: 1px solid var(--ink); border-radius: 99px; background: transparent; color: var(--ink);
     font-family: var(--font-mono); font-size: var(--step--2); text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer;
@@ -126,21 +103,21 @@ const alt = (p: Product) => (lang === 'en' ? p.images[0]?.alt_en : p.images[0]?.
   .rec__list[aria-busy="true"] { opacity: 0.55; }
   @media (min-width: 640px) { .rec__list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (min-width: 1100px) { .rec__list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-  .rec-card { border-block-start: 2px solid var(--ink); padding-block-start: 10px; }
-  .rec-card__link { position: relative; display: grid; gap: 10px; }
-  .rec-card__a { display: block; min-block-size: 44px; text-decoration: none; color: inherit; }
-  .rec-card__a::after { content: ""; position: absolute; inset: 0; z-index: 1; }
-  .rec-card__link :global(.plate__credit) { position: relative; z-index: 2; }
-  .rec-card__a:focus-visible { outline: none; box-shadow: none; }
-  .rec-card__a:focus-visible::after { outline: 2px solid var(--pouch); outline-offset: 3px; }
-  .rec-card__reason { display: flex; align-items: center; gap: 8px; font-size: var(--step--2); }
-  .rec-card__dot { inline-size: 7px; block-size: 7px; border-radius: 99px; background: var(--ink); flex: none; }
-  .rec-card[data-reason="interests"] .rec-card__dot, .rec-card[data-reason="together"] .rec-card__dot, .rec-card[data-reason="history"] .rec-card__dot { background: var(--pouch); }
-  .rec-card__name { font-size: var(--step-1); font-weight: 700; font-stretch: 85%; line-height: 1.08; text-wrap: balance; }
-  .rec-card__nm { display: inline-block; transition: transform 200ms var(--ease-out); }
-  .rec-card__row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; font-size: var(--step--2); padding-block-start: 8px; border-block-start: 1px solid var(--rule); }
-  @media (hover: hover) and (pointer: fine) { .rec-card__link:hover .rec-card__nm { transform: translateX(6px); } }
-
+  /* four cards: one row of four, not three and an orphan */
+  @media (min-width: 1100px) { .rec:not(.rec--list) .rec__list:has(> :nth-child(4):last-child) { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  /* phones: the plates become a swipe rail (one and a bit on screen), never a tall stack */
+  @media (max-width: 639px) {
+    .rec:not(.rec--list) .rec__list {
+      display: flex; gap: var(--gutter); overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory;
+      margin-inline: calc(var(--page-pad) * -1); padding: 2px var(--page-pad) 14px; scroll-padding-inline: var(--page-pad);
+      scrollbar-width: thin; scrollbar-color: var(--ink) transparent;
+    }
+    .rec:not(.rec--list) .rec__list > :global(li) { flex: 0 0 78%; scroll-snap-align: start; }
+  }
+  /* the ruled index: one column on phones, two columns from 900 px */
+  .rec--list .rec__list { gap: 0 var(--gutter); counter-reset: rec; border-block-start: 2px solid var(--ink); }
+  @media (min-width: 640px) { .rec--list .rec__list { grid-template-columns: minmax(0, 1fr); } }
+  @media (min-width: 900px) { .rec--list .rec__list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   /* the interests sheet: a bottom sheet (swipe down / Esc / button to close) */
   .rec-sheet {
     position: fixed; inset: auto 0 0 0; margin: 0 auto; max-inline-size: min(760px, 100vw); inline-size: 100%;

@@ -33,7 +33,7 @@ const when = (iso: string) => {
       <button type="button" class="xstrip__btn" data-xstrip-next aria-controls={`${id}-scroller`} aria-label={t(lang, 'exp.nextBtn')}><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></button>
     </div>
   </div>
-  <div class="xstrip__scroller" id={`${id}-scroller`} data-xstrip-scroller tabindex="0" role="region" aria-label={label}>
+  <div class="xstrip__scroller" id={`${id}-scroller`} data-xstrip-scroller data-lenis-prevent-horizontal tabindex="0" role="region" aria-label={label}>
     <ol class="xstrip__track">
       {lines.map((x) => (
         <li class="xs">

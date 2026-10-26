@@ -4,6 +4,9 @@
  * WebP 480/960/1600, as LC/greta does) and sends the blobs; the server checks magic bytes
  * and size (≤ 4 MB each) and stores them under data/uploads/<yyyy>/<id>-<w>.webp
  * (+ the original as <id>-orig.<ext> when sent).
+ * JPEG variants (T6, 2026-10-26): Safari on iPhone/iPad cannot encode WebP from a canvas, so a set
+ * of JPEG variants is accepted too (all variants of one upload share one format). Their `src` is the
+ * largest variant's full URL (…-1600.jpg): every reader already uses a `src` with an extension as is.
  */
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -50,10 +53,11 @@ export interface StoredImage { id: string; src: string; widths: { w: number; url
 export function storeImage(files: Map<string, Uint8Array>): StoredImage {
   const variants = WIDTHS.filter((w) => files.has(String(w)));
   if (!variants.length) throw E.bad('Mungojnë variantet WebP (480/960/1600).', 'WebP variants (480/960/1600) are missing.');
+  const fmt = sniff(files.get(String(variants[0]))!) === 'jpg' ? 'jpg' : 'webp';
   for (const [name, buf] of files) {
     if (buf.byteLength > MAX_BYTES) throw E.tooLarge();
     const t = sniff(buf);
-    if (name === 'original' ? !t : t !== 'webp') {
+    if (name === 'original' ? !t : t !== fmt) {
       throw E.bad(`Skedari "${name}" nuk është imazh i lejuar.`, `File "${name}" is not an allowed image.`);
     }
   }
@@ -64,9 +68,9 @@ export function storeImage(files: Map<string, Uint8Array>): StoredImage {
   const widths: StoredImage['widths'] = [];
   for (const w of variants) {
     const buf = files.get(String(w))!;
-    fs.writeFileSync(path.join(dir, `${id}-${w}.webp`), buf);
-    const size = webpSize(buf);
-    widths.push({ w, url: `/media/${year}/${id}-${w}.webp`, width: size?.w ?? null, height: size?.h ?? null });
+    fs.writeFileSync(path.join(dir, `${id}-${w}.${fmt}`), buf);
+    const size = fmt === 'webp' ? webpSize(buf) : null;
+    widths.push({ w, url: `/media/${year}/${id}-${w}.${fmt}`, width: size?.w ?? null, height: size?.h ?? null });
   }
   let original: string | null = null;
   const orig = files.get('original');
@@ -75,7 +79,7 @@ export function storeImage(files: Map<string, Uint8Array>): StoredImage {
     fs.writeFileSync(path.join(dir, `${id}-orig.${ext}`), orig);
     original = `/media/${year}/${id}-orig.${ext}`;
   }
-  return { id, src: `/media/${year}/${id}`, widths, original };
+  return { id, src: fmt === 'webp' ? `/media/${year}/${id}` : widths[widths.length - 1].url, widths, original };
 }
 
 const SAFE = /^(\d{4})\/([a-f0-9]{8,32})-(480|960|1600|orig)\.(webp|jpg|png|avif)$/;

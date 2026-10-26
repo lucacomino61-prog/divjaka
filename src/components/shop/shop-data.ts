@@ -10,7 +10,7 @@ import { automaticOffers, type Offer } from '../../lib/db/repo/offers';
 import { getProductBySlug } from '../../lib/db/repo/products';
 import { offerName } from '../../lib/offers';
 import { today } from '../../lib/time';
-import { t } from '../../i18n/ui';
+import { t, has } from '../../i18n/ui';
 import { MONTHS, money, relativeDay } from '../../i18n/format';
 import type { Lang } from '../../i18n/routes';
 import { haystack, type ItemFacts, type Kind } from './filters';
@@ -28,7 +28,7 @@ export interface Specimen extends ItemFacts {
   compare: number | null;
   per: 'night' | 'person' | null;
   from: boolean;
-  image: { slug: string | null; alt?: string };
+  image: { slug: string | null; src: string | null; alt?: string };
 }
 
 /** Months a product runs, as runs of consecutive months ("janar – qershor", wraps the year). */
@@ -59,9 +59,17 @@ export function giftLimits(slug: string): { min: number; max: number; step: numb
   };
 }
 
+/**
+ * Live readouts of a card. Seat and stock COUNTS are real or hidden (PLAN §2, DESIGN §10 — the
+ * same rule as the home strip, /tani/ and T4's pages): a product the owner has not verified
+ * (demo = 1) prints its next date but no "N vende të lira" / "N copë në stok", and no MBARUAR
+ * either (a demo stock of 0 proves nothing; the cart's quote still refuses what the server
+ * refuses, with its own message).
+ */
 export function readouts(c: ProductCard, lang: Lang, verifiedRooms: boolean): { list: Readout[]; soldOut: boolean } {
   const list: Readout[] = [];
   let soldOut = false;
+  const counts = !c.demo;
   if (c.kind === 'room') {
     if (verifiedRooms && c.left && c.left > 0) list.push({ text: t(lang, 'shop.read.rooms', { n: c.left }) });
     else list.push({ text: t(lang, 'shop.read.dates'), tone: 'muted' });
@@ -69,7 +77,7 @@ export function readouts(c: ProductCard, lang: Lang, verifiedRooms: boolean): { 
     if (c.next) {
       const when = `${relativeDay(c.next.slice(0, 10), lang)}, ${c.next.slice(11, 16)}`;
       list.push({ text: t(lang, 'shop.read.next', { when }) });
-      if (c.left != null) list.push({ text: c.left === 1 ? t(lang, 'shop.read.seats.one') : t(lang, 'shop.read.seats', { n: c.left }) });
+      if (counts && c.left != null) list.push({ text: c.left === 1 ? t(lang, 'shop.read.seats.one') : t(lang, 'shop.read.seats', { n: c.left }) });
     } else {
       list.push({ text: t(lang, 'shop.read.none'), tone: 'muted' });
     }
@@ -77,7 +85,7 @@ export function readouts(c: ProductCard, lang: Lang, verifiedRooms: boolean): { 
     // the value range is the owner's setting (products.options.amount_min/max)
     const g = giftLimits(c.slug);
     list.push({ text: t(lang, 'shop.read.gift', { min: money(g.min, lang), max: money(g.max, lang) }) });
-  } else if (c.left != null) {
+  } else if (counts && c.left != null) {
     if (c.left <= 0) { soldOut = true; list.push({ text: t(lang, 'shop.read.soldout'), tone: 'signal' }); }
     else list.push({ text: c.left === 1 ? t(lang, 'shop.read.stock.one') : t(lang, 'shop.read.stock', { n: c.left }) });
   }
@@ -94,6 +102,8 @@ export function specimens(lang: Lang): { items: Specimen[]; categories: { id: st
   const items = cat.items.map((c, i): Specimen => {
     const r = readouts(c, lang, verified);
     const sale = c.sale_price != null && c.sale_price < c.price ? c.sale_price : null;
+    // a gift card's "from" price is the lowest amount the owner allows, not its default amount
+    const giftMin = c.kind === 'gift' ? giftLimits(c.slug).min : null;
     const kindLabel = t(lang, `recommend.kind.${c.kind}`);
     const alt = lang === 'en' ? c.images[0]?.alt_en : c.images[0]?.alt_sq;
     return {
@@ -101,7 +111,7 @@ export function specimens(lang: Lang): { items: Specimen[]; categories: { id: st
       kind: c.kind as Kind,
       tags: c.tags,
       hay: haystack([c.name, c.summary, kindLabel, t(lang === 'sq' ? 'en' : 'sq', `recommend.kind.${c.kind}`), ...c.tags.map((tg) => tagWords(tg))]),
-      price: sale ?? c.price,
+      price: giftMin ?? sale ?? c.price,
       name: c.name,
       rank: i,
       next: c.kind === 'experience' ? c.next : null,
@@ -110,11 +120,12 @@ export function specimens(lang: Lang): { items: Specimen[]; categories: { id: st
       readouts: r.list,
       soldOut: r.soldOut,
       offer: c.offers.length > 0 || sale != null,
-      lek: sale ?? c.price,
-      compare: sale != null ? c.price : c.compare_at,
+      lek: giftMin ?? sale ?? c.price,
+      compare: giftMin != null ? null : sale != null ? c.price : c.compare_at,
       per: c.kind === 'room' ? 'night' : c.kind === 'experience' ? 'person' : null,
       from: c.kind === 'room' || c.kind === 'gift',
-      image: { slug: c.images[0]?.slug ?? null, alt: alt || undefined },
+      // research photo (slug) or an owner upload (src, drawn by ProductPhoto)
+      image: { slug: c.images[0]?.slug ?? null, src: c.images[0]?.src ?? null, alt: alt || undefined },
     };
   });
   return { items, categories: cat.categories };
@@ -122,9 +133,9 @@ export function specimens(lang: Lang): { items: Specimen[]; categories: { id: st
 
 /** Both languages' words for a tag, so "zogj" and "birds" both find the dawn birdwatch. */
 function tagWords(tag: string): string {
-  const k = `recommend.interest.${tag}`;
-  const sq = t('sq', k), en = t('en', k);
-  return [tag, sq === k ? '' : sq, en === k ? '' : en].join(' ');
+  // "rainy" is a shop filter, not one of the visitor interests (recommend.interest.*)
+  const k = [`recommend.interest.${tag}`, `shop.interest.${tag}`].find((key) => has('sq', key)) ?? '';
+  return k ? [tag, t('sq', k), has('en', k) ? t('en', k) : ''].join(' ') : tag;
 }
 
 export interface OfferRow { id: number; name: string; value: string; conditions: string[]; kinds: Kind[] }

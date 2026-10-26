@@ -39,7 +39,19 @@ export interface InfoRow { key: string; label: string; value: string; source: st
 const dash = (s: string) => s.replace(/\s*-\s*/g, '–');
 const timeOf = (s: string) => (s.match(/\d{1,2}:\d{2}/g) ?? []);
 
-export async function hotelInfo(lang: Lang): Promise<{ rows: InfoRow[]; checkin: string | null; checkout: string | null; sources: Source[] }> {
+export interface HotelInfo {
+  rows: InfoRow[];
+  /** times shown on the page (owner's, else the sourced listing's) */
+  checkin: string | null; checkout: string | null;
+  /** times the owner saved in Cilësimet: only these go to JSON-LD */
+  checkinOwner: string | null; checkoutOwner: string | null;
+  /** language codes from the verified listing (JSON-LD availableLanguage) */
+  languages: string[];
+  sources: Source[];
+}
+const LANG_CODE: Record<string, string> = { english: 'en', italian: 'it', albanian: 'sq', german: 'de', french: 'fr', greek: 'el' };
+
+export async function hotelInfo(lang: Lang): Promise<HotelInfo> {
   const b = await business();
   const rows: InfoRow[] = [];
   const sources: Source[] = [];
@@ -82,20 +94,29 @@ export async function hotelInfo(lang: Lang): Promise<{ rows: InfoRow[]; checkin:
       sources.push({ title: 'Hotel Pelikan', url, publisher: publisher(url), accessed: ACCESSED });
     }
   }
-  return { rows, checkin, checkout, sources };
+  const le = entry('languages');
+  const languages = Array.isArray(le?.value) ? (le!.value as string[]).map((x) => LANG_CODE[String(x).toLowerCase()]).filter(Boolean) : [];
+  return {
+    rows, checkin, checkout, sources, languages,
+    checkinOwner: ownIn ? timeOf(ownIn)[0] ?? null : null,
+    checkoutOwner: ownOut ? timeOf(ownOut)[0] ?? null : null,
+  };
 }
 
-/** Facilities for JSON-LD amenityFeature (verified list only). */
+/**
+ * Facilities for JSON-LD amenityFeature (verified list only). Restaurant and bar are left out:
+ * Base's Hotel node (same @id) already carries "Bar-restorant", and the two merge.
+ */
 export function amenities(lang: Lang): string[] {
   const e = entry('facilities');
   if (!e || !Array.isArray(e.value)) return [];
   const sq: Record<string, string> = {
-    restaurant: 'Restorant', bar: 'Bar', garden: 'Kopsht', 'free private parking on site': 'Parkim privat falas',
-    '24-hour front desk': 'Recepsion 24 orë', '24-hour security': 'Sigurim 24 orë', 'daily housekeeping': 'Pastrim i përditshëm',
+    garden: 'Kopsht', 'free private parking on site': 'Parkim privat falas',
+    '24-hour front desk': 'Recepsion 24 orë', '24-hour security': 'Siguri 24 orë', 'daily housekeeping': 'Pastrim i përditshëm',
     'currency exchange': 'Këmbim valutor', 'family rooms': 'Dhoma familjare', 'non-smoking rooms': 'Dhoma për jo-duhanpirës',
     'free WiFi in all areas': 'Wi-Fi falas kudo', 'air conditioning': 'Ajër i kondicionuar',
   };
-  return (e.value as string[]).map((v) => (lang === 'sq' ? sq[v] ?? v : v.charAt(0).toUpperCase() + v.slice(1)));
+  return (e.value as string[]).filter((v) => !/^(restaurant|bar)$/i.test(v)).map((v) => (lang === 'sq' ? sq[v] ?? v : v.charAt(0).toUpperCase() + v.slice(1)));
 }
 
 /** settings.proof (only when the owner shows it): "9.5/10 · Booking.com · 601 vlerësime". */

@@ -41,6 +41,7 @@ export default {
     'heritage.topic.history': 'Historia',
     'heritage.topic.practical': 'Praktike',
     'heritage.verse.sources': 'Burimet e fjalisë',
+    'heritage.months.sources': 'Burimet e kalendarit',
 
     // article
     'article.crumb': 'Trashëgimia',
@@ -52,6 +53,7 @@ export default {
     'article.all': 'Të gjitha fletët',
     'article.sourcesNote': 'Shifrat dhe datat në këtë fletë vijnë nga burimet më poshtë, të hapura më 23 tetor 2026. Kur burimet japin vlera të ndryshme, i tregojmë si interval.',
     'article.fromHotel': '{km} nga Hotel Pelikan, në vijë ajrore',
+    'article.fromHotelTo': '{km} nga hoteli deri te {place}, në vijë ajrore',
     'article.photoNote': 'Shënim',
     'article.ref': 'Burimi {n}',
 
@@ -111,6 +113,7 @@ export default {
     'heritage.topic.history': 'History',
     'heritage.topic.practical': 'Practical',
     'heritage.verse.sources': 'Sources for the sentence',
+    'heritage.months.sources': 'Sources for the calendar',
 
     'article.crumb': 'Heritage',
     'article.onChart': 'On the chart',
@@ -121,6 +124,7 @@ export default {
     'article.all': 'All sheets',
     'article.sourcesNote': 'The figures and dates on this sheet come from the sources below, opened on 23 October 2026. Where sources give different values, we show them as a range.',
     'article.fromHotel': '{km} from Hotel Pelikan, as the crow flies',
+    'article.fromHotelTo': '{km} from the hotel to the {place}, as the crow flies',
     'article.photoNote': 'Note',
     'article.ref': 'Source {n}',
 

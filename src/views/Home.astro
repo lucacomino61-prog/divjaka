@@ -87,7 +87,9 @@ const jsonld = [
   <Signature lang={lang} />
   <HotelStrip lang={lang} />
   <ExperienceStrip lang={lang} />
-  <RecommendRail lang={lang} index="04" />
+  {/* the strip above already shows every experience and the shop teaser the gift card and the
+      chart print: the rail recommends the rest (rooms, packages, gear), as a ruled index */}
+  <RecommendRail lang={lang} index="04" kinds={['room', 'bundle', 'goods']} exclude={['harta-e-lagunes']} limit={4} variant="list" lead={t(lang, 'home.rec.lead')} />
   <HeritageTeaser lang={lang} />
   <LiveTeaser lang={lang} />
   <ShopTeaser lang={lang} />

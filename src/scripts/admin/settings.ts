@@ -2,7 +2,7 @@
  * Settings page (T6): business form sends only changed or explicitly confirmed fields, ratings
  * rows into proof.items, extra social network, UTM link builder.
  */
-import { serialize } from './forms';
+import { serialize, initDateWords } from './forms';
 
 /* business: only what changed, plus placeholders the owner confirms as correct */
 for (const form of document.querySelectorAll<HTMLFormElement>('form[data-changed-only]')) {
@@ -32,12 +32,12 @@ if (proof) {
     const t = e.target as Element;
     if (t.closest('[data-proof-remove]')) t.closest('li')!.remove();
     if (t.closest('[data-proof-add]')) {
-      const first = list.querySelector('li');
-      if (first) {
-        const row = first.cloneNode(true) as HTMLElement;
-        row.dataset.extra = '{}';
-        for (const i of row.querySelectorAll('input')) i.value = '';
+      // From an empty <template> row, so "+ Add" still works after every row was removed.
+      const tpl = proof.querySelector<HTMLTemplateElement>('template[data-proof-template]');
+      const row = tpl?.content.firstElementChild?.cloneNode(true) as HTMLElement | undefined;
+      if (row) {
         list.append(row);
+        initDateWords(row);
         row.querySelector('input')!.focus();
       }
     }

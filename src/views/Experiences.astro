@@ -14,6 +14,7 @@ import Price from '../components/site/Price.astro';
 import SourceList from '../components/site/SourceList.astro';
 import ExpStrip from '../components/experiences/ExpStrip.astro';
 import { lines } from '../components/experiences/lineup';
+import { distinctTitle } from '../components/experiences/seasons';
 import { lineup } from './experience.load';
 import { siteOriginOf } from '../components/site/site-data';
 import { t, has } from '../i18n/ui';
@@ -29,14 +30,21 @@ const all = lineup();
 const view = sp.get('pamja') === 'liste' ? 'list' : 'strip';
 const counts = new Map<string, number>();
 for (const p of all) for (const tag of p.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
-const interests = ['birds', 'nature', 'culture', 'food', 'active', 'family', 'couple', 'slow'].filter((k) => counts.get(k) && has(lang, `recommend.interest.${k}`));
-const interest = interests.includes(sp.get('interes') ?? '') ? sp.get('interes')! : null;
+// ?interes= uses the shop's Albanian values (HANDOFF T5: zogj, natyre, kulture…) in both
+// languages; the English tag names are read as aliases. Tags in the data stay English.
+const SQ_VALUE: Record<string, string> = { birds: 'zogj', nature: 'natyre', culture: 'kulture', food: 'ushqim', active: 'aktiv', family: 'familje', couple: 'cift', slow: 'qetesi', beach: 'plazh', rainy: 'dite-me-shi' };
+const TAG_OF: Record<string, string> = Object.fromEntries(Object.entries(SQ_VALUE).flatMap(([tag, v]) => [[v, tag], [tag, tag]]));
+// chip labels: the shared interest words (T3), else this page's own (rainy day)
+const interestLabel = (k: string) => (has(lang, `recommend.interest.${k}`) ? t(lang, `recommend.interest.${k}`) : has(lang, `exp.interest.${k}`) ? t(lang, `exp.interest.${k}`) : '');
+const interests = Object.keys(SQ_VALUE).filter((k) => counts.get(k) && interestLabel(k));
+const asked = TAG_OF[(sp.get('interes') ?? '').toLowerCase()] ?? null;
+const interest = asked && interests.includes(asked) ? asked : null;
 const shown = interest ? all.filter((p) => p.tags.includes(interest)) : all;
 const rows = lines(lang, shown);
 const base = path('experiences', lang);
 const href = (patch: Record<string, string | null>) => {
   const q = new URLSearchParams();
-  const v = { interes: interest, pamja: view === 'list' ? 'liste' : null, ...patch };
+  const v = { interes: interest ? SQ_VALUE[interest] : null, pamja: view === 'list' ? 'liste' : null, ...patch };
   for (const [k, val] of Object.entries(v)) if (val) q.set(k, val);
   const s = q.toString();
   return `${base}${s ? `?${s}` : ''}`;
@@ -48,6 +56,9 @@ const when = (iso: string) => {
 };
 const hintSources: Source[] = [];
 for (const r of rows) if (r.hint && !hintSources.some((s) => s.url === r.hint!.source.url)) hintSources.push(r.hint.source);
+const sourceList = hintSources.map((s) => distinctTitle(s, hintSources));
+// the free-places column only when some schedule is verified (demo schedules print no counts)
+const seatsCol = rows.some((r) => r.left != null);
 const count = rows.length === 1 ? t(lang, 'exp.count1') : t(lang, 'exp.count', { n: rows.length });
 
 const jsonld = {
@@ -60,26 +71,19 @@ const jsonld = {
     <section class="wrap xi-hero" aria-labelledby="xi-h">
       <Breadcrumbs lang={lang} items={[{ label: t(lang, 'nav.experiences') }]} />
       <SectionHead as="h1" id="xi-h" index={t(lang, 'exp.index')} kicker={t(lang, 'exp.kicker')} title={t(lang, 'exp.title')} size="poster" />
-      <div class="xi-hero__grid">
-        <p class="lede xi-lead">{t(lang, 'exp.lead')}</p>
-        <figure class="xi-guide">
-          <blockquote><p>{t(lang, 'exp.guide')}</p></blockquote>
-          <figcaption class="mono">{t(lang, 'exp.guide.src')}</figcaption>
-        </figure>
-      </div>
     </section>
 
     <section class="xi-list" aria-labelledby="xi-count">
       <div class="wrap xi-tools">
         <h2 class="xi-count mono" id="xi-count">{count}</h2>
-        <nav class="xi-filter" aria-label={t(lang, 'exp.filter')}>
-          <span class="mono xi-tools__k" aria-hidden="true">{t(lang, 'exp.filter')}</span>
-          <a href={href({ interes: null })} class="chip" aria-current={!interest ? 'true' : undefined}>{t(lang, 'exp.filter.all')}</a>
-          {interests.map((k) => <a href={href({ interes: k })} class="chip" aria-current={interest === k ? 'true' : undefined}>{t(lang, `recommend.interest.${k}`)}</a>)}
-        </nav>
         <nav class="xi-view" aria-label={t(lang, 'exp.view')}>
           <a href={href({ pamja: null })} class="chip" aria-current={view === 'strip' ? 'true' : undefined}>{t(lang, 'exp.view.strip')}</a>
           <a href={href({ pamja: 'liste' })} class="chip" aria-current={view === 'list' ? 'true' : undefined}>{t(lang, 'exp.view.list')}</a>
+        </nav>
+        <nav class="xi-filter" aria-label={t(lang, 'exp.filter')}>
+          <span class="mono xi-tools__k" aria-hidden="true">{t(lang, 'exp.filter')}</span>
+          <a href={href({ interes: null })} class="chip" aria-current={!interest ? 'true' : undefined}>{t(lang, 'exp.filter.all')}</a>
+          {interests.map((k) => <a href={href({ interes: SQ_VALUE[k] })} class="chip" aria-current={interest === k ? 'true' : undefined}>{interestLabel(k)}</a>)}
         </nav>
       </div>
 
@@ -91,8 +95,24 @@ const jsonld = {
       ) : view === 'strip' ? (
         <ExpStrip lang={lang} lines={rows} id="lineup" label={t(lang, 'exp.title')} />
       ) : (
-        <div class="wrap">
-          <div class="xi-table" role="region" aria-label={t(lang, 'exp.title')} tabindex="0">
+        <div class="wrap xi-listview">
+          {/* phones: one ruled entry per experience (name, then length · km · next · places · price) */}
+          <ol class="xl">
+            {rows.map((r) => (
+              <li class="xl__row">
+                <p class="xl__top mono"><span>{t(lang, 'exp.nr')} {r.n}</span><span>{r.length}</span></p>
+                <h3 class="xl__name"><a href={r.url}>{r.name}</a></h3>
+                <p class="xl__meta mono">
+                  {r.km != null && <span>{r.km < 0.1 ? t(lang, 'exp.here') : `${r.kmText} ${t(lang, 'exp.from')}`}</span>}
+                  <span>{r.next ? t(lang, 'exp.next', { date: when(r.next) }) : t(lang, 'exp.none')}</span>
+                  {r.next && r.left != null && r.left > 0 && <span class="xl__seats">{r.left === 1 ? t(lang, 'exp.seats1') : t(lang, 'exp.seats', { n: r.left })}</span>}
+                </p>
+                <p class="xl__price"><Price lek={r.p.price} lang={lang} per="person" /></p>
+                {r.hint && <p class="xl__hint mono"><span class="visually-hidden">{t(lang, 'exp.season')}: </span>{t(lang, `exp.hint.${r.hint.key}`)}</p>}
+              </li>
+            ))}
+          </ol>
+          <div class="xi-table" data-lenis-prevent-horizontal role="region" aria-label={t(lang, 'exp.title')} tabindex="0">
             <table class="xt">
               <thead>
                 <tr>
@@ -101,7 +121,7 @@ const jsonld = {
                   <th scope="col" class="mono">{t(lang, 'exp.col.length')}</th>
                   <th scope="col" class="mono">{t(lang, 'exp.col.km')}</th>
                   <th scope="col" class="mono">{t(lang, 'exp.col.next')}</th>
-                  <th scope="col" class="mono xt__num">{t(lang, 'exp.col.seats')}</th>
+                  {seatsCol && <th scope="col" class="mono xt__num">{t(lang, 'exp.col.seats')}</th>}
                   <th scope="col" class="mono xt__num">{t(lang, 'exp.col.price')}</th>
                 </tr>
               </thead>
@@ -116,7 +136,7 @@ const jsonld = {
                     <td class="mono">{r.length}</td>
                     <td class="mono">{r.km != null && r.km < 0.1 ? t(lang, 'exp.here') : r.kmText}</td>
                     <td class="mono">{r.next ? when(r.next) : t(lang, 'exp.none')}</td>
-                    <td class="mono xt__num">{r.next && r.left != null ? r.left : '—'}</td>
+                    {seatsCol && <td class="mono xt__num">{r.next && r.left != null ? r.left : '—'}</td>}
                     <td class="xt__num"><Price lek={r.p.price} lang={lang} /></td>
                   </tr>
                 ))}
@@ -126,7 +146,14 @@ const jsonld = {
         </div>
       )}
     </section>
-    <div class="wrap xi-sources"><SourceList lang={lang} items={hintSources} title={t(lang, 'exp.sources.title')} id="burimet-stinet" /></div>
+    <section class="wrap xi-about" aria-label={t(lang, 'exp.kicker')}>
+      <p class="lede xi-lead">{t(lang, 'exp.lead')}</p>
+      <figure class="xi-guide">
+        <blockquote><p>{t(lang, 'exp.guide')}</p></blockquote>
+        <figcaption class="mono">{t(lang, 'exp.guide.src')}</figcaption>
+      </figure>
+    </section>
+    <div class="wrap xi-sources"><SourceList lang={lang} items={sourceList} title={t(lang, 'exp.sources.title')} id="burimet-stinet" /></div>
   </div>
 </Base>
 
@@ -136,18 +163,45 @@ const jsonld = {
 </script>
 
 <style>
-  .xi-hero { display: grid; gap: clamp(14px, 2vw, 24px); padding-block: clamp(10px, 1.6vw, 20px) clamp(28px, 4vw, 56px); }
-  .xi-hero__grid { display: grid; gap: clamp(20px, 4vw, 64px); align-items: end; margin-block-start: clamp(8px, 2vw, 32px); }
-  .xi-lead { max-inline-size: 26ch; }
+  /* first screen: poster + one lead, then the tools and the strip itself (the first tags show at
+     rest at 1440 × 900); the guides' sentence follows the list */
+  .xi-hero { display: grid; gap: clamp(12px, 1.6vw, 20px); padding-block: clamp(10px, 1.6vw, 20px) clamp(20px, 2.6vw, 36px); }
+  /* the fixed Pyet pill never hides a focused link */
+  :global(html:has(.xp-index)) { scroll-padding-block-end: 88px; }
+  .xi-about { display: grid; gap: clamp(20px, 4vw, 64px); align-items: start; padding-block: 0 clamp(24px, 4vw, 56px); }
+  .xi-lead { max-inline-size: 30ch; margin: 0; }
+  @media (min-width: 900px) { .xi-about { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); } }
   .xi-guide { margin: 0; display: grid; gap: 10px; padding-inline-start: 18px; border-inline-start: 2px solid var(--ink); }
   .xi-guide blockquote { margin: 0; }
-  .xi-guide p { font-family: var(--font-serif); font-style: italic; font-size: var(--step-2); line-height: 1.2; max-inline-size: 34ch; }
+  .xi-guide p { font-family: var(--font-serif); font-style: italic; font-size: var(--step-2); line-height: 1.2; max-inline-size: 40ch; }
   .xi-guide figcaption { font-size: var(--step--2); color: var(--muted); }
-  @media (min-width: 900px) { .xi-hero__grid { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); } }
-  .xi-list { display: grid; gap: 22px; padding-block-end: clamp(40px, 6vw, 96px); }
-  .xi-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding-block: 14px; border-block: 1px solid var(--ink); }
-  .xi-count { margin: 0; font-size: var(--step--1); font-weight: 600; margin-inline-end: auto; }
-  .xi-filter, .xi-view { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  /* one track, never wider than the page: a wide table scrolls inside its own box */
+  .xi-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; padding-block-end: clamp(40px, 6vw, 96px); }
+  .xi-list > * { min-inline-size: 0; }
+  /* left-aligned tools (count · view · interests): the view switch never sits under the Pyet pill */
+  .xi-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; padding-block: 12px; border-block: 1px solid var(--ink); }
+  .xi-count { margin: 0; font-size: var(--step--1); font-weight: 600; }
+  .xi-filter, .xi-view { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-inline-size: 0; }
+  /* phones: the interests are one swipeable row instead of three rows of chips */
+  @media (max-width: 699px) {
+    .xi-tools { gap: 10px 16px; }
+    .xi-filter { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; inline-size: calc(100% + var(--page-pad)); margin-inline-end: calc(-1 * var(--page-pad)); padding-inline-end: var(--page-pad); scroll-snap-type: x proximity; }
+    .xi-filter::-webkit-scrollbar { display: none; }
+    .xi-filter .chip { flex: none; scroll-snap-align: start; }
+  }
+  .xl { list-style: none; padding: 0; margin: 0; display: grid; }
+  .xl__row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; padding-block: 14px; border-block-end: 1px solid var(--rule); }
+  .xl__row:first-child { border-block-start: 2px solid var(--ink); }
+  .xl__top { display: flex; justify-content: space-between; gap: 10px; margin: 0; font-size: var(--step--2); color: var(--muted); }
+  .xl__name { margin: 0; font-size: var(--step-1); font-weight: 650; font-stretch: 90%; line-height: 1.15; overflow-wrap: anywhere; }
+  .xl__name a { text-decoration: none; display: inline-flex; min-block-size: 44px; align-items: center; }
+  .xl__price { margin: 2px 0 0; }
+  .xl__meta { display: flex; flex-wrap: wrap; gap: 2px 12px; margin: 0; font-size: var(--step--2); color: var(--muted); }
+  .xl__seats { color: var(--fg); }
+  .xl__hint { margin: 0; font-size: var(--step--2); }
+  .xl__hint::before { content: ""; display: inline-block; inline-size: 6px; block-size: 6px; border-radius: var(--radius-pill); background: var(--pouch); margin-inline-end: 8px; vertical-align: 1px; }
+  @media (min-width: 700px) { .xl { display: none; } }
+  @media (max-width: 699px) { .xi-table { display: none; } }
   .xi-tools__k { font-size: var(--step--2); color: var(--muted); margin-inline-end: 4px; }
   .chip { display: inline-flex; align-items: center; min-block-size: 36px; padding: 0 14px; border: 1px solid var(--rule-strong); border-radius: var(--radius-pill); text-decoration: none; color: inherit; font-family: var(--font-mono); font-size: var(--step--2); text-transform: uppercase; letter-spacing: 0.06em; transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out), transform 120ms var(--ease-out); }
   .chip:active { transform: scale(0.97); }

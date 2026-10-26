@@ -118,6 +118,12 @@ export interface ProofItem {
 }
 export interface ProofSettings { show: boolean; items: ProofItem[] }
 
+/**
+ * Booking claims the owner must confirm (T6 2026-10-26): `best_rate_direct` lets the booking pages
+ * say "the best price is here" (components/booking/server.ts bestRateConfirmed() reads it).
+ */
+export interface BookingSettings { best_rate_direct: boolean }
+
 export interface AllSettings {
   business: BusinessSettings;
   payments: PaymentSettings;
@@ -128,6 +134,7 @@ export interface AllSettings {
   inventory: InventorySettings;
   privacy: PrivacySettings;
   proof: ProofSettings;
+  booking: BookingSettings;
 }
 
 export const DEFAULTS: AllSettings = {
@@ -157,6 +164,7 @@ export const DEFAULTS: AllSettings = {
   },
   privacy: { events_days: 180, messages_days: 730, events_per_day: 30000, events_per_address_day: 2000, orders_days: 90, inventory_log_days: 730 },
   proof: { show: false, items: [] },
+  booking: { best_rate_direct: false },
 };
 
 export type SettingKey = keyof AllSettings;

@@ -59,7 +59,7 @@ const name = (x: { name_sq: string; name_en: string }) => (lang === 'en' ? x.nam
             <p class="blk__lede">{T('admin.sessions.generate.lede')}</p>
             <form class="vstack" style="gap:18px" data-api="/api/admin/sessions/generate" data-method="POST" data-success="admin.sessions.generate.done">
               <input type="hidden" name="product_id" value={p.id} data-type="int" />
-              <fieldset class="group" data-path="weekdays">
+              <fieldset class="group" data-path="weekdays" data-min-checked="admin.sessions.weekdays.none">
                 <legend>{T('admin.sessions.weekdays')}</legend>
                 <div class="chips">{weekdays.map((d) => <label class="chip"><input type="checkbox" name="weekdays" value={d} data-type="intlist" />{wdName(d)}</label>)}</div>
               </fieldset>

@@ -31,14 +31,26 @@ if (dlg && form) {
     sel.focus();
   });
   dlg.addEventListener('close', () => current?.opener.focus());
+  const save = form.querySelector<HTMLButtonElement>('button[type=submit]')!;
+  const saveLabel = save.textContent;
+  let busy = false; // a double tap on Save sends one request
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!current) return;
+    if (!current || busy) return;
     clearErrors(form);
+    busy = true;
+    save.textContent = tc('admin.saving');
+    form.setAttribute('aria-busy', 'true');
     try {
       const r = await api<{ partially: string[] }>('/api/admin/room-nights', 'POST', { product_id: current.product, from: current.night, to: nextDay(current.night), closed: Number(sel.value) });
       dlg.close();
+      current = null; // the page reloads: stay busy
       reloadWith(r.partially?.length ? tc('admin.bookings.night.partial', { nights: r.partially.join(', ') }) : tc('admin.saved'));
-    } catch (err) { showError(form, err); }
+    } catch (err) {
+      showError(form, err);
+      busy = false;
+      save.textContent = saveLabel;
+      form.removeAttribute('aria-busy');
+    }
   });
 }

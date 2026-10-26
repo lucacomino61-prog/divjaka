@@ -15,6 +15,7 @@ import Stamp from '../components/site/Stamp.astro';
 import Pill from '../components/site/Pill.astro';
 import { publicConfig } from '../lib/config';
 import { getSetting } from '../lib/db/repo/settings';
+import { listProducts } from '../lib/db/repo/products';
 import '../components/checkout/checkout.css';
 import { COUNTRIES, DIAL } from '../components/checkout/countries';
 import { t } from '../i18n/ui';
@@ -27,6 +28,8 @@ const pay = getSetting('payments');
 const clientCfg = {
   hotel: cfg.hotel, bank: cfg.bank.enabled, card: cfg.card, card_mode: cfg.card_mode,
   hold: { card: pay.card_hold_minutes || 30, hotel: pay.hotel_hold_hours || 24, bank: pay.bank_hold_hours || 72 },
+  // goods whose stock is counted: an order of them holds copies (the hold copy says so); gift cards never hold
+  tracked: listProducts().filter((p) => p.kind === 'goods' && p.stock != null).map((p) => p.slug),
 };
 const methods = [
   cfg.hotel && { id: 'hotel', title: t(lang, 'pay.hotel'), sub: t(lang, 'pay.hotel.sub'), test: false },
@@ -42,8 +45,11 @@ const steps = [
 const termsLink = `<a href="${path('terms', lang)}" target="_blank" rel="noopener">${t(lang, 'field.terms.link')}</a>`;
 const termsHtml = t(lang, 'field.terms', { link: termsLink });
 const defaultDial = '+355';
+// the phone is required only for the methods the hotel confirms by phone (hotel, bank) that are offered
+const phoneMethods = [cfg.hotel && t(lang, 'pay.phrase.hotel'), cfg.bank.enabled && t(lang, 'pay.phrase.bank')].filter(Boolean) as string[];
+const phoneNote = phoneMethods.length ? t(lang, 'field.phone.required', { methods: phoneMethods.join(` ${t(lang, 'pay.phrase.or')} `) }) : t(lang, 'field.optional');
 ---
-<Base lang={lang} title={t(lang, 'page.checkout.title')} description={t(lang, 'page.checkout.description')} routeKey="checkout" noindex clientKeys={['cartpage.', 'promo.', 'checkout.', 'field.', 'err.', 'pay.', 'hold.', 'review.', 'order.promo', 'product.amount']}>
+<Base lang={lang} title={t(lang, 'page.checkout.title')} description={t(lang, 'page.checkout.description')} routeKey="checkout" noindex clientKeys={['cartpage.', 'promo.', 'checkout.', 'field.', 'err.', 'pay.', 'hold.', 'review.', 'order.promo', 'order.qty', 'product.amount']}>
   <script type="application/json" data-checkout-cfg set:html={JSON.stringify(clientCfg)} />
 
   <section class="wrap co-head" data-checkout-root data-state="loading">
@@ -59,8 +65,10 @@ const defaultDial = '+355';
     </nav>
   </section>
 
-  <script is:inline>(function(){try{var c=JSON.parse(localStorage.getItem("dv-cart")||"null");var n=c&&c.v===1&&Array.isArray(c.items)?c.items.length:0;var r=document.querySelector("[data-checkout-root]");if(r)r.setAttribute("data-state",n?"ready":"empty");}catch(e){}})();</script>
+  <script is:inline>(function(){try{var c=JSON.parse(localStorage.getItem("dv-cart")||"null");var n=c&&c.v===1&&Array.isArray(c.items)?c.items.length:0;var r=document.querySelector("[data-checkout-root]");if(r)r.setAttribute("data-state",n?"ready":"empty");document.documentElement.style.setProperty("--co-n",String(Math.min(n,12)));}catch(e){}})();</script>
   <noscript><p class="wrap co-noscript">{t(lang, 'checkout.noscript')}</p></noscript>
+
+  <div class="wrap"><div class="lastorder" role="status" data-last-order hidden></div></div>
 
   <div class="co-empty wrap" data-co-empty>
     <p class="title">{t(lang, 'checkout.empty.title')}</p>
@@ -92,7 +100,7 @@ const defaultDial = '+355';
             <p id="e-email" class="f__err mono" data-err-for="email" hidden></p>
           </div>
           <div class="f f--wide">
-            <span class="f__label mono" id="l-phone">{t(lang, 'field.phone')} <span class="f__opt">· {t(lang, 'field.phone.required')}</span></span>
+            <span class="f__label mono" id="l-phone">{t(lang, 'field.phone')} <span class="f__opt">· {phoneNote}</span></span>
             <div class="f__phone">
               <label class="visually-hidden" for="f-phone_code">{t(lang, 'field.phone.code')}</label>
               <select id="f-phone_code" class="f__input f__select" name="phone_code" autocomplete="tel-country-code">
@@ -120,8 +128,8 @@ const defaultDial = '+355';
             <p id="e-terms" class="f__err mono" data-err-for="terms" hidden></p>
           </div>
           <div class="hp" aria-hidden="true">
-            <label for="f-website">Website</label>
-            <input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+            <label for="f-hp">{t(lang, 'field.hp')}</label>
+            <input id="f-hp" name="hp_url_x" type="text" tabindex="-1" autocomplete="new-password" data-lpignore="true" data-1p-ignore />
           </div>
         </div>
         <div class="step__actions">
@@ -136,8 +144,8 @@ const defaultDial = '+355';
           <div class="methods" role="radiogroup" aria-labelledby="pay-legend" aria-describedby="e-payment_method">
             <p id="pay-legend" class="f__label mono">{t(lang, 'pay.legend')}</p>
             {methods.map((m, i) => (
-              <label class="method" id={i === 0 ? 'f-payment_method' : undefined}>
-                <input type="radio" name="payment_method" value={m.id} />
+              <label class="method">
+                <input type="radio" name="payment_method" value={m.id} id={i === 0 ? 'f-payment_method' : undefined} />
                 <span class="method__dot" aria-hidden="true"></span>
                 <span class="method__body">
                   <span class="method__title" data-method-label={m.id}>{m.title}</span>
@@ -146,6 +154,7 @@ const defaultDial = '+355';
                 {m.test && <Stamp kind="test" lang={lang} />}
               </label>
             ))}
+            <p class="method-late mono" data-bank-late hidden></p>
             <p id="e-payment_method" class="f__err mono" data-err-for="payment_method" hidden></p>
           </div>
         ) : (
@@ -195,22 +204,19 @@ const defaultDial = '+355';
           <h2 id="co-sum-h" class="visually-hidden">{t(lang, 'checkout.summary')}</h2>
           <ul class="co-lines" data-co-lines></ul>
           <Fragment slot="stub">
-            <div data-co-sums></div>
+            <div data-co-sums><dl class="sums sums--sk" aria-hidden="true"><div class="sums__row"><dt class="mono">{t(lang, 'cart.subtotal')}</dt><dd class="mono">—</dd></div><div class="sums__row sums__row--total"><dt class="mono">{t(lang, 'cart.total')}</dt><dd class="sums__total">—</dd></div></dl></div>
             <a class="co-card__cart mono" href={path('cart', lang)}>{t(lang, 'cart.view')}</a>
           </Fragment>
         </PermitCard>
       </details>
     </aside>
+    <script is:inline>(function(){try{if(matchMedia("(max-width: 1023px)").matches){var d=document.querySelector(".co-sum");if(d)d.removeAttribute("open");}}catch(e){}})();</script>
   </div>
 </Base>
 
 <script>
   import { initCheckout } from '../scripts/checkout';
   initCheckout();
-</script>
-<script>
-  // phones: the summary starts folded (a one-line "Order · 3 items · 14 900 lekë")
-  if (matchMedia('(max-width: 1023px)').matches) document.querySelector<HTMLDetailsElement>('.co-sum')?.removeAttribute('open');
 </script>
 
 <style>
@@ -222,7 +228,14 @@ const defaultDial = '+355';
   .steps__a[data-state="done"] { color: var(--ink); }
   .steps__a[data-state="done"] .steps__n::after { content: " ✓"; }
   .steps__n { font-size: var(--step--2); }
-  .steps__l { font-weight: 650; font-stretch: 88%; font-size: var(--step-0); overflow-wrap: anywhere; }
+  .steps__a { min-inline-size: 0; }
+  .steps__l { font-weight: 650; font-stretch: 88%; font-size: var(--step-0); overflow-wrap: normal; hyphens: manual; white-space: nowrap; }
+  /* narrow phones: the number and the label stack, the label one size down — whole words only */
+  @media (max-width: 479px) {
+    .steps__a { flex-direction: column; align-items: flex-start; gap: 2px; padding-inline-end: 6px; }
+    .steps__l { font-size: var(--step--1); }
+  }
+  @media (max-width: 339px) { .steps__l { font-size: 13px; letter-spacing: -0.01em; } }
   .co-noscript { padding-block: 24px; }
   :global(html:not(.js)) .co, :global(html:not(.js)) .steps { display: none; }
   .co-empty { display: none; gap: 14px; justify-items: start; padding-block: 32px; }
@@ -294,6 +307,9 @@ const defaultDial = '+355';
   .rv { display: grid; gap: 26px; }
   .rv__h { display: flex; justify-content: space-between; gap: 12px; font-size: var(--step--2); padding-block-end: 8px; border-block-end: 1px solid var(--ink); margin-block-end: 10px; }
   .rv__edit { font-size: var(--step--2); min-block-size: 24px; text-underline-offset: 3px; }
+  @media (pointer: coarse) { .rv__edit { min-block-size: 44px; display: inline-flex; align-items: center; margin-block: -10px; } }
+  .method[hidden], .method-late[hidden] { display: none; }
+  .method-late { font-size: var(--step--2); color: var(--muted); padding: 12px 14px; border: 1px dashed var(--ink-40); text-transform: none; letter-spacing: .02em; line-height: 1.5; }
   .rv-lines { list-style: none; padding: 0; margin: 0 0 14px; }
   .rv-lines :global(.rv-line) { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 16px; padding-block: 12px; border-block-end: 1px solid var(--rule); }
   .rv-lines :global(.rv-line__name) { font-weight: 650; font-stretch: 88%; overflow-wrap: anywhere; }
@@ -303,6 +319,7 @@ const defaultDial = '+355';
   .rv-lines :global(.rv-line__problem) { color: var(--pouch-text); text-decoration: underline; text-decoration-color: var(--pouch); }
   .rv-dl { display: grid; gap: 8px; margin: 0; }
   .rv-dl :global(div) { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: 12px; }
+  @media (max-width: 419px) { .rv-dl :global(div) { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
   .rv-dl :global(dt) { font-size: var(--step--2); color: var(--muted); }
   .rv-dl :global(dd) { margin: 0; overflow-wrap: anywhere; }
   .rv-pay { font-weight: 650; }
@@ -320,6 +337,9 @@ const defaultDial = '+355';
   .co-sum[open] .co-sum__toggle { margin-block-end: 12px; }
   @media (min-width: 1024px) { .co-sum__toggle { display: none; } }
   .co-lines { list-style: none; padding: 0; margin: 0; }
+  /* reserve roughly one row per cart line until the quote paints them (CLS) */
+  .co-lines:empty { min-block-size: calc(var(--co-n, 0) * 64px); }
+  .co-card :global(.sums--sk) { color: var(--muted); }
   .co-lines :global(.co-line) { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding-block: 10px; border-block-end: 1px solid var(--rule); }
   .co-lines :global(.co-line__name) { font-weight: 650; font-stretch: 88%; font-size: var(--step--1); overflow-wrap: anywhere; }
   .co-lines :global(.co-line__sum) { font-size: var(--step--2); text-align: end; }

@@ -20,7 +20,7 @@ interface Props { lang: Lang; kind: 'privacy' | 'terms' }
 const { lang, kind } = Astro.props;
 const ctx = await legalContext(lang);
 const sections = kind === 'privacy' ? privacySections(ctx) : termsSections(ctx);
-const VERSION = '2026-10-23';
+const VERSION = '2026-10-26';
 const origin = await siteOriginOf(Astro.url, Astro.site);
 const other = kind === 'privacy' ? 'terms' : 'privacy';
 const jsonld = { '@context': 'https://schema.org', '@type': 'WebPage', name: t(lang, `page.${kind}.title`), url: new URL(path(kind, lang), origin).href, inLanguage: lang === 'sq' ? 'sq-AL' : 'en', dateModified: VERSION };

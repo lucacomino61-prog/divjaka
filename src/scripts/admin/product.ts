@@ -1,12 +1,13 @@
 /**
- * Product editor (T6): language tabs, markdown-lite preview, list editors (includes/excludes,
+ * Product editor (T6): language tabs, plain-paragraph preview, list editors (includes/excludes,
  * bundle contents), image list (library picker + browser-side WebP resize and upload), payload
  * builder that keeps unknown `options` keys, save (POST/PATCH) with inline errors, and an
  * unsaved-changes guard.
  */
 import { api, ApiFail, flash, flashNext, reloadWith } from './api';
 import { serialize, showError, clearErrors, checkRequired } from './forms';
-import { tc } from '../../i18n/client';
+import { tc, lang } from '../../i18n/client';
+import { number } from '../../i18n/format';
 
 interface Img { slug?: string; src?: string; alt_sq?: string; alt_en?: string; w?: number; h?: number; thumb?: string | null }
 interface Seed { id: number | null; kind: string; options: Record<string, unknown>; images: Img[]; owner: boolean }
@@ -21,6 +22,16 @@ if (form && seedEl) {
   form.addEventListener('input', markDirty);
   form.addEventListener('change', markDirty);
   addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); } });
+
+  /* The sticky save bar must never hide the focused control (WCAG 2.4.11). CSS gives the page a
+     scroll-padding for it; this covers engines that ignore it and a bar that grew (wrapped error). */
+  const bar = form.querySelector<HTMLElement>('.savebar');
+  form.addEventListener('focusin', (e) => {
+    const el = e.target as HTMLElement;
+    if (!bar || bar.contains(el)) return;
+    const r = el.getBoundingClientRect(), b = bar.getBoundingClientRect(); // read, then write
+    if (r.bottom > b.top - 8) window.scrollBy({ top: r.bottom - b.top + 24, behavior: 'instant' });
+  });
 
   /* ---------- tabs (arrow keys move between them) ---------- */
   const tabs = [...form.querySelectorAll<HTMLButtonElement>('[role=tab]')];
@@ -50,34 +61,15 @@ if (form && seedEl) {
   form.addEventListener('input', warnTabs);
   warnTabs();
 
-  /* ---------- markdown-lite preview (DOM nodes only, never innerHTML) ---------- */
-  function inline(text: string, into: HTMLElement): void {
-    const re = /\*\*(.+?)\*\*|\*(.+?)\*|\[([^\]]+)\]\(((?:https:\/\/|\/)[^)\s]+)\)/g;
-    let last = 0;
-    for (const m of text.matchAll(re)) {
-      into.append(text.slice(last, m.index));
-      if (m[1]) { const b = document.createElement('strong'); b.textContent = m[1]; into.append(b); }
-      else if (m[2]) { const i = document.createElement('em'); i.textContent = m[2]; into.append(i); }
-      else { const a = document.createElement('a'); a.textContent = m[3]; a.href = m[4]; a.rel = 'noopener'; a.target = '_blank'; into.append(a); }
-      last = (m.index ?? 0) + m[0].length;
-    }
-    into.append(text.slice(last));
-  }
+  /* ---------- preview: exactly what the public Room / Experience / Product views print ----------
+     They split the body on blank lines and print each part as plain text in a <p> (no markup; a
+     single line break reads as a space). textContent only, never innerHTML. */
   function render(src: string, out: HTMLElement): void {
-    out.replaceChildren();
-    for (const block of src.replace(/\r/g, '').split(/\n\s*\n/)) {
-      const lines = block.split('\n').filter((l) => l.trim());
-      if (!lines.length) continue;
-      if (lines.every((l) => /^\s*[-•]\s+/.test(l))) {
-        const ul = document.createElement('ul');
-        for (const l of lines) { const li = document.createElement('li'); inline(l.replace(/^\s*[-•]\s+/, ''), li); ul.append(li); }
-        out.append(ul);
-      } else {
-        const p = document.createElement('p');
-        lines.forEach((l, i) => { if (i) p.append(document.createElement('br')); inline(l, p); });
-        out.append(p);
-      }
-    }
+    out.replaceChildren(...src.replace(/\r/g, '').split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean).map((para) => {
+      const p = document.createElement('p');
+      p.textContent = para;
+      return p;
+    }));
   }
   for (const b of form.querySelectorAll<HTMLButtonElement>('[data-preview]')) {
     b.addEventListener('click', () => {
@@ -201,21 +193,27 @@ if (form && seedEl) {
     flash(tc('admin.product.images.library.added'));
   });
 
-  /* upload: orient, resize to 480/960/1600 WebP in the browser, then POST /api/admin/upload */
+  /* upload: orient, resize to 480/960/1600 in the browser, then POST /api/admin/upload.
+     WebP where the browser can encode it; Safari (iPhone/iPad) cannot, so it falls back to JPEG
+     (the server accepts one format per upload). */
   const upStatus = form.querySelector<HTMLElement>('[data-upload-status]')!;
   const MAX = 4 * 1024 * 1024;
-  const toBlob = (c: HTMLCanvasElement, q: number) => new Promise<Blob | null>((r) => c.toBlob(r, 'image/webp', q));
+  let mime: 'image/webp' | 'image/jpeg' = 'image/webp';
+  const toBlob = (c: HTMLCanvasElement, type: string, q: number) => new Promise<Blob | null>((r) => c.toBlob(r, type, q));
   async function encode(bmp: ImageBitmap, width: number): Promise<Blob> {
     const w = Math.min(width, bmp.width);
     const c = document.createElement('canvas');
     c.width = w;
     c.height = Math.round((bmp.height * w) / bmp.width);
     const ctx = c.getContext('2d')!;
+    ctx.fillStyle = '#fff'; // JPEG has no alpha: a transparent PNG would turn black
+    ctx.fillRect(0, 0, c.width, c.height);
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(bmp, 0, 0, c.width, c.height);
     for (const q of [0.82, 0.72, 0.6]) {
-      const b = await toBlob(c, q);
-      if (!b || b.type !== 'image/webp') throw new Error('no_webp');
+      let b = await toBlob(c, mime, q);
+      if (mime === 'image/webp' && (!b || b.type !== 'image/webp')) { mime = 'image/jpeg'; b = await toBlob(c, mime, q); }
+      if (!b || b.type !== mime) throw new Error('no_webp');
       if (b.size <= MAX) return b;
     }
     throw new Error('too_big');
@@ -233,7 +231,7 @@ if (form && seedEl) {
       try {
         if (bmp.width < 480) throw new Error('too_small');
         const fd = new FormData();
-        for (const w of [480, 960, 1600]) fd.set(`w${w}`, await encode(bmp, w), `w${w}.webp`);
+        for (const w of [480, 960, 1600]) { const blob = await encode(bmp, w); fd.set(`w${w}`, blob, `w${w}.${mime === 'image/jpeg' ? 'jpg' : 'webp'}`); }
         const r = await api<{ src: string; widths: { w: number; url: string }[] }>('/api/admin/upload', 'POST', fd);
         images.push({ src: r.src, alt_sq: '', alt_en: '', w: bmp.width, h: bmp.height, thumb: r.widths[0]?.url ?? `${r.src}-480.webp` });
       } finally { bmp.close(); }
@@ -264,6 +262,7 @@ if (form && seedEl) {
       }
       body[`includes_${l}`] = listValues(`includes_${l}`);
     }
+    if (Array.isArray(options.amount_presets) && !options.amount_presets.length) delete options.amount_presets; // empty → the site's default amounts
     body.options = options;
     body.images = images.map(({ thumb: _t, ...rest }) => Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined && v !== '')));
     if (!seed.id) body.kind = seed.kind;
@@ -277,6 +276,66 @@ if (form && seedEl) {
     return body;
   }
 
+  /* Every photo needs both descriptions (alt text, WCAG 1.1.1; DESIGN: say what is really in it). */
+  function checkAlts(): boolean {
+    let first: HTMLInputElement | null = null;
+    images.forEach((im, i) => {
+      const row = imgList.children[i];
+      for (const l of ['sq', 'en'] as const) {
+        const inp = row?.querySelector<HTMLInputElement>(`input[lang="${l}"]`);
+        if (!inp) continue;
+        if ((im[`alt_${l}`] ?? '').trim()) { inp.removeAttribute('aria-invalid'); continue; }
+        inp.setAttribute('aria-invalid', 'true');
+        const msg = document.createElement('p');
+        msg.className = 'fld__err mono';
+        msg.textContent = tc('admin.required');
+        inp.closest('.fld')?.append(msg);
+        first ??= inp;
+      }
+    });
+    if (!first) return true;
+    const st = form!.querySelector<HTMLElement>('[data-form-status]')!;
+    st.dataset.tone = 'error';
+    st.textContent = tc('admin.product.images.alt.missing');
+    (first as HTMLInputElement).scrollIntoView({ block: 'center' });
+    (first as HTMLInputElement).focus({ preventScroll: true });
+    return false;
+  }
+
+  /* Gift-card preset amounts (options.amount_presets): whole lek inside the min/max/step the guest
+     may choose from; the public page drops any that are not, so say so before saving. */
+  function checkPresets(): boolean {
+    const inp = form!.querySelector<HTMLInputElement>('[data-gift-presets]');
+    if (!inp || inp.disabled || !inp.value.trim()) return true;
+    // an empty limit field means the public page's own default (shop-data giftLimits(): 1000 / 200000 / 100)
+    const val = (n: string, dflt: number) => {
+      const raw = (form!.querySelector<HTMLInputElement>(`[name="options.${n}"]`)?.value ?? '').replace(/[\s  ]/g, '');
+      const v = Number(raw);
+      return raw === '' || !Number.isFinite(v) ? dflt : v;
+    };
+    const min = val('amount_min', 1000), max = val('amount_max', 200000), step = Math.max(1, val('amount_step', 100));
+    const parts = inp.value.split(/[,;]/).map((x) => x.trim()).filter(Boolean);
+    // "5,000, 10,000" splits into 5 · 000 · 10 · 000: a lone three-digit group after a short number is
+    // a thousands separator, not an amount; say that instead of a min/max message
+    const thousands = parts.some((x, i) => i > 0 && /^\d{3}$/.test(x) && /^\d{1,3}$/.test(parts[i - 1]));
+    const amounts = parts.map((x) => Number(x.replace(/[\s  .]/g, '')));
+    const ok = !thousands && amounts.every((v) => Number.isInteger(v) && v >= min && v <= max && (v - min) % step === 0);
+    if (ok) return true;
+    inp.setAttribute('aria-invalid', 'true');
+    const msg = document.createElement('p');
+    msg.className = 'fld__err mono';
+    msg.id = 'apresets-err';
+    msg.textContent = thousands ? tc('admin.product.gift.presets.sep') : tc('admin.product.gift.presets.e', { min: number(min, lang()), max: number(max, lang()), step: number(step, lang()) });
+    inp.closest('.fld')?.append(msg);
+    inp.setAttribute('aria-describedby', 'apresets-err apresets-help');
+    const st = form!.querySelector<HTMLElement>('[data-form-status]')!;
+    st.dataset.tone = 'error';
+    st.textContent = tc('admin.error.fields');
+    inp.scrollIntoView({ block: 'center' });
+    inp.focus({ preventScroll: true });
+    return false;
+  }
+
   let saving = false;
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -286,6 +345,8 @@ if (form && seedEl) {
     const ok = checkRequired(form);
     form.querySelectorAll<HTMLElement>('[data-panel]').forEach((p) => { p.hidden = p.dataset.wasHidden === 'true'; });
     if (!ok) { const bad = form.querySelector<HTMLElement>('[aria-invalid="true"]'); const panel = bad?.closest<HTMLElement>('[data-panel]'); if (panel?.hidden) { const t = tabs.find((x) => x.dataset.tab === panel.dataset.panel); if (t) select(t); } bad?.focus(); return; }
+    if (!checkAlts()) return;
+    if (!checkPresets()) return;
     const submit = form.querySelector<HTMLButtonElement>('button[type=submit]')!;
     const label = submit.textContent;
     saving = true;

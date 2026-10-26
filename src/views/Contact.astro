@@ -16,6 +16,7 @@ import ContactForm, { type ContactValues } from '../components/contact/ContactFo
 import { business, confirmed, social, hotelSpot, siteOriginOf } from '../components/site/site-data';
 import { fact, sourcesFor } from '../components/heritage/facts';
 import { createMessage } from '../lib/db/repo/misc';
+import { get } from '../lib/db/index';
 import { clientIp, rateLimit } from '../lib/security';
 import { t } from '../i18n/ui';
 import { coords } from '../i18n/format';
@@ -36,13 +37,24 @@ if (Astro.request.method === 'POST') {
     values = { name: s('name', 120), email: s('email', 200), phone: s('phone', 40), subject: s('subject', 20), message: s('message', 5000) };
     const ts = Number(fd.get('ts'));
     const elapsed = Number.isFinite(ts) ? Date.now() - ts : 0;
-    const bot = !!s('website', 200) || elapsed < 2500 || elapsed > 86_400_000;
+    // A bot fills the hidden field or posts within 2.5 s. A form older than a day (a tab left open
+    // since yesterday, or a missing/forged ts) is not stored either, but the visitor is told so and
+    // the form comes back with everything typed and a fresh timestamp — never a fake "sent".
+    const bot = !!s('website', 200) || elapsed < 2500;
+    const stale = !bot && elapsed > 86_400_000;
+    if (stale) formError = t(lang, 'contact.form.err.stale');
     if (!values.name) errors.name = t(lang, 'contact.form.err.name');
     if (!values.email && !values.phone) errors.email = t(lang, 'contact.form.err.contact');
     else if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(values.email)) errors.email = t(lang, 'contact.form.err.email');
     if ((values.message ?? '').length < 2) errors.message = t(lang, 'contact.form.err.message');
-    if (!Object.keys(errors).length) {
-      if (!bot) {
+    if (!Object.keys(errors).length && !stale) {
+      // The same form sent again (a reload's "resubmit", a double tap) within 10 minutes is the
+      // same message: it is not stored twice, and the visitor still sees the success state.
+      const repeat = !bot && !!get<{ id: number }>(
+        "SELECT id FROM messages WHERE kind = 'contact' AND body = ? AND COALESCE(email, '') = ? AND COALESCE(phone, '') = ? AND created_at >= ? LIMIT 1",
+        values.message!, values.email || '', values.phone || '', new Date(Date.now() - 10 * 60_000).toISOString(),
+      );
+      if (!bot && !repeat) {
         rateLimit('contact', clientIp(Astro), 5, 10 * 60_000);
         const subjects = ['booking', 'group', 'order', 'park', 'privacy', 'other'];
         createMessage({
@@ -92,7 +104,9 @@ const routes = [
   { k: 'tirana', v: drive('prac-01') }, { k: 'airport', v: drive('prac-02') }, { k: 'durres', v: drive('prac-03') }, { k: 'fier', v: drive('prac-04') },
   { k: 'bus', v: fact('prac-08') ? t(lang, 'contact.getting.bus.value') : null },
 ].filter((r) => r.v);
-const sources = sourcesFor(['prac-01', 'prac-02', 'prac-03', 'prac-04', 'prac-08']);
+// the four drive times come from the same routing source: one entry, not four identical lines
+const sources = sourcesFor(['prac-01', 'prac-02', 'prac-03', 'prac-04', 'prac-08'])
+  .filter((x, i, a) => a.findIndex((y) => y.url === x.url || (y.title === x.title && y.publisher === x.publisher)) === i);
 const origin = await siteOriginOf(Astro.url, Astro.site);
 const jsonld = {
   '@context': 'https://schema.org', '@type': 'ContactPage',
@@ -113,7 +127,7 @@ const jsonld = {
       <section class="ct__channels" aria-labelledby="ct-ch-h">
         <h2 id="ct-ch-h" class="ct__rule mono">{t(lang, 'contact.channels')}</h2>
         <dl class="chan">
-          {address && <div><dt class="mono">{t(lang, 'contact.address')}</dt><dd><span translate="no">Hotel Pelikan</span>, {address}<br /><a class="mono chan__small" href={mapUrl} rel="noopener">{t(lang, 'contact.map')} · {coords(spot.lat, spot.lon)}</a></dd></div>}
+          {address && <div><dt class="mono">{t(lang, 'contact.address')}</dt><dd><span translate="no">Hotel Pelikan</span>{`, ${address.trim()}`}<br /><a class="mono chan__small" href={mapUrl} rel="noopener">{t(lang, 'contact.map')} · {coords(spot.lat, spot.lon)}</a></dd></div>}
           {phone && <div><dt class="mono">{t(lang, 'contact.phone')}</dt><dd><a href={`tel:${digits(phone)}`}>{phone}</a></dd></div>}
           {email && <div><dt class="mono">{t(lang, 'contact.email')}</dt><dd><a href={`mailto:${email}`}>{email}</a></dd></div>}
           {whatsapp && <div><dt class="mono">{t(lang, 'contact.whatsapp')}</dt><dd><a href={`https://wa.me/${digits(whatsapp).replace(/^\+/, '')}`} rel="noopener">{whatsapp}</a></dd></div>}
@@ -176,9 +190,10 @@ const jsonld = {
   .ct__get { display: grid; gap: 12px; padding-block-start: 14px; border-block-start: 3px double var(--ink); }
   .ct__h { font-size: var(--step-3); font-weight: 700; font-stretch: 85%; line-height: 1; }
   .get { margin: 0; }
-  .get > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding-block: 12px; border-block-end: 1px solid var(--rule); align-items: baseline; }
+  .get > div { display: grid; grid-template-columns: 11em minmax(0, 1fr); gap: 12px; padding-block: 12px; border-block-end: 1px solid var(--rule); align-items: baseline; }
   .get dt { font-size: var(--step--2); color: var(--muted); }
-  .get dd { margin: 0; text-align: end; font-variant-numeric: tabular-nums; }
+  .get dd { margin: 0; text-align: end; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  @media (max-width: 420px) { .get > div { grid-template-columns: minmax(0, 1fr); gap: 2px; } .get dd { text-align: start; } }
   .ct__more { font-size: var(--step--2); justify-self: start; min-block-size: 44px; display: inline-flex; align-items: center; }
   /* SourceList links: full-size targets (24 px, 44 px on touch) */
   .ct__get :global(.sources__body a) { display: inline-flex; align-items: center; min-block-size: 24px; }

@@ -12,6 +12,8 @@ export function initContact() {
   const sent = box.querySelector<HTMLElement>('[data-sent]')!;
   const summary = form.querySelector<HTMLElement>('[data-form-error]');
   const shownAt = Date.now();
+  /** a POST in flight: a second press, double click or Enter is dropped (the button stays enabled) */
+  let sending = false;
   const field = (n: string) => form.elements.namedItem(n) as HTMLInputElement | null;
   const val = (n: string) => (field(n)?.value ?? '').trim();
   const setErr = (n: string, msg: string) => {
@@ -31,6 +33,7 @@ export function initContact() {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (sending) return;
     const name = val('name'), email = val('email'), phone = val('phone'), message = val('message'), subject = val('subject');
     ['name', 'email', 'message'].forEach((n) => setErr(n, ''));
     setSummary('');
@@ -42,6 +45,7 @@ export function initContact() {
     if (message.length < 2) err('message', 'contact.form.err.message');
     if (first) { setSummary(tc('contact.form.err.summary')); field(first)?.focus(); return; }
 
+    sending = true;
     const btn = form.querySelector<HTMLButtonElement>('[type="submit"]')!;
     const label = btn.querySelector<HTMLElement>('[data-send-label]')!;
     const idle = label.textContent;
@@ -68,6 +72,7 @@ export function initContact() {
       setSummary(tc((x as Error).message === 'rate' ? 'contact.form.err.rate' : 'contact.form.err.server'));
       summary?.focus?.();
     } finally {
+      sending = false;
       clearTimeout(slow);
       label.textContent = idle;
       btn.removeAttribute('aria-busy');

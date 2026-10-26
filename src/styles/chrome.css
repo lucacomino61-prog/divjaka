@@ -4,6 +4,8 @@
 
 /* ---------- document ---------- */
 html { scroll-padding-top: calc(var(--header-h) + 8px); scrollbar-gutter: stable; background: var(--salt); }
+/* the fixed Pyet pill (48 px, 16 px from the bottom): a focused element scrolls clear of it */
+html { scroll-padding-block-end: calc(48px + 16px + 12px); }
 /* classic scrollbars: the reserved gutter shows the root background, outside the dialogs' box.
    Under the full-screen ink menu it is painted ink, so no salt strip runs down the sheet's edge.
    (The cart drawer is salt and sits at the inline end, so the salt gutter reads as its edge.) */
@@ -227,7 +229,10 @@ html:not([data-cur="EUR"]) [data-cur-eur], html[data-cur="EUR"] [data-cur-all] {
 .permit__stub { padding: 18px; display: grid; gap: 14px; background: var(--salt-2); }
 
 /* ---------- plates (photos) ---------- */
-.plate { margin: 0; display: grid; gap: 10px; }
+/* minmax(0, 1fr): WebKit sizes an auto track from the image's intrinsic width, so a matted plate
+   and its caption grew wider than their column (page wider than the phone); the track may shrink */
+.plate { margin: 0; display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); min-inline-size: 0; }
+.plate > * { min-inline-size: 0; }
 .plate--mat .plate__frame { outline: 1px solid var(--rule-strong); outline-offset: 6px; margin: 7px; }
 .plate__frame { position: relative; overflow: clip; background: var(--salt-2) center / cover no-repeat; inline-size: auto; }
 .plate__frame picture, .plate__frame img { display: block; inline-size: 100%; block-size: 100%; }

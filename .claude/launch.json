@@ -3,14 +3,23 @@
   "configurations": [
     {
       "name": "divjaka",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "astro",
+        "dev",
+        "--port",
+        "3800",
+        "--ignore-lock"
+      ],
       "port": 3800
     },
     {
       "name": "divjaka-prod",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "start"],
+      "runtimeArgs": [
+        "run",
+        "start"
+      ],
       "port": 3801
     }
   ]

@@ -32,7 +32,20 @@ const list = rooms.filter((r) => r.slug !== exclude).map((r) => {
 });
 ---
 {view === 'list' ? (
-  <div class="rt-table" role="region" aria-label={t(lang, 'stay.rooms.title')} tabindex="0">
+  <Fragment>
+  {/* phones: one ruled entry per room (as the experiences list); the table from 700 px */}
+  <ol class="rt-stack">
+    {list.map((x) => (
+      <li class="rt-stack__row">
+        <p class="rt-stack__top mono"><span>{t(lang, 'stay.rooms.nr')} {x.n}</span>{x.size && <span>{t(lang, 'stay.rooms.size', { n: x.size })}</span>}</p>
+        <H class="rt-stack__name"><a href={x.url}>{x.name}</a></H>
+        <p class="rt-stack__meta mono">{x.beds}{x.sleeps ? ` · ${t(lang, 'stay.rooms.sleeps', { n: x.sleeps })}` : ''}</p>
+        <p class="rt-stack__meta mono">{x.next ? t(lang, 'stay.rooms.next', { date: nightLabel(x.next.night) }) : t(lang, 'stay.rooms.noneSoon')}</p>
+        <p class="rt-stack__price"><Price lek={x.price} lang={lang} per="night" from /></p>
+      </li>
+    ))}
+  </ol>
+  <div class="rt-table" data-lenis-prevent-horizontal role="region" aria-label={t(lang, 'stay.rooms.title')} tabindex="0">
     <table class="rt-list">
       <thead>
         <tr>
@@ -58,6 +71,7 @@ const list = rooms.filter((r) => r.slug !== exclude).map((r) => {
       </tbody>
     </table>
   </div>
+  </Fragment>
 ) : (
   <ol class="rt-tags">
     {list.map((x) => (
@@ -113,4 +127,14 @@ const list = rooms.filter((r) => r.slug !== exclude).map((r) => {
   .rt-list tbody th a:hover { text-decoration: underline; }
   .rt-list td.mono { font-size: var(--step--1); }
   .rt-list__num { text-align: end !important; }
+  .rt-stack { list-style: none; padding: 0; margin: 0; display: grid; }
+  .rt-stack__row { display: grid; gap: 4px; padding-block: 14px; border-block-end: 1px solid var(--rule); }
+  .rt-stack__row:first-child { border-block-start: 2px solid var(--ink); }
+  .rt-stack__top { display: flex; justify-content: space-between; gap: 10px; margin: 0; font-size: var(--step--2); color: var(--muted); }
+  .rt-stack__name { margin: 0; font-size: var(--step-1); font-weight: 650; font-stretch: 90%; line-height: 1.15; overflow-wrap: anywhere; }
+  .rt-stack__name a { text-decoration: none; display: inline-flex; min-block-size: 44px; align-items: center; }
+  .rt-stack__meta { margin: 0; font-size: var(--step--2); color: var(--muted); }
+  .rt-stack__price { margin: 2px 0 0; }
+  @media (min-width: 700px) { .rt-stack { display: none; } }
+  @media (max-width: 699px) { .rt-table { display: none; } }
 </style>

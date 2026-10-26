@@ -35,6 +35,26 @@ function utm() {
   return { source: source ?? '', medium: medium ?? '', campaign: campaign ?? '' };
 }
 
+/**
+ * First touch of this tab, kept for the order's source (sessionStorage 'dv-utm', read by the
+ * checkout, T5): the first utm_source/medium/campaign seen on ANY landing page, and the first
+ * external referrer. Called once per page from chrome.ts boot(). Added by T5 (fix round 1).
+ */
+export function rememberSource(): void {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('dv-utm') || 'null') as Record<string, string> | null;
+    const next: Record<string, string> = { ...(saved ?? {}) };
+    const u = utm();
+    if (u?.source && !next.source) {
+      next.source = u.source;
+      if (u.medium) next.medium = u.medium;
+      if (u.campaign) next.campaign = u.campaign;
+    }
+    if (!next.ref && document.referrer && !document.referrer.startsWith(location.origin)) next.ref = document.referrer.slice(0, 500);
+    if (JSON.stringify(next) !== JSON.stringify(saved ?? {})) sessionStorage.setItem('dv-utm', JSON.stringify(next));
+  } catch { /* storage blocked */ }
+}
+
 function lang(): 'sq' | 'en' { return document.documentElement.lang === 'en' ? 'en' : 'sq'; }
 
 export function track(type: EventType, data: TrackData = {}) {

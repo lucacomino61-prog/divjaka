@@ -36,6 +36,8 @@ const list = sheetsFor(lang).slice(0, 3);
 <style>
   .her__rule { display: flex; gap: 14px; font-size: var(--step--2); padding-block-start: 10px; border-block-start: 2px solid var(--ink); margin-block-end: clamp(24px, 4vw, 56px); }
   .her :global(.her__verse) { max-inline-size: 24ch; }
+  /* wide screens: the sentence runs the width of the sheet (no half-empty page beside it) */
+  @media (min-width: 1100px) { .her :global(.her__verse) { max-inline-size: 36ch; } }
   .her__foot { display: grid; gap: 24px; margin-block-start: clamp(32px, 5vw, 72px); align-items: end; }
   .her__list { list-style: none; margin: 0; padding: 0; border-block-start: 1px solid var(--rule); }
   .her__row { display: grid; grid-template-columns: 2.6em minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding-block: 14px; border-block-end: 1px solid var(--rule); text-decoration: none; min-block-size: 44px; }

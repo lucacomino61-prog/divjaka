@@ -7,9 +7,11 @@
  * unpaid card order, the lines with dates and times, totals, the personal plan (nights and
  * sessions in order + their places on T3's chart), add-to-calendar (.ics built in the browser),
  * print, recommendations.
- * Without a valid token the page asks for the order's e-mail instead (POST here, or
- * /api/lookup with JavaScript) — rate-limited like the lookup API. noindex; the middleware sends
- * private, no-store and no-referrer for this route.
+ * Without a valid token the page asks for the order's e-mail instead (POST here — handled in
+ * order.load.ts, which answers 303 to the token URL — or /api/lookup with JavaScript), rate-limited
+ * like the lookup API. noindex; the middleware sends private, no-store and no-referrer here.
+ * Timeline: "Konfirmuar nga hoteli" only when STAFF confirmed it (orders.staff_hold = 1); a real
+ * card payment reads "Konfirmuar me pagesën"; a TEST payment confirms nothing (the step waits).
  */
 import Base from '../layouts/Base.astro';
 import SectionHead from '../components/site/SectionHead.astro';
@@ -17,13 +19,12 @@ import PermitCard from '../components/site/PermitCard.astro';
 import Stamp from '../components/site/Stamp.astro';
 import Chart from '../components/chart/Chart.astro';
 import RecommendRail from '../components/recommend/RecommendRail.astro';
-import { orderByCode, orderView, tokenMatches, type OrderView } from '../lib/orders';
+import { orderByCode, orderView, tokenMatches, type OrderView, type OrderViewLine } from '../lib/orders';
 import { orderItems } from '../lib/db/repo/orders';
 import { syncPok } from '../lib/payments/index';
 import { getProductBySlug } from '../lib/db/repo/products';
 import { getSession } from '../lib/db/repo/sessions';
-import { clientIp, rateLimit } from '../lib/security';
-import { poi } from '../components/chart/geo';
+import { poi, cropAround, HOTEL_ID } from '../components/chart/geo';
 import '../components/checkout/checkout.css';
 import { t } from '../i18n/ui';
 import { formatDate, formatRange, money, nights as fmtNights, guests as fmtGuests, tirane } from '../i18n/format';
@@ -36,21 +37,10 @@ const code = data?.code ?? '';
 const token = Astro.url.searchParams.get('t');
 
 let o = orderByCode(code);
-let open = !!o && tokenMatches(o, token);
-let lockedError = '';
-let typedEmail = '';
-// the "open with your e-mail" form without JavaScript
-if (!open && Astro.request.method === 'POST') {
-  try {
-    rateLimit('lookup', clientIp({ clientAddress: Astro.clientAddress, request: Astro.request }), 10, 10 * 60_000);
-    const form = await Astro.request.formData();
-    typedEmail = String(form.get('email') ?? '').trim().slice(0, 200);
-    if (o && typedEmail && o.email.toLowerCase() === typedEmail.toLowerCase()) open = true;
-    else lockedError = t(lang, 'account.err.notfound');
-  } catch {
-    lockedError = t(lang, 'account.err.rate');
-  }
-}
+const open = !!o && tokenMatches(o, token);
+// the "open with your e-mail" form without JavaScript (order.load.ts redirects on a match)
+const lockedError = data?.lockedError ?? '';
+const typedEmail = data?.typedEmail ?? '';
 
 let v: OrderView | null = null;
 if (open && o) {
@@ -97,6 +87,17 @@ if (v && o) {
   });
   plan.sort((a, b) => a.sort.localeCompare(b.sort));
 }
+// The chart pins carry the plan's own numbers ("02", "01·03"), short tags that never run off a
+// narrow chart; the hotel keeps its name. The crop leaves room around the pins for the labels.
+const planNo = (i: number) => String(i + 1).padStart(2, '0');
+const chartPins = [HOTEL_ID, ...pins.filter((id) => id !== HOTEL_ID)].map((id) => {
+  const nums = plan.map((p, i) => (p.poi === id ? planNo(i) : '')).filter(Boolean).join('·');
+  return id === HOTEL_ID
+    ? { id, n: nums, tag: (nums ? 'both' : 'name') as 'both' | 'name' }
+    : { id, n: nums, tag: 'number' as const };
+}).filter((p) => p.id === HOTEL_ID || p.n);
+const chartPts = chartPins.map((p) => poi(p.id)).filter(Boolean).map((q) => ({ x: q!.x, y: q!.y }));
+const chartCrop = cropAround(chartPts, { pad: 120, min: 380, minAspect: 1, maxAspect: 1.3 });
 const lineMeta = (l: OrderView['lines'][number]) => {
   const bits: string[] = [];
   if (l.kind === 'room' && l.date_from && l.date_to) bits.push(formatRange(l.date_from, l.date_to, lang), fmtNights(l.nights ?? 0, lang));
@@ -108,21 +109,50 @@ const lineMeta = (l: OrderView['lines'][number]) => {
 
 const status = v?.status ?? 'pending';
 const cancelled = status === 'cancelled';
-const steps = v ? [
+const isTest = !!v?.payment.test;
+// Who confirmed it: staff (status set by hand → staff_hold) or a real payment (markPaid). A TEST
+// payment marks the order 'confirmed' on the server but proves nothing, so the step keeps waiting.
+const byStaff = !!o?.staff_hold && (status === 'confirmed' || status === 'completed');
+const paidReal = !isTest && v?.payment_status === 'paid';
+const confirmedDone = status === 'completed' || byStaff || (status === 'confirmed' && paidReal);
+const testPaid = isTest && v?.payment_status === 'paid';
+const method = v?.payment_method;
+// the offer each line was priced with (order_items.meta.offer, as the Review step showed it)
+const offerOf = (l: OrderViewLine) => {
+  const o = l.offer as { name?: unknown; saving?: unknown } | undefined;
+  return o && typeof o.name === 'string' && Number(o.saving) > 0 ? { name: o.name, saving: Number(o.saving) } : null;
+};
+const saved = v ? v.lines.reduce((s, l) => s + (offerOf(l)?.saving ?? 0), 0) : 0;
+type TlStep = { key: string; label: string; at: { date: string; time: string } | null; state: 'done' | 'current' | 'todo' | 'stop' };
+const steps: TlStep[] = v ? [
   { key: 'received', label: t(lang, 'order.st.received'), at: when(v.created_at), state: 'done' },
+  ...(testPaid && !cancelled ? [{ key: 'paid-test', label: t(lang, 'order.st.paid.test'), at: when(v.paid_at), state: 'done' as const }] : []),
   ...(cancelled
-    ? [{ key: 'cancelled', label: t(lang, 'order.st.cancelled'), at: when(v.cancelled_at), state: 'stop' }]
+    ? [{ key: 'cancelled', label: t(lang, 'order.st.cancelled'), at: when(v.cancelled_at), state: 'stop' as const }]
     : [
-        { key: 'confirmed', label: t(lang, 'order.st.confirmed'), at: null, state: status === 'confirmed' || status === 'completed' ? 'done' : 'current' },
-        { key: 'completed', label: t(lang, 'order.st.completed'), at: null, state: status === 'completed' ? 'done' : 'todo' },
+        {
+          key: 'confirmed',
+          // a real card order is confirmed by the payment, not by the hotel: say what it waits for
+          label: t(lang, !confirmedDone ? (method === 'card' && !isTest ? 'order.st.confirm.card' : 'order.st.confirm') : byStaff || status === 'completed' ? 'order.st.confirmed' : 'order.st.confirmed.paid'),
+          at: confirmedDone && !byStaff && paidReal ? when(v.paid_at) : null,
+          state: confirmedDone ? 'done' as const : 'current' as const,
+        },
+        { key: 'completed', label: t(lang, 'order.st.completed'), at: null, state: status === 'completed' ? 'done' as const : 'todo' as const },
       ]),
 ] : [];
-const isTest = !!v?.payment.test;
-const method = v?.payment_method;
 const methodLabel = method ? t(lang, method === 'card' && isTest ? 'order.method.card.test' : `order.method.${method}`) : '';
 const payState = v ? (v.payment_status === 'paid' && v.paid_at ? t(lang, 'order.pay.paid.at', { date: `${when(v.paid_at)!.date}, ${when(v.paid_at)!.time}` }) : t(lang, `order.pay.${v.payment_status}`)) : '';
 const hold = when(v?.hold_until);
-const holdText = hold ? t(lang, method === 'card' ? 'order.hold.card' : method === 'hotel' ? 'order.hold.hotel' : 'order.hold', hold) : '';
+// the words follow what is held: places (nights, seats, bundles), counted copies, both — or
+// nothing (a gift-card-only order: a neutral line, no "places")
+const heldPlaces = !!v?.lines.some((l) => l.kind === 'room' || l.kind === 'experience' || l.kind === 'bundle');
+const heldGoods = !!v?.lines.some((l) => l.kind === 'goods' && !!l.slug && getProductBySlug(l.slug)?.stock != null);
+const heldSuffix = heldPlaces && heldGoods ? '.mixed' : heldGoods ? '.goods' : '';
+const holdsInventory = heldPlaces || heldGoods;
+const holdKey = method === 'card'
+  ? (holdsInventory ? `order.hold.card${heldSuffix}` : 'order.hold.card.none')
+  : !holdsInventory ? 'order.hold.none' : method === 'hotel' ? `order.hold.hotel${heldSuffix}` : `order.hold${heldSuffix}`;
+const holdText = hold ? t(lang, holdKey, hold) : '';
 const ins = v?.payment.instructions;
 // a TEST order is never a real booking: it keeps the 'registered' wording even when the simulator marked it paid
 const lead = v ? t(lang, `order.lead.${isTest && status !== 'cancelled' ? 'pending' : status}`, { code }) : '';
@@ -142,7 +172,7 @@ const orderPath = path('order', lang, { code: code || 'DV-0000' });
         <p class="muted">{t(lang, 'order.locked.body', { code })}</p>
         <form class="locked__form" method="post" action={orderPath} data-order-locked data-code={code} novalidate>
           <label class="f__label mono" for="lk-email">{t(lang, 'account.email')}</label>
-          <input id="lk-email" class="f__input" type="email" name="email" value={typedEmail} autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off" required aria-describedby="lk-err" />
+          <input id="lk-email" class="f__input" type="email" name="email" value={typedEmail} autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off" required aria-describedby="lk-err" aria-invalid={lockedError ? 'true' : undefined} />
           <p id="lk-err" class="f__err mono" role="alert" data-lookup-err hidden={!lockedError}>{lockedError}</p>
           <button type="submit" class="pill pill--primary"><span class="pill__main">{t(lang, 'order.locked.submit')}</span></button>
         </form>
@@ -164,7 +194,7 @@ const orderPath = path('order', lang, { code: code || 'DV-0000' });
         {isTest && <p class="ord-head__test mono">{t(lang, 'order.test')}</p>}
       </section>
 
-      <div class="ord wrap">
+      <div class="ord wrap" data-order-code={code} data-order-settled={v.payment_status === 'paid' || cancelled || confirmedDone ? '1' : '0'}>
         <div class="ord__main">
           <section class="ord-block" aria-labelledby="ord-tl-h">
             <h2 id="ord-tl-h" class="ord-block__h mono">{t(lang, 'order.timeline')}</h2>
@@ -188,6 +218,8 @@ const orderPath = path('order', lang, { code: code || 'DV-0000' });
                   <span class="oline__sum mono">{money(l.line_total, lang)}</span>
                   {lineMeta(l) && <span class="oline__meta mono">{lineMeta(l)}{l.kind !== 'room' && l.kind !== 'experience' && l.qty > 1 ? ` · ${t(lang, 'order.qty', { n: l.qty })}` : ''}</span>}
                   {!lineMeta(l) && l.qty > 1 && <span class="oline__meta mono">{t(lang, 'order.qty', { n: l.qty })}</span>}
+                  {offerOf(l) && <span class="oline__offer mono">{t(lang, 'stamp.offer')} · {offerOf(l)!.name} · −{money(offerOf(l)!.saving, lang)}</span>}
+                  {l.kind === 'bundle' && !cancelled && <span class="oline__meta oline__next">{t(lang, 'order.bundle.dates')}</span>}
                 </li>
               ))}
             </ul>
@@ -197,6 +229,7 @@ const orderPath = path('order', lang, { code: code || 'DV-0000' });
               <div class="sums__row sums__row--total"><dt class="mono">{t(lang, 'order.total')}</dt><dd class="sums__total">{money(v.total, lang)}</dd></div>
               {rate > 0 && <div class="sums__row sums__row--eur"><dt class="mono">EUR</dt><dd>{t(lang, 'order.eur', { amount: money(v.total, lang, { currency: 'EUR', rate }) })}</dd></div>}
             </dl>
+            {saved > 0 && <p class="sums__note mono">{t(lang, 'cartpage.saved', { amount: money(saved, lang) })}</p>}
           </section>
 
           {plan.length > 0 && (
@@ -207,7 +240,7 @@ const orderPath = path('order', lang, { code: code || 'DV-0000' });
                 <ol class="plan__list">
                   {plan.map((p, i) => (
                     <li class="plan__item">
-                      <span class="plan__n mono">{String(i + 1).padStart(2, '0')}</span>
+                      <span class="plan__n mono">{planNo(i)}</span>
                       <span class="plan__when mono">{formatDate(p.date, lang, 'weekday')}, {formatDate(p.date, lang, 'day-month')}{p.time && ` · ${p.time}`}</span>
                       <span class="plan__title">{p.title}</span>
                       {p.sub.map((s) => <span class="plan__sub">{s}</span>)}
@@ -216,7 +249,7 @@ const orderPath = path('order', lang, { code: code || 'DV-0000' });
                 </ol>
                 {pins.length > 0 && (
                   <div class="plan__chart">
-                    <Chart lang={lang} mode="pin" pins={pins.map((id, i) => ({ id, n: String(i + 1).padStart(2, '0'), tag: 'name' as const }))} />
+                    <Chart lang={lang} mode="pin" pins={chartPins} crop={chartCrop} />
                   </div>
                 )}
               </div>
@@ -325,9 +358,11 @@ const orderPath = path('order', lang, { code: code || 'DV-0000' });
   .oline__name a:hover { text-decoration: underline; text-underline-offset: 3px; }
   .oline__sum { font-size: var(--step--1); text-align: end; }
   .oline__meta { grid-column: 1 / -1; font-size: var(--step--2); color: var(--muted); }
+  .oline__offer { grid-column: 1 / -1; font-size: var(--step--2); color: var(--pouch-text); }
+  .oline__next { font-size: var(--step--1); color: var(--ink); }
   .plan__lead { margin-block-end: 18px; max-inline-size: 52ch; }
   .plan__grid { display: grid; gap: 24px; }
-  @media (min-width: 760px) { .plan__grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+  @media (min-width: 760px) { .plan__grid { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); align-items: start; } }
   .plan__list { list-style: none; padding: 0; margin: 0; }
   .plan__item { display: grid; grid-template-columns: 2.6rem minmax(0, 1fr); gap: 2px 10px; padding-block: 14px; border-block-end: 1px solid var(--rule); }
   .plan__item > :not(.plan__n) { grid-column: 2; }

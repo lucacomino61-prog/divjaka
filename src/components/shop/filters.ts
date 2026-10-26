@@ -80,7 +80,9 @@ export function compare(s: Sort, lang: 'sq' | 'en') {
     switch (s) {
       case 'price': return a.price - b.price || a.rank - b.rank;
       case 'price_desc': return b.price - a.price || a.rank - b.rank;
-      case 'name': return a.name.localeCompare(b.name, lang === 'sq' ? 'sq' : 'en') || a.rank - b.rank;
+      // Albanian by its own alphabet (Chrome has no Albanian collation, Node's ICU has one: the
+      // server and the browser must agree), English by the browser's English collation
+      case 'name': return (lang === 'sq' ? albCompare(a.name, b.name) : a.name.localeCompare(b.name, 'en')) || a.rank - b.rank;
       case 'soon': {
         // experiences by their next open session; undated items (rooms, goods, gifts, bundles)
         // follow in the hotel's own order
@@ -91,6 +93,34 @@ export function compare(s: Sort, lang: 'sq' | 'en') {
       default: return a.rank - b.rank;
     }
   };
+}
+
+/** The Albanian alphabet, digraphs as single letters: a b c ç d dh e ë f g gj h i j k l ll m n nj o p q r rr s sh t th u v x xh y z zh. */
+const ALB = ['a', 'b', 'c', 'ç', 'd', 'dh', 'e', 'ë', 'f', 'g', 'gj', 'h', 'i', 'j', 'k', 'l', 'll', 'm', 'n', 'nj', 'o', 'p', 'q', 'r', 'rr', 's', 'sh', 't', 'th', 'u', 'v', 'x', 'xh', 'y', 'z', 'zh'];
+const ALB_INDEX = new Map(ALB.map((l, i) => [l, i]));
+
+/** Sort key: spaces/punctuation < digits < letters in Albanian order; other letters by their base letter. */
+export function albKey(s: string): number[] {
+  const str = s.normalize('NFC').toLowerCase();
+  const out: number[] = [];
+  for (let i = 0; i < str.length; i++) {
+    const two = str.slice(i, i + 2);
+    if (two.length === 2 && ALB_INDEX.has(two)) { out.push(100 + ALB_INDEX.get(two)!); i++; continue; }
+    const c = str[i];
+    if (ALB_INDEX.has(c)) { out.push(100 + ALB_INDEX.get(c)!); continue; }
+    if (c >= '0' && c <= '9') { out.push(10 + Number(c)); continue; }
+    const base = c.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (ALB_INDEX.has(base)) { out.push(100 + ALB_INDEX.get(base)!); continue; }
+    if (/[\s\p{P}\p{S}]/u.test(c)) { out.push(0); continue; }
+    out.push(1000 + c.codePointAt(0)!);
+  }
+  return out;
+}
+
+export function albCompare(a: string, b: string): number {
+  const x = albKey(a), y = albKey(b);
+  for (let i = 0; i < Math.min(x.length, y.length); i++) if (x[i] !== y[i]) return x[i] - y[i];
+  return x.length - y.length;
 }
 
 /** The folded search haystack for a product (names in both languages, summary, tags, kind words). */

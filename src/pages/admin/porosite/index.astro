@@ -7,6 +7,7 @@ import { GET as ordersGET } from '../../api/admin/orders/index';
 import type { OrderListRow } from '../../../lib/db/repo/orders';
 
 const lang = adminLang(Astro);
+const notFound = (Astro.url.searchParams.get('notfound') ?? '').slice(0, 40);
 const T = tr(lang);
 const sp = Astro.url.searchParams;
 const limit = 50;
@@ -17,10 +18,13 @@ const data = (await callApi<{ items: OrderListRow[]; total: number }>(ordersGET 
 const pg = pageOf(data.total, offset, limit);
 const f = { status: sp.get('status') ?? '', payment_status: sp.get('payment_status') ?? '', payment_method: sp.get('payment_method') ?? '', kind: sp.get('kind') ?? '', q: sp.get('q') ?? '', from: sp.get('from') ?? '', to: sp.get('to') ?? '' };
 const filtered = Object.values(f).some(Boolean);
+const moreCount = [f.payment_status, f.payment_method, f.kind, f.from, f.to].filter(Boolean).length;
+const moreSet = moreCount > 0;
 const reviewText = (r: string | null) => (r ? r.split(',').map((x) => T(`admin.review.${x}`)).join(', ') : '');
 const now = Date.now();
 ---
 <Admin lang={lang} title={T('admin.orders.title')} section="orders" kicker={T('admin.orders.kicker')}>
+  {notFound && <p class="note-box" role="status" style="margin-block-end:24px">{T('admin.notfound.order', { code: notFound })}</p>}
   <form class="filters" method="get" action="/admin/porosite/" data-autosubmit role="search">
     <div class="fields">
       <div class="fld span-2">
@@ -34,35 +38,41 @@ const now = Date.now();
           {ORDER_STATUSES.map((s) => <option value={s} selected={f.status === s}>{T(`admin.order.status.${s}`)}</option>)}
         </select>
       </div>
-      <div class="fld">
-        <label class="fld__label mono" for="f-pay">{T('admin.orders.payment')}</label>
-        <select id="f-pay" class="fld__input" name="payment_status">
-          <option value="">{T('admin.all')}</option>
-          {PAY_STATUSES.map((s) => <option value={s} selected={f.payment_status === s}>{T(`admin.pay.status.${s}`)}</option>)}
-        </select>
-      </div>
-      <div class="fld">
-        <label class="fld__label mono" for="f-method">{T('admin.orders.method')}</label>
-        <select id="f-method" class="fld__input" name="payment_method">
-          <option value="">{T('admin.all')}</option>
-          {PAY_METHODS.map((s) => <option value={s} selected={f.payment_method === s}>{T(`admin.pay.method.${s}`)}</option>)}
-        </select>
-      </div>
-      <div class="fld">
-        <label class="fld__label mono" for="f-kind">{T('admin.orders.kind')}</label>
-        <select id="f-kind" class="fld__input" name="kind">
-          <option value="">{T('admin.all')}</option>
-          {KINDS.map((s) => <option value={s} selected={f.kind === s}>{T(`admin.kinds.${s}`)}</option>)}
-        </select>
-      </div>
-      <div class="fld">
-        <label class="fld__label mono" for="f-from">{T('admin.from')}</label>
-        <input id="f-from" class="fld__input" type="date" name="from" value={f.from} />
-      </div>
-      <div class="fld">
-        <label class="fld__label mono" for="f-to">{T('admin.to')}</label>
-        <input id="f-to" class="fld__input" type="date" name="to" value={f.to} />
-      </div>
+      {/* phones: search + status stay in view; the rest folds away (open when one of them is set). Desktop shows all (CSS). */}
+      <details class="filters__more" open={moreSet || undefined} data-filters-more>
+        <summary class="mono">{T('admin.filters.more')}{moreSet && <span class="filters__count"> · {moreCount}</span>}</summary>
+        <div class="fields filters__morebody">
+        <div class="fld">
+          <label class="fld__label mono" for="f-pay">{T('admin.orders.payment')}</label>
+          <select id="f-pay" class="fld__input" name="payment_status">
+            <option value="">{T('admin.all')}</option>
+            {PAY_STATUSES.map((s) => <option value={s} selected={f.payment_status === s}>{T(`admin.pay.status.${s}`)}</option>)}
+          </select>
+        </div>
+        <div class="fld">
+          <label class="fld__label mono" for="f-method">{T('admin.orders.method')}</label>
+          <select id="f-method" class="fld__input" name="payment_method">
+            <option value="">{T('admin.all')}</option>
+            {PAY_METHODS.map((s) => <option value={s} selected={f.payment_method === s}>{T(`admin.pay.method.${s}`)}</option>)}
+          </select>
+        </div>
+        <div class="fld">
+          <label class="fld__label mono" for="f-kind">{T('admin.orders.kind')}</label>
+          <select id="f-kind" class="fld__input" name="kind">
+            <option value="">{T('admin.all')}</option>
+            {KINDS.map((s) => <option value={s} selected={f.kind === s}>{T(`admin.kinds.${s}`)}</option>)}
+          </select>
+        </div>
+        <div class="fld">
+          <label class="fld__label mono" for="f-from">{T('admin.from')}</label>
+          <input id="f-from" class="fld__input" type="date" name="from" value={f.from} />
+        </div>
+        <div class="fld">
+          <label class="fld__label mono" for="f-to">{T('admin.to')}</label>
+          <input id="f-to" class="fld__input" type="date" name="to" value={f.to} />
+        </div>
+        </div>
+      </details>
     </div>
     <div class="form-actions">
       <button class="pill pill--primary pill--s" type="submit">{T('admin.filter')}</button>
@@ -98,11 +108,11 @@ const now = Date.now();
                     <span class="break">{o.name || '—'}</span>
                     <span class="cell-sub break">{o.email}</span>
                   </td>
-                  <td data-label={T('admin.orders.items')}>
+                  <td data-label={T('admin.orders.items')} class="c-items">
                     {(o.kinds ?? '').split(',').filter(Boolean).map((k) => T(`admin.kind.${k}`)).join(' · ') || '—'}
                     <span class="cell-sub mono">× {o.items_count}</span>
                   </td>
-                  <td data-label={T('admin.orders.method')}>{T(`admin.pay.method.${o.payment_method}`)}</td>
+                  <td data-label={T('admin.orders.method')} class="c-method">{T(`admin.pay.method.${o.payment_method}`)}</td>
                   <td data-label={T('admin.status')} class="c-status">
                     <OrderBadges lang={lang} status={o.status} payment_status={o.payment_status} test={o.test} demo={o.demo} />
                     {holding && <span class="cell-sub mono">{T('admin.orders.hold', { time: when(o.hold_until, lang) })}</span>}

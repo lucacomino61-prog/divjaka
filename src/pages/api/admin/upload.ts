@@ -5,7 +5,8 @@ import { storeImage, MAX_BYTES } from '../../../lib/media';
 
 /**
  * POST /api/admin/upload (multipart/form-data)
- *   fields: w480, w960, w1600 — WebP blobs resized in the browser (at least one required)
+ *   fields: w480, w960, w1600 — WebP blobs resized in the browser (at least one required);
+ *           Safari sends JPEG instead (one format per upload; src is then the …-1600.jpg URL)
  *           original — optional source image (jpeg/png/webp/avif)
  * Each file ≤ 4 MB, checked by magic bytes. → 201 { id, src, widths:[{w, url, width, height}], original }
  * Store `{ src }` (plus alt_sq/alt_en) in products.images.

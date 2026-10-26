@@ -21,13 +21,16 @@ interface StopDef {
   cta: { product?: string; route?: 'stay' | 'heritage-article'; slug?: string; label?: string };
   closed?: boolean;
   side?: 'left' | 'right';
-  extra?: Source[];
+  /** further sources; a title may differ by language */
+  extra?: (Omit<Source, 'title'> & { title: string | Record<Lang, string> })[];
+  /** the forest runs along the beach right behind the hotel (SPEC): no km to a chart spot */
+  behind?: boolean;
 }
 
 const DEFS: StopDef[] = [
   { key: 'hotel', poi: 'hotel-pelikan', photo: 'beach-shelters', facts: ['coast-01'], r: 130, cta: { route: 'stay', label: 'home.stop.hotel.cta' }, side: 'left' },
-  { key: 'forest', poi: 'pine-forest', photo: 'pine-forest-from-above', facts: ['flora-02'], r: 130, cta: { product: 'me-biciklete-neper-pyllin-me-pisha' }, side: 'right' },
-  { key: 'tower', poi: 'tower-360', photo: 'tower-360', facts: ['visit-02'], extra: [{ title: 'Kulla 360° (way 1124509421: height 35 m, wood)', url: 'https://www.openstreetmap.org/way/1124509421', publisher: 'OpenStreetMap', accessed: ACCESSED }], r: 130, cta: { product: 'qendra-e-vizitoreve-dhe-kulla-360' }, side: 'left' },
+  { key: 'forest', poi: 'pine-forest', photo: 'pine-forest-from-above', facts: ['flora-02'], r: 130, cta: { product: 'me-biciklete-neper-pyllin-me-pisha' }, side: 'right', behind: true },
+  { key: 'tower', poi: 'tower-360', photo: 'tower-360', facts: ['visit-02'], extra: [{ title: { sq: 'Kulla 360° (OSM way 1124509421: lartësia 35 m, dru)', en: 'Kulla 360° (OSM way 1124509421: height 35 m, wood)' }, url: 'https://www.openstreetmap.org/way/1124509421', publisher: 'OpenStreetMap', accessed: ACCESSED }], r: 130, cta: { product: 'qendra-e-vizitoreve-dhe-kulla-360' }, side: 'left' },
   { key: 'lagoon', poi: 'lagoon-boat-trips', photo: 'lagoon-boat-trips', facts: ['lagoon-01', 'visit-06'], r: 150, cta: { product: 'shetitje-me-varke-ne-lagune' }, side: 'right' },
   { key: 'island', poi: 'pelican-island', photo: 'pelicans-karavasta', facts: ['birds-10', 'park-23'], r: 210, cta: { route: 'heritage-article', slug: 'pelikani-kacurrel', label: 'home.stop.island.cta' }, closed: true, side: 'right' },
 ];
@@ -35,7 +38,7 @@ const DEFS: StopDef[] = [
 export interface Stop {
   key: string; n: string; poi: string; x: number; y: number; r: number;
   name: string; kicker: string; text: string; photo: string;
-  km: number | null; distance: string; approx: boolean; closed: boolean; side: 'left' | 'right';
+  km: number | null; distance: string; /** a measured straight line (adds 'as the crow flies') */ crow: boolean; approx: boolean; closed: boolean; side: 'left' | 'right';
   cta: { href: string; label: string };
   sources: Source[];
 }
@@ -53,13 +56,14 @@ export function stops(lang: Lang): Stop[] {
       if (prod) { href = productUrl(prod.kind, prod.slug, lang); label = pname(prod, lang); }
       else label = t(lang, 'home.exp.all');
     }
-    const km = d.key === 'hotel' ? 0 : fromHotelKm(d.poi);
+    const km = d.key === 'hotel' ? 0 : d.behind ? null : fromHotelKm(d.poi);
+    const distance = d.key === 'hotel' ? t(lang, 'home.sig.start') : d.behind ? t(lang, 'home.sig.behind') : t(lang, 'home.sig.from', { km: kmLabel(km, lang) });
     out.push({
       key: d.key, n: String(out.length + 1).padStart(2, '0'), poi: d.poi, x: p.x, y: p.y, r: d.r,
       name: t(lang, `home.stop.${d.key}.name`), kicker: t(lang, `home.stop.${d.key}.kicker`), text: t(lang, `home.stop.${d.key}.text`),
-      photo: d.photo, km, distance: d.key === 'hotel' ? t(lang, 'home.sig.start') : t(lang, 'home.sig.from', { km: kmLabel(km, lang) }),
-      approx: p.confidence === 'low', closed: !!d.closed, side: d.side ?? 'right',
-      cta: { href, label }, sources: [...sourcesFor(d.facts), ...(d.extra ?? [])],
+      photo: d.photo, km, distance, crow: d.key !== 'hotel' && km != null,
+      approx: km != null && p.confidence === 'low', closed: !!d.closed, side: d.side ?? 'right',
+      cta: { href, label }, sources: [...sourcesFor(d.facts), ...(d.extra ?? []).map((x) => ({ ...x, title: typeof x.title === 'string' ? x.title : x.title[lang] }))],
     });
   });
   return out;
