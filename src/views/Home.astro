@@ -1,17 +1,25 @@
 ---
 /**
- * Home view — FIRST-SCREEN SKELETON from T2 so the chrome can be judged (DESIGN §6 Home).
- * T3 replaces this file with the real home + the signature chart ("Laguna vizatohet").
- * At rest: ticker · header · sheet row · poster wordmark (outline → ink fill) · the line ·
- * two ways in · the lagoon plate (LCP when research/photos.json has one).
+ * Home (T3). First screen (DESIGN §6, T2's contract kept): sheet row · poster wordmark DIVJAKA
+ * (outline → ink fill) · the line · two ways in · the lagoon plate (LCP). Then:
+ * 01 the signature chart "Laguna vizatohet" · 02 Hotel Pelikan · 03 experiences survey strip ·
+ * 04 "Rekomanduar për ju" · 05 heritage (the Opal sentence) · 06 today's log · 07 shop · 08 itinerary.
+ * The loader runs only here (Base `loader`); the hero photo keeps sizes="100vw" so the loader
+ * shares its request.
  */
 import Base from '../layouts/Base.astro';
 import Wordmark from '../components/site/Wordmark.astro';
 import Pill from '../components/site/Pill.astro';
 import Photo from '../components/site/Photo.astro';
-import SectionHead from '../components/site/SectionHead.astro';
-import MiniChart from '../components/site/MiniChart.astro';
-import { findPhoto, hotelSpot } from '../components/site/site-data';
+import Signature from '../components/home/Signature.astro';
+import HotelStrip from '../components/home/HotelStrip.astro';
+import ExperienceStrip from '../components/home/ExperienceStrip.astro';
+import HeritageTeaser from '../components/home/HeritageTeaser.astro';
+import LiveTeaser from '../components/home/LiveTeaser.astro';
+import ShopTeaser from '../components/home/ShopTeaser.astro';
+import ItineraryCta from '../components/home/ItineraryCta.astro';
+import RecommendRail from '../components/recommend/RecommendRail.astro';
+import { findPhoto, hotelSpot, siteOriginOf } from '../components/site/site-data';
 import { t } from '../i18n/ui';
 import { path, type Lang } from '../i18n/routes';
 import { coords } from '../i18n/format';
@@ -19,13 +27,39 @@ import { coords } from '../i18n/format';
 interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
 const { lang } = Astro.props;
 const spot = await hotelSpot();
+// the same pick as the Preloader, so the loader's ring and the hero share one request
 const plate = findPhoto(['karavasta', 'lagoon', 'lagun', 'pelican', 'pelikan', 'divjak']);
+const origin = await siteOriginOf(Astro.url, Astro.site);
+
+// JSON-LD (added after Base's Hotel + WebSite graph, same @id so the nodes merge). Only
+// verified facts: the hotel's setting by the national park and its facilities
+// (research/business.json, confidence high). No SearchAction: the site has no search results
+// page with a URL to point at (search lives in the assistant and the 404).
+const jsonld = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Hotel',
+    '@id': `${origin}/#hotel`,
+    name: 'Hotel Pelikan',
+    amenityFeature: [
+      { '@type': 'LocationFeatureSpecification', name: lang === 'sq' ? 'Restorant' : 'Restaurant', value: true },
+      { '@type': 'LocationFeatureSpecification', name: lang === 'sq' ? 'Parkim privat falas' : 'Free private parking', value: true },
+      { '@type': 'LocationFeatureSpecification', name: lang === 'sq' ? 'Recepsion 24 orë' : '24-hour front desk', value: true },
+      { '@type': 'LocationFeatureSpecification', name: lang === 'sq' ? 'Wi-Fi falas' : 'Free Wi-Fi', value: true },
+    ],
+    containedInPlace: {
+      '@type': 'Park',
+      name: lang === 'sq' ? 'Parku Kombëtar Divjakë-Karavasta' : 'Divjakë-Karavasta National Park',
+      sameAs: 'https://en.wikipedia.org/wiki/Divjak%C3%AB-Karavasta_National_Park',
+    },
+  },
+];
 ---
-<Base lang={lang} title={t(lang, 'page.home.title')} description={t(lang, 'site.description')} routeKey="home" loader>
+<Base lang={lang} title={t(lang, 'page.home.title')} description={t(lang, 'site.description')} routeKey="home" loader jsonld={jsonld} clientKeys={['home.', 'recommend.']}>
   <section class="hero" aria-labelledby="hero-title">
     <div class="wrap hero__sheet">
       <p class="hero__row mono">
-        <span>{lang === 'sq' ? 'Fleta 01 · Harta e lagunës' : 'Sheet 01 · The lagoon chart'}</span>
+        <span>{t(lang, 'home.hero.sheet')}</span>
         <span class="hero__coords">{coords(spot.lat, spot.lon)}</span>
       </p>
       <h1 id="hero-title" class="hero__title">
@@ -41,29 +75,29 @@ const plate = findPhoto(['karavasta', 'lagoon', 'lagun', 'pelican', 'pelikan', '
       </div>
     </div>
     <div class="hero__plate">
-      {plate ? (
-        <Photo slug={plate.slug} lang={lang} sizes="100vw" priority mat={false} parallax>
-          <p class="hero__label wrap"><span class="water">{t(lang, 'water.lagoon')}</span></p>
-        </Photo>
-      ) : (
-        <div class="hero__water" aria-hidden="true">
-          <svg viewBox="0 0 1440 420" preserveAspectRatio="none">
-            {Array.from({ length: 9 }, (_, i) => <path d={`M0 ${60 + i * 40} C 360 ${40 + i * 40}, 900 ${90 + i * 40}, 1440 ${50 + i * 41}`} fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke" opacity={1 - i * 0.08} />)}
-          </svg>
-          <p class="hero__label wrap"><span class="water">{t(lang, 'water.lagoon')}</span></p>
-        </div>
-      )}
+      <Photo slug={plate?.slug ?? 'lagoon-sunset'} lang={lang} sizes="100vw" priority mat={false} parallax>
+        <p class="hero__label wrap">
+          <span class="water">{t(lang, 'water.lagoon')}</span>
+          <span class="hero__label-coords mono">{coords(spot.lat, spot.lon)}</span>
+        </p>
+      </Photo>
     </div>
   </section>
 
-  <section id="harta" class="wrap sheet home-chart" aria-labelledby="harta-h">
-    <SectionHead id="harta-h" title={lang === 'sq' ? 'Laguna vizatohet' : 'The lagoon draws itself'} index="01" kicker={lang === 'sq' ? 'Harta e lagunës' : 'The lagoon chart'} reveal />
-    <div class="home-chart__grid">
-      <p class="lede" data-reveal="lines">{t(lang, 'placeholder.body')}</p>
-      <MiniChart lang={lang} hotel={spot} />
-    </div>
-  </section>
+  <Signature lang={lang} />
+  <HotelStrip lang={lang} />
+  <ExperienceStrip lang={lang} />
+  <RecommendRail lang={lang} index="04" />
+  <HeritageTeaser lang={lang} />
+  <LiveTeaser lang={lang} />
+  <ShopTeaser lang={lang} />
+  <ItineraryCta lang={lang} />
 </Base>
+
+<script>
+  import { initHome } from '../scripts/home';
+  initHome();
+</script>
 
 <style>
   .hero { display: grid; gap: clamp(20px, 3vw, 40px); padding-block-start: clamp(12px, 2vw, 24px); }
@@ -83,14 +117,11 @@ const plate = findPhoto(['karavasta', 'lagoon', 'lagun', 'pelican', 'pelikan', '
   .hero__plate { position: relative; }
   /* the frame's ratio is set here (Photo's inline style is overridden), phones get 4:3 below */
   .hero__plate :global(.plate__frame) { aspect-ratio: 21 / 9 !important; max-block-size: 70svh; inline-size: 100%; }
-  .hero__water { position: relative; aspect-ratio: 21 / 9; max-block-size: 60svh; inline-size: 100%; color: var(--ink); background: var(--salt-2); border-block: 1px solid var(--ink); }
-  .hero__water svg { inline-size: 100%; block-size: 100%; }
-  .hero__label { position: absolute; inset-block-end: 16px; inset-inline: 0; pointer-events: none; }
+  .hero__label { position: absolute; inset-block-end: 16px; inset-inline: 0; pointer-events: none; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
   .hero__label .water { background: var(--salt); padding: 2px 10px 4px; font-size: var(--step-2); }
+  .hero__label-coords { background: var(--salt); padding: 4px 8px; font-size: var(--step--2); }
   @media (max-width: 599px) {
-    .hero__plate :global(.plate__frame), .hero__water { aspect-ratio: 4 / 3 !important; }
+    .hero__plate :global(.plate__frame) { aspect-ratio: 4 / 3 !important; }
+    .hero__label-coords { display: none; }
   }
-  .home-chart__grid { display: grid; gap: var(--gutter); margin-block-start: 32px; }
-  @media (min-width: 900px) { .home-chart__grid { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); align-items: start; } }
-  .home-chart :global(.minichart svg) { max-block-size: 60vh; }
 </style>

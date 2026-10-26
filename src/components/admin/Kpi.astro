@@ -1,0 +1,17 @@
+---
+/**
+ * A reading in poster type (DESIGN §9 "poster-size KPI figures in display type"). The figure is
+ * fitted to its cell with container units; the unit and the note are mono readings below.
+ *   <Kpi label="Të ardhurat" value="1 234 500" unit="lekë" note="…" />
+ */
+interface Props { label: string; value: string; unit?: string; note?: string; href?: string; signal?: boolean; chars?: number; hero?: boolean }
+const { label, value, unit, note, href, signal = false, chars, hero = false } = Astro.props;
+// chars: the row's longest figure, so every reading in a row is set at the same size
+const len = chars ?? value.replace(/\s| /g, '').length;
+---
+<div class:list={['kpi', signal && 'kpi--signal', hero && 'kpi--hero']}>
+  <p class="kpi__label mono">{href ? <a href={href}>{label}</a> : label}</p>
+  <p class="kpi__figure" style={`--chars:${Math.max(2, len)}`}><span class="kpi__value">{value}</span>{unit && <span class="kpi__unit mono">{unit}</span>}</p>
+  {note && <p class="kpi__note mono">{note}</p>}
+  <slot />
+</div>

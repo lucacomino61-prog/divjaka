@@ -222,7 +222,7 @@ function roomAvailability(lang: Lang, from: string, to: string, guests: number |
     if (roomsNeeded > left) continue;
     const q = quote({ lang, items: [{ key: p.slug, slug: p.slug, kind: 'room', qty: roomsNeeded, from, to, guests: guests ?? undefined }] });
     if (q.lines[0]?.problem) continue;
-    products.push({ slug: p.slug, kind: p.kind, name: pname(p, lang), url: `${productUrl(p.kind, p.slug, lang)}?nga=${from}&deri=${to}${guests ? `&persona=${guests}` : ''}`, image: primaryImage(p), price: p.price, left: counts ? left : null, total: q.total, when: range });
+    products.push({ slug: p.slug, kind: p.kind, name: pname(p, lang), url: `${productUrl(p.kind, p.slug, lang)}?nga=${from}&deri=${to}${roomsNeeded > 1 ? `&dhoma=${roomsNeeded}` : ''}${guests ? `&persona=${guests}` : ''}`, image: primaryImage(p), price: p.price, left: counts ? left : null, total: q.total, when: range });
   }
   const lines = products.map((x) => `• ${x.name} — ${x.left != null ? s(lang, 'left', { n: x.left }) : s(lang, 'available')}, ${s(lang, 'per_total', { price: money(x.total ?? 0, lang) })}`);
   const reply = products.length ? `${s(lang, 'rooms_free', { range, nights: nightsWord(n, lang) })}\n${lines.join('\n')}` : s(lang, 'rooms_none', { range });
@@ -248,7 +248,7 @@ function sessionAvailability(lang: Lang, date: string, folded: string, guests: n
   for (const p of list) {
     const sessions: SessionInfo[] = sessionsMonth(p, date.slice(0, 7)).filter((x) => x.date === date && x.status === 'open' && x.left >= (guests ?? 1));
     for (const ses of sessions) {
-      products.push({ slug: p.slug, kind: p.kind, name: pname(p, lang), url: `${productUrl(p.kind, p.slug, lang)}?sesioni=${ses.id}`, image: primaryImage(p), price: p.price, left: ses.left, when: ses.time });
+      products.push({ slug: p.slug, kind: p.kind, name: pname(p, lang), url: `${productUrl(p.kind, p.slug, lang)}?data=${ses.date}&orari=${ses.id}${guests ? `&persona=${guests}` : ''}`, image: primaryImage(p), price: p.price, left: ses.left, when: ses.time });
     }
   }
   const label = formatDate(date, lang, 'long');

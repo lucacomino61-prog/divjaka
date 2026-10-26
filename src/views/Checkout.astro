@@ -1,13 +1,329 @@
 ---
 /**
- * Checkout view — PLACEHOLDER from T2 (route shell). The owning feature task (PLAN §9)
- * replaces this file. Props contract: { lang, params?, data? } — data comes from
- * the view itself.
+ * Checkout (T5) — /arka/ · /en/checkout/. Three steps on one page (Details → Payment → Review),
+ * the step in the URL hash; the order summary floats beside it (a disclosure on phones).
+ * Payment methods come from the server's settings (lib/config publicConfig: pay at the hotel;
+ * bank transfer only when IBAN + beneficiary are set; card only when it can really run — labelled
+ * TEST in test mode, hidden when off). Hold times from settings.payments. Everything else —
+ * validation on Continue / submit, the re-quote at review, POST /api/checkout, errors in plain
+ * words — lives in scripts/checkout.ts. No motion inside the form (DESIGN §3).
  */
-import PlaceholderView from '../components/site/PlaceholderView.astro';
-import type { Lang } from '../i18n/routes';
+import Base from '../layouts/Base.astro';
+import SectionHead from '../components/site/SectionHead.astro';
+import PermitCard from '../components/site/PermitCard.astro';
+import Stamp from '../components/site/Stamp.astro';
+import Pill from '../components/site/Pill.astro';
+import { publicConfig } from '../lib/config';
+import { getSetting } from '../lib/db/repo/settings';
+import '../components/checkout/checkout.css';
+import { COUNTRIES, DIAL } from '../components/checkout/countries';
+import { t } from '../i18n/ui';
+import { path, type Lang } from '../i18n/routes';
 
 interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
-const { lang, params = {} } = Astro.props;
+const { lang } = Astro.props;
+const cfg = publicConfig().payments;
+const pay = getSetting('payments');
+const clientCfg = {
+  hotel: cfg.hotel, bank: cfg.bank.enabled, card: cfg.card, card_mode: cfg.card_mode,
+  hold: { card: pay.card_hold_minutes || 30, hotel: pay.hotel_hold_hours || 24, bank: pay.bank_hold_hours || 72 },
+};
+const methods = [
+  cfg.hotel && { id: 'hotel', title: t(lang, 'pay.hotel'), sub: t(lang, 'pay.hotel.sub'), test: false },
+  cfg.bank.enabled && { id: 'bank', title: t(lang, 'pay.bank'), sub: t(lang, 'pay.bank.sub'), test: false },
+  cfg.card && { id: 'card', title: t(lang, cfg.card_mode === 'test' ? 'pay.card.test' : 'pay.card'), sub: t(lang, cfg.card_mode === 'test' ? 'pay.card.test.sub' : 'pay.card.sub'), test: cfg.card_mode === 'test' },
+].filter(Boolean) as { id: string; title: string; sub: string; test: boolean }[];
+const H = lang === 'sq' ? { details: 'te-dhenat', payment: 'pagesa', review: 'rishikimi' } : { details: 'details', payment: 'payment', review: 'review' };
+const steps = [
+  { id: 'details', n: '01', label: t(lang, 'checkout.step.details') },
+  { id: 'payment', n: '02', label: t(lang, 'checkout.step.payment') },
+  { id: 'review', n: '03', label: t(lang, 'checkout.step.review') },
+] as const;
+const termsLink = `<a href="${path('terms', lang)}" target="_blank" rel="noopener">${t(lang, 'field.terms.link')}</a>`;
+const termsHtml = t(lang, 'field.terms', { link: termsLink });
+const defaultDial = '+355';
 ---
-<PlaceholderView lang={lang} routeKey="checkout" index="04" params={params} noindex />
+<Base lang={lang} title={t(lang, 'page.checkout.title')} description={t(lang, 'page.checkout.description')} routeKey="checkout" noindex clientKeys={['cartpage.', 'promo.', 'checkout.', 'field.', 'err.', 'pay.', 'hold.', 'review.', 'order.promo', 'product.amount']}>
+  <script type="application/json" data-checkout-cfg set:html={JSON.stringify(clientCfg)} />
+
+  <section class="wrap co-head" data-checkout-root data-state="loading">
+    <SectionHead as="h1" index={t(lang, 'checkout.index')} kicker={t(lang, 'checkout.kicker')} title={t(lang, 'checkout.title')} size="poster" />
+    <nav class="steps" aria-label={t(lang, 'checkout.steps')}>
+      <ol>
+        {steps.map((s, i) => (
+          <li><a href={`#${H[s.id]}`} class="steps__a" data-step-link={s.id} data-state={i === 0 ? 'current' : 'todo'} aria-current={i === 0 ? 'step' : undefined}>
+            <span class="steps__n mono">{s.n}</span><span class="steps__l">{s.label}</span>
+          </a></li>
+        ))}
+      </ol>
+    </nav>
+  </section>
+
+  <script is:inline>(function(){try{var c=JSON.parse(localStorage.getItem("dv-cart")||"null");var n=c&&c.v===1&&Array.isArray(c.items)?c.items.length:0;var r=document.querySelector("[data-checkout-root]");if(r)r.setAttribute("data-state",n?"ready":"empty");}catch(e){}})();</script>
+  <noscript><p class="wrap co-noscript">{t(lang, 'checkout.noscript')}</p></noscript>
+
+  <div class="co-empty wrap" data-co-empty>
+    <p class="title">{t(lang, 'checkout.empty.title')}</p>
+    <p class="muted">{t(lang, 'checkout.empty.body')}</p>
+    <div class="cluster">
+      <Pill href={path('stay', lang)} arrow>{t(lang, 'cart.empty.stay')}</Pill>
+      <Pill href={path('shop', lang)} variant="outline">{t(lang, 'cart.empty.shop')}</Pill>
+    </div>
+  </div>
+
+  <div class="co wrap">
+    <form class="co__form" data-checkout novalidate autocomplete="on">
+      <div class="co-errors" role="alert" tabindex="-1" data-errors hidden></div>
+      <p class="co-cartbanner mono" data-co-cart-problems hidden>{t(lang, 'cartpage.problems')} <a href={path('cart', lang)}>{t(lang, 'cart.view')}</a></p>
+
+      <!-- 01 · details -->
+      <section class="step" id={H.details} data-step="details" aria-labelledby="st-details-h">
+        <h2 id="st-details-h" class="step__h" tabindex="-1" data-step-head><span class="mono step__n">01</span>{t(lang, 'checkout.step.details')}</h2>
+        <div class="fields">
+          <div class="f f--wide">
+            <label class="f__label mono" for="f-name">{t(lang, 'field.name')}</label>
+            <input id="f-name" class="f__input" name="name" type="text" autocomplete="name" autocapitalize="words" maxlength="120" aria-describedby="e-name" />
+            <p id="e-name" class="f__err mono" data-err-for="name" hidden></p>
+          </div>
+          <div class="f f--wide">
+            <label class="f__label mono" for="f-email">{t(lang, 'field.email')}</label>
+            <input id="f-email" class="f__input" name="email" type="email" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off" maxlength="200" aria-describedby="h-email e-email" />
+            <p id="h-email" class="f__hint">{t(lang, 'field.email.hint')}</p>
+            <p id="e-email" class="f__err mono" data-err-for="email" hidden></p>
+          </div>
+          <div class="f f--wide">
+            <span class="f__label mono" id="l-phone">{t(lang, 'field.phone')} <span class="f__opt">· {t(lang, 'field.phone.required')}</span></span>
+            <div class="f__phone">
+              <label class="visually-hidden" for="f-phone_code">{t(lang, 'field.phone.code')}</label>
+              <select id="f-phone_code" class="f__input f__select" name="phone_code" autocomplete="tel-country-code">
+                {DIAL.map((d) => <option value={d.code} selected={d.code === defaultDial}>{d.iso} {d.code}</option>)}
+              </select>
+              <input id="f-phone" class="f__input" name="phone" type="tel" autocomplete="tel-national" inputmode="tel" maxlength="30" aria-labelledby="l-phone" aria-describedby="h-phone e-phone" />
+            </div>
+            <p id="h-phone" class="f__hint">{t(lang, 'field.phone.hint')}</p>
+            <p id="e-phone" class="f__err mono" data-err-for="phone" hidden></p>
+          </div>
+          <div class="f">
+            <label class="f__label mono" for="f-country">{t(lang, 'field.country')} <span class="f__opt">· {t(lang, 'field.optional')}</span></label>
+            <input id="f-country" class="f__input" name="country" type="text" list="countries" autocomplete="country-name" maxlength="60" placeholder={t(lang, 'field.country.placeholder')} />
+            <datalist id="countries">{COUNTRIES[lang].map((c) => <option value={c} />)}</datalist>
+          </div>
+          <div class="f f--wide">
+            <label class="f__label mono" for="f-notes">{t(lang, 'field.notes')} <span class="f__opt">· {t(lang, 'field.optional')}</span></label>
+            <textarea id="f-notes" class="f__input f__area" name="notes" rows="3" maxlength="2000" placeholder={t(lang, 'field.notes.placeholder')}></textarea>
+          </div>
+          <div class="f f--wide f--check">
+            <label class="check"><input type="checkbox" name="marketing" /><span class="check__box" aria-hidden="true"></span><span>{t(lang, 'field.marketing')}</span></label>
+          </div>
+          <div class="f f--wide f--check">
+            <label class="check"><input id="f-terms" type="checkbox" name="terms" aria-describedby="e-terms" /><span class="check__box" aria-hidden="true"></span><span set:html={termsHtml} /></label>
+            <p id="e-terms" class="f__err mono" data-err-for="terms" hidden></p>
+          </div>
+          <div class="hp" aria-hidden="true">
+            <label for="f-website">Website</label>
+            <input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+        </div>
+        <div class="step__actions">
+          <button type="button" class="pill pill--primary" data-next><span class="pill__main">{t(lang, 'checkout.next')}<svg class="pill__arrow" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></span></button>
+        </div>
+      </section>
+
+      <!-- 02 · payment -->
+      <section class="step" id={H.payment} data-step="payment" aria-labelledby="st-pay-h" hidden>
+        <h2 id="st-pay-h" class="step__h" tabindex="-1" data-step-head><span class="mono step__n">02</span>{t(lang, 'checkout.step.payment')}</h2>
+        {methods.length ? (
+          <div class="methods" role="radiogroup" aria-labelledby="pay-legend" aria-describedby="e-payment_method">
+            <p id="pay-legend" class="f__label mono">{t(lang, 'pay.legend')}</p>
+            {methods.map((m, i) => (
+              <label class="method" id={i === 0 ? 'f-payment_method' : undefined}>
+                <input type="radio" name="payment_method" value={m.id} />
+                <span class="method__dot" aria-hidden="true"></span>
+                <span class="method__body">
+                  <span class="method__title" data-method-label={m.id}>{m.title}</span>
+                  <span class="method__sub">{m.sub}</span>
+                </span>
+                {m.test && <Stamp kind="test" lang={lang} />}
+              </label>
+            ))}
+            <p id="e-payment_method" class="f__err mono" data-err-for="payment_method" hidden></p>
+          </div>
+        ) : (
+          <p class="co-none">{t(lang, 'pay.none')} <a href={path('contact', lang)}>{t(lang, 'err.contact')}</a></p>
+        )}
+        <p class="hold mono" data-hold hidden></p>
+        <div class="step__actions">
+          <button type="button" class="pill pill--outline" data-back><span class="pill__main">{t(lang, 'checkout.back')}</span></button>
+          <button type="button" class="pill pill--primary" data-next><span class="pill__main">{t(lang, 'checkout.next')}<svg class="pill__arrow" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></span></button>
+        </div>
+      </section>
+
+      <!-- 03 · review -->
+      <section class="step" id={H.review} data-step="review" aria-labelledby="st-rev-h" hidden>
+        <h2 id="st-rev-h" class="step__h" tabindex="-1" data-step-head><span class="mono step__n">03</span>{t(lang, 'checkout.step.review')}</h2>
+        <p class="rv-note mono" role="status" aria-live="polite" data-review-note></p>
+        <div class="rv">
+          <div class="rv__block rv__block--lines">
+            <h3 class="rv__h mono">{t(lang, 'review.lines')}</h3>
+            <ul class="rv-lines" data-review-lines></ul>
+            <div class="rv-sums" data-review-sums></div>
+          </div>
+          <div class="rv__block">
+            <h3 class="rv__h mono">{t(lang, 'review.contact')} <a href={`#${H.details}`} class="rv__edit" data-goto="details">{t(lang, 'checkout.edit')}</a></h3>
+            <dl class="rv-dl" data-review-contact></dl>
+          </div>
+          <div class="rv__block">
+            <h3 class="rv__h mono">{t(lang, 'review.payment')} <a href={`#${H.payment}`} class="rv__edit" data-goto="payment">{t(lang, 'checkout.edit')}</a></h3>
+            <p class="rv-pay" data-review-pay></p>
+            <h3 class="rv__h mono">{t(lang, 'review.hold')}</h3>
+            <p class="rv-hold" data-review-hold></p>
+          </div>
+        </div>
+        <p class="rv-fine muted">{t(lang, 'review.fine')}</p>
+        <div class="step__actions">
+          <button type="button" class="pill pill--outline" data-back><span class="pill__main">{t(lang, 'checkout.back')}</span></button>
+          <button type="submit" class="pill pill--primary co-submit" data-submit><span class="pill__main"><span>{t(lang, 'review.submit')}</span><svg class="pill__arrow" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></span></button>
+        </div>
+        <p class="co-busy mono" role="status" aria-live="polite" data-busy hidden></p>
+      </section>
+    </form>
+
+    <aside class="co__side" data-co-side aria-labelledby="co-sum-h">
+      <details class="co-sum" open>
+        <summary class="co-sum__toggle mono"><span data-co-toggle>{t(lang, 'checkout.summary')}</span></summary>
+        <PermitCard label={t(lang, 'checkout.summary')} class="co-card">
+          <h2 id="co-sum-h" class="visually-hidden">{t(lang, 'checkout.summary')}</h2>
+          <ul class="co-lines" data-co-lines></ul>
+          <Fragment slot="stub">
+            <div data-co-sums></div>
+            <a class="co-card__cart mono" href={path('cart', lang)}>{t(lang, 'cart.view')}</a>
+          </Fragment>
+        </PermitCard>
+      </details>
+    </aside>
+  </div>
+</Base>
+
+<script>
+  import { initCheckout } from '../scripts/checkout';
+  initCheckout();
+</script>
+<script>
+  // phones: the summary starts folded (a one-line "Order · 3 items · 14 900 lekë")
+  if (matchMedia('(max-width: 1023px)').matches) document.querySelector<HTMLDetailsElement>('.co-sum')?.removeAttribute('open');
+</script>
+
+<style>
+  .co-head { padding-block-start: clamp(12px, 2vw, 24px); display: grid; gap: 18px; scroll-margin-block-start: calc(var(--header-h) + var(--ticker-h) + 8px); }
+  .co-head :global(.section-head--poster) { --poster-max: clamp(7rem, 20vh, 12rem); }
+  .steps ol { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--rule); }
+  .steps__a { display: flex; align-items: baseline; gap: 10px; min-block-size: 52px; padding: 14px 12px 12px 0; text-decoration: none; border-block-start: 3px solid transparent; margin-block-start: -1px; color: var(--muted); }
+  .steps__a[data-state="current"] { color: var(--ink); border-block-start-color: var(--ink); }
+  .steps__a[data-state="done"] { color: var(--ink); }
+  .steps__a[data-state="done"] .steps__n::after { content: " ✓"; }
+  .steps__n { font-size: var(--step--2); }
+  .steps__l { font-weight: 650; font-stretch: 88%; font-size: var(--step-0); overflow-wrap: anywhere; }
+  .co-noscript { padding-block: 24px; }
+  :global(html:not(.js)) .co, :global(html:not(.js)) .steps { display: none; }
+  .co-empty { display: none; gap: 14px; justify-items: start; padding-block: 32px; }
+  :global(html:has([data-checkout-root][data-state="empty"])) .co-empty { display: grid; }
+  .co-head[data-state="empty"] .steps { display: none; }
+  :global(html:has([data-checkout-root][data-state="empty"])) .co { display: none; }
+
+  .co { display: grid; gap: clamp(24px, 4vw, 56px); margin-block-start: clamp(20px, 3vw, 36px); align-items: start; }
+  @media (min-width: 1024px) {
+    .co { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+    .co__side { position: sticky; inset-block-start: calc(var(--header-h) + var(--ticker-h) + 16px); order: 2; }
+  }
+  @media (max-width: 1023px) { .co__side { order: -1; } }
+  .co__form, .co__side { min-inline-size: 0; }
+  .step[hidden] { display: none; }
+  .step { display: grid; gap: 22px; }
+  .step__h { display: flex; align-items: baseline; gap: 14px; font-size: var(--step-3); padding-block-end: 10px; border-block-end: 2px solid var(--ink); outline-offset: 4px; }
+  .step__n { font-size: var(--step--2); font-weight: 400; }
+  .step__actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; padding-block-start: 8px; }
+  .step__actions :global(.pill--primary) { margin-inline-start: auto; }
+
+  .fields { display: grid; gap: 20px 24px; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 700px) { .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } .f--wide { grid-column: 1 / -1; } }
+  .f { display: grid; gap: 6px; min-inline-size: 0; }
+  .f__label { font-size: var(--step--2); color: var(--muted); }
+  .f__opt { text-transform: none; letter-spacing: 0; }
+  .f__input { inline-size: 100%; min-block-size: 48px; padding: 10px 12px; font-size: 16px; line-height: 1.4; color: var(--ink); background: var(--salt-2); border: 0; border-block-end: 1px solid var(--ink); border-radius: 0; }
+  .f__input:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  .f__input[aria-invalid="true"] { border-block-end: 2px solid var(--pouch); }
+  .f__area { resize: vertical; min-block-size: 96px; }
+  .f__phone { display: grid; grid-template-columns: minmax(0, 7.5rem) minmax(0, 1fr); gap: 8px; }
+  .f__select { appearance: none; padding-inline-end: 28px; cursor: pointer; font-family: var(--font-mono); font-size: 16px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%230E2B29' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; background-size: 12px; }
+  .f__hint { font-size: var(--step--1); color: var(--muted); }
+  .f__err { font-size: var(--step--1); color: var(--pouch-text); text-decoration: underline; text-decoration-color: var(--pouch); text-underline-offset: 3px; text-transform: none; letter-spacing: 0; }
+  .f__err[hidden] { display: none; }
+  .check { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 12px; align-items: start; cursor: pointer; position: relative; min-block-size: 44px; padding-block: 4px; }
+  .check input { position: absolute; inset-inline-start: 0; inset-block-start: 4px; inline-size: 22px; block-size: 22px; margin: 0; opacity: 0; cursor: pointer; }
+  .check__box { inline-size: 22px; block-size: 22px; border: 1.5px solid var(--ink); background: var(--salt); display: grid; place-items: center; margin-block-start: 2px; }
+  .check input:checked + .check__box { background: var(--ink); }
+  .check input:checked + .check__box::after { content: ""; inline-size: 10px; block-size: 5px; border-inline-start: 2px solid var(--salt); border-block-end: 2px solid var(--salt); transform: rotate(-45deg) translate(1px, -1px); }
+  .check input:focus-visible + .check__box { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  .check input[aria-invalid="true"] + .check__box { border-color: var(--pouch); border-width: 2px; }
+  .check :global(a) { text-underline-offset: 3px; }
+  .hp { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); }
+
+  .methods { display: grid; gap: 10px; }
+  .method { position: relative; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 18px; border: 1px solid var(--rule); cursor: pointer; }
+  .method input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .method__dot { inline-size: 20px; block-size: 20px; border-radius: 99px; border: 1.5px solid var(--ink); margin-block-start: 3px; display: grid; place-items: center; background: var(--salt); }
+  .method:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  .method:has(input:checked) .method__dot::after { content: ""; inline-size: 10px; block-size: 10px; border-radius: 99px; background: var(--ink); }
+  .method:has(input:focus-visible) { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  .method__body { display: grid; gap: 4px; min-inline-size: 0; }
+  .method__title { font-weight: 700; font-stretch: 85%; font-size: var(--step-1); }
+  .method__sub { color: var(--muted); font-size: var(--step--1); }
+  .hold { font-size: var(--step--2); padding: 12px 14px; border-inline-start: 3px solid var(--ink); background: var(--salt-2); text-transform: none; letter-spacing: 0.02em; line-height: 1.5; }
+  .hold[hidden] { display: none; }
+
+  .co-errors { padding: 16px 18px; border: 1px solid var(--ink); border-inline-start: 4px solid var(--pouch); background: var(--salt); display: grid; gap: 8px; margin-block-end: 18px; outline: none; }
+  .co-errors[hidden] { display: none; }
+  .co-errors :global(.co-errors__title) { font-weight: 650; }
+  .co-errors :global(.co-errors__list) { margin: 0; padding-inline-start: 18px; }
+  .co-errors :global(.co-errors__list a) { color: var(--pouch-text); text-underline-offset: 3px; }
+  .co-errors :global(.co-errors__contact) { font-size: var(--step--2); justify-self: start; min-block-size: 44px; display: inline-flex; align-items: center; }
+  .co-cartbanner { padding: 12px 14px; border: 1px solid var(--ink); border-inline-start: 3px solid var(--pouch); font-size: var(--step--1); margin-block-end: 18px; text-transform: none; letter-spacing: 0; }
+  .co-cartbanner[hidden] { display: none; }
+
+  .rv-note { font-size: var(--step--2); color: var(--muted); text-transform: none; letter-spacing: 0.02em; }
+  .rv { display: grid; gap: 26px; }
+  .rv__h { display: flex; justify-content: space-between; gap: 12px; font-size: var(--step--2); padding-block-end: 8px; border-block-end: 1px solid var(--ink); margin-block-end: 10px; }
+  .rv__edit { font-size: var(--step--2); min-block-size: 24px; text-underline-offset: 3px; }
+  .rv-lines { list-style: none; padding: 0; margin: 0 0 14px; }
+  .rv-lines :global(.rv-line) { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 16px; padding-block: 12px; border-block-end: 1px solid var(--rule); }
+  .rv-lines :global(.rv-line__name) { font-weight: 650; font-stretch: 88%; overflow-wrap: anywhere; }
+  .rv-lines :global(.rv-line__sum) { text-align: end; font-size: var(--step--1); }
+  .rv-lines :global(.rv-line__meta), .rv-lines :global(.rv-line__offer), .rv-lines :global(.rv-line__problem) { grid-column: 1 / -1; font-size: var(--step--2); color: var(--muted); }
+  .rv-lines :global(.rv-line__offer) { color: var(--pouch-text); }
+  .rv-lines :global(.rv-line__problem) { color: var(--pouch-text); text-decoration: underline; text-decoration-color: var(--pouch); }
+  .rv-dl { display: grid; gap: 8px; margin: 0; }
+  .rv-dl :global(div) { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: 12px; }
+  .rv-dl :global(dt) { font-size: var(--step--2); color: var(--muted); }
+  .rv-dl :global(dd) { margin: 0; overflow-wrap: anywhere; }
+  .rv-pay { font-weight: 650; }
+  .rv-hold { color: var(--muted); font-size: var(--step--1); }
+  .rv-fine { font-size: var(--step--1); }
+  .co-submit { min-inline-size: min(100%, 18rem); }
+  .co-busy { font-size: var(--step--2); color: var(--muted); }
+  .co-busy[hidden] { display: none; }
+
+  .co-sum { border: 0; }
+  .co-sum__toggle { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-block-size: 52px; padding: 0 16px; border: 1px solid var(--ink); font-size: var(--step--2); }
+  .co-sum__toggle::-webkit-details-marker { display: none; }
+  .co-sum__toggle::after { content: "+"; font-size: 18px; }
+  .co-sum[open] .co-sum__toggle::after { content: "−"; }
+  .co-sum[open] .co-sum__toggle { margin-block-end: 12px; }
+  @media (min-width: 1024px) { .co-sum__toggle { display: none; } }
+  .co-lines { list-style: none; padding: 0; margin: 0; }
+  .co-lines :global(.co-line) { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding-block: 10px; border-block-end: 1px solid var(--rule); }
+  .co-lines :global(.co-line__name) { font-weight: 650; font-stretch: 88%; font-size: var(--step--1); overflow-wrap: anywhere; }
+  .co-lines :global(.co-line__sum) { font-size: var(--step--2); text-align: end; }
+  .co-lines :global(.co-line__meta), .co-lines :global(.co-line__problem) { grid-column: 1 / -1; font-size: var(--step--2); color: var(--muted); }
+  .co-lines :global(.co-line__problem) { color: var(--pouch-text); }
+  .co-card__cart { display: inline-flex; align-items: center; min-block-size: 44px; font-size: var(--step--2); margin-block-start: 8px; text-underline-offset: 3px; }
+</style>

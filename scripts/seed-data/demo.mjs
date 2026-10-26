@@ -37,6 +37,7 @@ export function seedDemo(db, { today, log = console.log }) {
   
   const rooms = db.prepare("SELECT * FROM products WHERE kind = 'room' AND status = 'published'").all();
   const exps = db.prepare("SELECT * FROM products WHERE kind = 'experience' AND status = 'published'").all();
+  // Room orders only on published types (the Double Room is seeded as a draft).
   const goods = db.prepare("SELECT * FROM products WHERE kind IN ('goods','gift') AND status = 'published'").all();
   const ratesFor = (pid) => db.prepare('SELECT * FROM room_rates WHERE product_id = ? ORDER BY id').all(pid);
   const nightPrice = (p, night) => {
@@ -146,8 +147,12 @@ export function seedDemo(db, { today, log = console.log }) {
           if (!s) { it.skip = true; continue; }
           it.startsDay = s.starts_at.slice(0, 10);
         } else {
-          // Past: the slot that took place that day (created for the demo history).
-          const startsAt = `${it.startsDay}T${r() < 0.6 ? '09:00' : '16:30'}`;
+          // Past: the slot that took place that day (created for the demo history), at one of the
+          // product's own scheduled times and only in a month the product runs.
+          const seasons = JSON.parse(it.p.seasons || '[]');
+          if (seasons.length && !seasons.includes(Number(it.startsDay.slice(5, 7)))) { it.skip = true; continue; }
+          const times = db.prepare('SELECT DISTINCT substr(starts_at, 12) AS t FROM sessions WHERE product_id = ? ORDER BY t').all(it.p.id).map((x) => x.t);
+          const startsAt = `${it.startsDay}T${times.length ? pick(r, times) : '10:00'}`;
           db.prepare('INSERT OR IGNORE INTO sessions (product_id, starts_at, capacity) VALUES (?, ?, ?)').run(it.p.id, startsAt, it.p.capacity ?? 12);
           s = db.prepare('SELECT * FROM sessions WHERE product_id = ? AND starts_at = ?').get(it.p.id, startsAt);
         }

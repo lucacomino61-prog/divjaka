@@ -1,0 +1,66 @@
+---
+/** /admin/ofertat/ — Ofertat (T6): automatic offers and promo codes, scope editor, usage counts. Owner edits; staff reads. */
+import Admin from '../../layouts/Admin.astro';
+import Badge from '../../components/admin/Badge.astro';
+import Stamp from '../../components/site/Stamp.astro';
+import OfferForm from '../../components/admin/OfferForm.astro';
+import { adminLang, tr, lek } from '../../components/admin/admin-data';
+import { listOffers, type Offer } from '../../lib/db/repo/offers';
+import { listCategories, listProducts } from '../../lib/db/repo/products';
+import { formatRange, formatDate, percent } from '../../i18n/format';
+
+const lang = adminLang(Astro);
+const T = tr(lang);
+const owner = (Astro.locals.admin as { role: string } | null)?.role === 'owner';
+const offers = listOffers();
+const auto = offers.filter((o) => !o.code);
+const codes = offers.filter((o) => o.code);
+const products = listProducts({ status: 'any' }).filter((p) => p.status !== 'archived');
+const categories = listCategories();
+const value = (o: Offer) => (o.type === 'percent' ? `−${percent(o.value, lang)}` : `−${lek(o.value, lang)}`);
+const period = (o: Offer) => (o.starts_on && o.ends_on ? formatRange(o.starts_on, o.ends_on, lang) : o.starts_on ? `${T('admin.from')} ${formatDate(o.starts_on, lang, 'medium')}` : o.ends_on ? `${T('admin.to')} ${formatDate(o.ends_on, lang, 'medium')}` : T('admin.offers.when.always'));
+const conds = (o: Offer) => [o.min_nights ? T('admin.offers.cond.nights', { n: o.min_nights }) : '', o.min_total ? T('admin.offers.cond.total', { amount: lek(o.min_total, lang) }) : ''].filter(Boolean).join(' · ');
+const scopeText = (o: Offer) => {
+  const s = o.scope ?? {};
+  const parts = [...(s.kinds ?? []).map((k) => T(`admin.kinds.${k}`)), ...(s.categories ?? []).map((c) => { const x = categories.find((y) => y.id === c); return x ? (lang === 'en' ? x.name_en : x.name_sq) : c; }), ...(s.products ?? []).map((p) => { const x = products.find((y) => y.slug === p || y.id === Number(p)); return x ? (lang === 'en' ? x.name_en : x.name_sq) : String(p); })];
+  return parts.length ? parts.join(', ') : T('admin.offers.scope.all');
+};
+const oname = (o: Offer) => (lang === 'en' ? o.name_en || o.name_sq : o.name_sq || o.name_en) || o.code || `#${o.id}`;
+---
+<Admin lang={lang} title={T('admin.offers.title')} section="offers" kicker={T('admin.offers.kicker')}>
+  {!owner && <p class="note-box note-box--ink" style="margin-block-end:24px">{T('admin.owner.only')}</p>}
+  <div class="cols cols--2">
+    {[{ key: 'auto', list: auto, help: 'admin.offers.auto.help', none: 'admin.offers.none.auto' }, { key: 'codes', list: codes, help: 'admin.offers.codes.help', none: 'admin.offers.none.codes' }].map((g) => (
+      <section class="blk" aria-labelledby={`of-${g.key}`}>
+        <div class="blk__head"><h2 class="blk__title" id={`of-${g.key}`}>{T(`admin.offers.${g.key}`)}</h2><span class="blk__meta mono">{g.list.length}</span></div>
+        <p class="blk__lede">{T(g.help)}</p>
+        <div>
+          {g.list.length ? g.list.map((o) => (
+            <details class="rec">
+              <summary>
+                <span class="rec__title">{o.code && <span class="mono mono-lc" style="margin-inline-end:10px">{o.code}</span>}{oname(o)} <span class="mono">{value(o)}</span></span>
+                <span class="rec__meta mono">
+                  <Badge tone={o.active ? 'ink' : 'muted'}>{o.active ? T('admin.offers.active') : T('admin.offers.inactive')}</Badge>
+                  <span>{period(o)}</span>
+                  {conds(o) && <span>{conds(o)}</span>}
+                  <span>{scopeText(o)}</span>
+                  <span>{o.max_uses ? T('admin.offers.used.of', { used: o.used, max: o.max_uses }) : T('admin.offers.used', { used: o.used })}</span>
+                  {o.demo && <Stamp kind="demo" lang={lang} tilt={false} />}
+                </span>
+              </summary>
+              <OfferForm lang={lang} offer={o} products={products} categories={categories} owner={owner} />
+            </details>
+          )) : <p class="adm-empty mono">{T(g.none)}</p>}
+        </div>
+      </section>
+    ))}
+  </div>
+  {owner && (
+    <section class="blk" aria-labelledby="of-new">
+      <details class="rec rec--new" open={offers.length === 0}>
+        <summary><span class="rec__title" id="of-new">{T('admin.offers.new')}</span></summary>
+        <OfferForm lang={lang} products={products} categories={categories} owner={owner} />
+      </details>
+    </section>
+  )}
+</Admin>

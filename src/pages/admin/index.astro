@@ -1,0 +1,173 @@
+---
+/** /admin/ — Paneli (T6): KPIs, revenue + orders per day, funnel, occupancy, latest orders, low stock, assistant misses, env warnings. */
+import Admin from '../../layouts/Admin.astro';
+import Kpi from '../../components/admin/Kpi.astro';
+import SeriesChart from '../../components/admin/SeriesChart.astro';
+import RangePicker from '../../components/admin/RangePicker.astro';
+import OrderBadges from '../../components/admin/OrderBadges.astro';
+import { adminLang, tr, lek, num, when, wall, rangeOf, callApi, WARN_LINK, type MeEnv } from '../../components/admin/admin-data';
+import { stats } from '../../lib/stats';
+import { GET as meGET } from '../api/admin/me';
+import { number, percent, money } from '../../i18n/format';
+import { eurRate } from '../../components/site/site-data';
+import { getSetting } from '../../lib/db/repo/settings';
+
+const lang = adminLang(Astro);
+const T = tr(lang);
+const range = rangeOf(Astro.url);
+const s = stats(range.from, range.to);
+const me = await callApi<{ env: MeEnv }>(meGET as never, Astro);
+const env = me?.env;
+const rate = await eurRate();
+const k = s.kpis;
+const lowLimit = getSetting('inventory').low_stock ?? 5;
+
+const warnText = (w: string) => {
+  if (w === 'pending_surge' && env) return T('admin.warn.pending_surge', { n: env.held_last_hour.orders, r: env.held_last_hour.roomNights, s: env.held_last_hour.seats });
+  if (w === 'payment_details_changed' && env?.payment_details_changed_at) return T('admin.warn.payment_details_changed', { date: when(env.payment_details_changed_at, lang, 'medium') });
+  return T(`admin.warn.${w}`);
+};
+const warnings = env?.warnings ?? [];
+
+const funnelTop = Math.max(1, s.funnel[0]?.count ?? 1);
+const pct = (a: number, b: number) => (b ? percent(Math.round((a / b) * 1000) / 10, lang) : '—');
+const revenueCompact = (v: number) => number(v, lang);
+const figures = [number(k.orders, lang), number(k.aov, lang), number(k.repeat_rate, lang, 1), number(s.occupancy.avg, lang, 1)];
+const kpiChars = Math.max(4, ...figures.map((x) => x.replace(/\s| /g, '').length));
+const eurNote = rate > 0 ? T('admin.approx.eur', { eur: number(Math.round(k.revenue / rate), lang) }) : '';
+---
+<Admin lang={lang} title={T('admin.dash.title')} section="dashboard" kicker={T('admin.dash.kicker')}>
+  {warnings.length > 0 && (
+    <section class="banner" aria-labelledby="warn-t">
+      <h2 class="banner__title mono" id="warn-t">{T('admin.warn.title')}</h2>
+      <ul class="banner__list">
+        {warnings.map((w) => (
+          <li class="banner__item">
+            <p>{warnText(w)}</p>
+            {WARN_LINK[w] && <a class="mono" href={WARN_LINK[w]}>{T(`admin.warn.${w}.go`)}</a>}
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  <RangePicker lang={lang} url={Astro.url} from={range.from} to={range.to} preset={range.preset} />
+
+  <section class="kpis" aria-label={T('admin.dash.kicker')}>
+    <Kpi hero label={T('admin.dash.revenue')} value={revenueCompact(k.revenue)} unit={`${T('admin.lek')}${eurNote ? ' · ' + eurNote : ''}`} note={T('admin.dash.revenue.note')} />
+    <Kpi chars={kpiChars} label={T('admin.dash.orders')} value={number(k.orders, lang)} note={T('admin.dash.orders.note', { n: k.confirmed_orders, p: k.pending_orders })} href="/admin/porosite/" />
+    <Kpi chars={kpiChars} label={T('admin.dash.aov')} value={number(k.aov, lang)} unit={T('admin.lek')} note={T('admin.dash.aov.note')} />
+    <Kpi chars={kpiChars} label={T('admin.dash.repeat')} value={number(k.repeat_rate, lang, k.repeat_rate % 1 ? 1 : 0)} unit="%" note={T('admin.dash.repeat.note', { n: k.customers })} />
+    <Kpi chars={kpiChars} label={T('admin.dash.occupancy')} value={number(s.occupancy.avg, lang, s.occupancy.avg % 1 ? 1 : 0)} unit="%" note={T('admin.dash.occupancy.note')} href="/admin/rezervimet/" />
+  </section>
+  <p class="row mono small muted" style="margin-block-start:12px;font-size:11px">
+    <span>{T('admin.dash.pending.revenue', { amount: money(k.pending_revenue, lang), n: k.pending_orders })}</span>
+    <span>·</span>
+    <span>{T('admin.dash.visitors', { n: number(k.visitors, lang), c: percent(k.conversion, lang) })}</span>
+    {k.test_orders > 0 && <><span>·</span><span class="signal-text">{T('admin.dash.test.excluded', { n: k.test_orders })}</span></>}
+  </p>
+
+  <div class="cols cols--main" style="margin-block-start:clamp(36px,4vw,56px)">
+    <section class="blk" aria-labelledby="ch-t">
+      <div class="blk__head"><h2 class="blk__title" id="ch-t"><span class="mono">A</span>{T('admin.dash.chart.revenue')}</h2><span class="blk__meta mono">{T('admin.range.days', { n: s.range.days })}</span></div>
+      <div class="charts-sync" data-chart-sync>
+        <SeriesChart lang={lang} title={T('admin.dash.chart.revenue')} desc={T('admin.dash.chart.revenue.desc')} points={s.series.map((d) => ({ day: d.day, value: d.revenue }))} format="lek" height={220} />
+        <SeriesChart lang={lang} title={T('admin.dash.chart.orders')} desc={T('admin.dash.chart.orders.desc')} points={s.series.map((d) => ({ day: d.day, value: d.orders }))} kind="bars" format="int" height={110} size="s" />
+      </div>
+    </section>
+    <section class="blk" aria-labelledby="fn-t">
+      <div class="blk__head"><h2 class="blk__title" id="fn-t"><span class="mono">B</span>{T('admin.dash.funnel')}</h2></div>
+      <p class="blk__lede">{T('admin.dash.funnel.desc')}</p>
+      <ol class="funnel">
+        {s.funnel.map((f, i) => (
+          <li class="funnel__step">
+            <span class="funnel__label">{T(`admin.funnel.${f.step}`)}</span>
+            <span class="funnel__count">{number(f.count, lang)}</span>
+            <span class="funnel__bar" aria-hidden="true"><span style={`--w:${Math.max(0.6, (f.count / funnelTop) * 100).toFixed(1)}%`}></span></span>
+            {i > 0 && <span class="funnel__rate mono">{T('admin.funnel.of.prev', { p: pct(f.count, s.funnel[i - 1].count) })}</span>}
+          </li>
+        ))}
+      </ol>
+    </section>
+  </div>
+
+  <div class="cols cols--3" style="margin-block-start:clamp(36px,4vw,56px)">
+    <section class="blk" aria-labelledby="lo-t">
+      <div class="blk__head"><h2 class="blk__title" id="lo-t"><span class="mono">C</span>{T('admin.dash.latest')}</h2><a class="mono blk__meta" href="/admin/porosite/">{T('admin.dash.latest.all')}</a></div>
+      {s.pending_orders > 0 && <p class="mono small signal-text" style="font-size:11px"><a href="/admin/porosite/?status=pending">{T('admin.dash.pending.orders', { n: s.pending_orders })}</a></p>}
+      <ul class="ledger">
+        {(s.latest_orders as { id: number; code: string; name: string; total: number; status: string; payment_method: string; payment_status: string; test: number; created_at: string }[]).map((o) => (
+          <li class="ledger__row">
+            <span class="ledger__main"><a href={`/admin/porosite/${o.code}/`} class="mono mono-lc">{o.code}</a> · {o.name || '—'}</span>
+            <span class="ledger__side mono">{lek(o.total, lang)}</span>
+            <span class="ledger__sub"><span>{when(o.created_at, lang)}</span><span>{T(`admin.pay.method.${o.payment_method}`)}</span><OrderBadges lang={lang} status={o.status} payment_status={o.payment_status} test={o.test} compact /></span>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section class="blk" aria-labelledby="ls-t">
+      <div class="blk__head"><h2 class="blk__title" id="ls-t"><span class="mono">D</span>{T('admin.dash.low')}</h2></div>
+      {s.low_stock.length ? (
+        <ul class="ledger">
+          {s.low_stock.map((p) => (
+            <li class="ledger__row">
+              <span class="ledger__main"><a href={`/admin/produktet/${p.id}/`}>{p.name_sq}</a></span>
+              <span class:list={['ledger__side mono', p.stock === 0 && 'signal-text']}>{T('admin.dash.low.left', { n: p.stock })}</span>
+            </li>
+          ))}
+        </ul>
+      ) : <p class="adm-empty mono">{T('admin.dash.low.empty', { n: lowLimit })}</p>}
+      <h3 class="mono small" style="font-size:11px;margin-block-start:14px">{T('admin.dash.full')}</h3>
+      {s.full_sessions.length ? (
+        <ul class="ledger">
+          {s.full_sessions.map((x) => (
+            <li class="ledger__row">
+              <span class="ledger__main"><a href={`/admin/rezervimet/?from=${x.starts_at.slice(0, 10)}#sessions`}>{x.name_sq}</a></span>
+              <span class:list={['ledger__side mono', x.capacity - x.booked <= 0 && 'signal-text']}>{T('admin.dash.full.left', { n: Math.max(0, x.capacity - x.booked) })}</span>
+              <span class="ledger__sub mono">{wall(x.starts_at, lang)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : <p class="adm-empty mono">{T('admin.empty')}</p>}
+    </section>
+
+    <section class="blk" aria-labelledby="am-t">
+      <div class="blk__head"><h2 class="blk__title" id="am-t"><span class="mono">E</span>{T('admin.dash.misses')}</h2></div>
+      <p class="mono small" style="font-size:11px"><a href="/admin/mesazhet/?status=new">{s.unread_messages ? T('admin.dash.messages', { n: s.unread_messages }) : T('admin.dash.messages.none')}</a></p>
+      {s.assistant.misses.length ? (
+        <ul class="ledger">
+          {s.assistant.misses.slice(0, 6).map((m) => (
+            <li class="ledger__row">
+              <span class="ledger__main break">“{m.q}”</span>
+              <span class="ledger__side mono">{(m.lang ?? 'sq').toUpperCase()}</span>
+              <span class="ledger__sub"><span class="mono">{when(m.ts, lang)}</span><a class="mono" href={`/admin/asistenti/?q=${encodeURIComponent(m.q ?? '')}&ql=${m.lang ?? 'sq'}#faq-new`}>{T('admin.dash.misses.faq')}</a></span>
+            </li>
+          ))}
+        </ul>
+      ) : <p class="adm-empty mono">{T('admin.dash.misses.empty')}</p>}
+    </section>
+  </div>
+
+  <div class="cols cols--2" style="margin-block-start:clamp(36px,4vw,56px)">
+    <section class="blk" aria-labelledby="oc-t">
+      <div class="blk__head"><h2 class="blk__title" id="oc-t"><span class="mono">F</span>{T('admin.dash.occ.chart')}</h2><a class="mono blk__meta" href="/admin/rezervimet/">{T('admin.nav.bookings')}</a></div>
+      <SeriesChart lang={lang} title={T('admin.dash.occupancy')} desc={T('admin.dash.occ.chart.desc')} points={s.occupancy.days.map((d) => ({ day: d.date, value: d.rate }))} kind="bars" format="pct" height={150} size="s" />
+    </section>
+    <section class="blk" aria-labelledby="tp-t">
+      <div class="blk__head"><h2 class="blk__title" id="tp-t"><span class="mono">G</span>{T('admin.dash.top')}</h2></div>
+      {s.top_products.length ? (
+        <div class="table-scroll">
+          <table class="adm-table adm-table--compact">
+            <thead><tr><th scope="col">{T('admin.products.name')}</th><th scope="col" class="num">{T('admin.orders.title')}</th><th scope="col" class="num">{T('admin.dash.revenue')}</th></tr></thead>
+            <tbody>
+              {s.top_products.map((p) => (
+                <tr><td><a href={`/admin/produktet/${p.product_id}/`}>{p.name}</a><span class="cell-sub mono">{T(`admin.kind.${p.kind}`)}</span></td><td class="num mono">{num(p.orders, lang)}</td><td class="num mono">{lek(p.revenue, lang)}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : <p class="adm-empty mono">{T('admin.dash.top.empty')}</p>}
+    </section>
+  </div>
+</Admin>

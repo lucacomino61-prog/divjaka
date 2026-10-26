@@ -1,0 +1,46 @@
+---
+/**
+ * Admin legend — the numbered section list (DESIGN §9: "ink sidebar with the legend-style
+ * numbered sections"). Rendered twice by Admin.astro: in the desktop sidebar and in the phone
+ * menu dialog. Counts (pending orders, unread messages) are live from the DB.
+ */
+import type { Lang } from '../../i18n/routes';
+import { t } from '../../i18n/ui';
+
+export const SECTIONS = [
+  { key: 'dashboard', href: '/admin/' },
+  { key: 'orders', href: '/admin/porosite/' },
+  { key: 'bookings', href: '/admin/rezervimet/' },
+  { key: 'products', href: '/admin/produktet/' },
+  { key: 'sessions', href: '/admin/oraret/' },
+  { key: 'rooms', href: '/admin/dhomat/' },
+  { key: 'offers', href: '/admin/ofertat/' },
+  { key: 'customers', href: '/admin/klientet/' },
+  { key: 'messages', href: '/admin/mesazhet/' },
+  { key: 'analytics', href: '/admin/analitika/' },
+  { key: 'assistant', href: '/admin/asistenti/' },
+  { key: 'settings', href: '/admin/cilesimet/' },
+] as const;
+
+interface Props { lang: Lang; current: string; pending: number; unread: number; id?: string }
+const { lang, current, pending, unread, id } = Astro.props;
+const count = (key: string) => (key === 'orders' ? pending : key === 'messages' ? unread : 0);
+const countLabel = (key: string, n: number) => t(lang, key === 'orders' ? 'admin.nav.pending' : 'admin.nav.unread', { n });
+---
+<nav class="adm-nav" aria-label={t(lang, 'admin.nav.label')} id={id}>
+  <ol class="adm-nav__list">
+    {SECTIONS.map((s, i) => {
+      const n = count(s.key);
+      const here = s.key === current;
+      return (
+        <li>
+          <a class="adm-nav__link" href={s.href} aria-current={here ? 'page' : undefined}>
+            <span class="adm-nav__nr mono">{String(i + 1).padStart(2, '0')}</span>
+            <span class="adm-nav__label">{t(lang, `admin.nav.${s.key}`)}</span>
+            {n > 0 && <span class="adm-nav__count mono" title={countLabel(s.key, n)}><span class="adm-nav__dot" aria-hidden="true"></span>{n}<span class="visually-hidden"> · {countLabel(s.key, n)}</span></span>}
+          </a>
+        </li>
+      );
+    })}
+  </ol>
+</nav>

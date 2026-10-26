@@ -1,0 +1,147 @@
+---
+/**
+ * /admin/oraret/ — Eksperiencat & oraret (T6): pick an experience (?p=id), generate time slots
+ * from a weekly pattern (POST /api/admin/sessions/generate), add one slot, and manage each slot of
+ * the month (?muaj=YYYY-MM): capacity, close/open, cancel, delete when nobody booked.
+ */
+import Admin from '../../layouts/Admin.astro';
+import Badge from '../../components/admin/Badge.astro';
+import Stamp from '../../components/site/Stamp.astro';
+import { adminLang, tr, today, withParam, callApi } from '../../components/admin/admin-data';
+import { GET as sessionsGET } from '../api/admin/sessions/index';
+import { listProducts } from '../../lib/db/repo/products';
+import { formatDate, MONTHS, WEEKDAYS, addDays } from '../../i18n/format';
+
+const lang = adminLang(Astro);
+const T = tr(lang);
+const exps = listProducts({ kind: 'experience', status: 'any' }).filter((p) => p.status !== 'archived');
+const pid = Number(Astro.url.searchParams.get('p')) || exps[0]?.id;
+const p = exps.find((x) => x.id === pid) ?? exps[0];
+const t0 = today();
+const ym = /^\d{4}-\d{2}$/.test(Astro.url.searchParams.get('muaj') ?? '') ? Astro.url.searchParams.get('muaj')! : t0.slice(0, 7);
+const [y, m] = ym.split('-').map(Number);
+const monthStart = `${ym}-01`;
+const next = new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 7);
+const prev = new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7);
+type S = { id: number; starts_at: string; capacity: number; booked: number; status: string; note: string | null; left: number; guests: { code: string; name: string; people: number; status: string }[] };
+let sessions: S[] = [];
+if (p) {
+  const u = new URL('/api/admin/sessions', Astro.url);
+  u.searchParams.set('product_id', String(p.id)); u.searchParams.set('from', monthStart); u.searchParams.set('to', `${next}-01`);
+  sessions = (await callApi<{ items: S[] }>(sessionsGET as never, Astro, u.href))?.items ?? [];
+}
+const byDay = new Map<string, S[]>();
+for (const s of sessions) { const d = s.starts_at.slice(0, 10); byDay.set(d, [...(byDay.get(d) ?? []), s]); }
+const noteLabel = (n: string | null) => (n === 'sunrise' || n === 'sunset' ? T(`admin.sessions.note.${n}`) : n);
+// Monday-first display; the API wants 0 = Sunday … 6 = Saturday
+const weekdays = [1, 2, 3, 4, 5, 6, 0];
+const wdName = (d: number) => WEEKDAYS[lang][(d + 6) % 7];
+const name = (x: { name_sq: string; name_en: string }) => (lang === 'en' ? x.name_en : x.name_sq);
+---
+<Admin lang={lang} title={T('admin.sessions.title')} section="sessions" kicker={T('admin.sessions.kicker')}>
+  {!exps.length ? <p class="adm-empty mono">{T('admin.sessions.empty.products')}</p> : (
+    <>
+      <nav class="chips" aria-label={T('admin.sessions.pick')} style="margin-block-end:24px">
+        {exps.map((x) => <a class="chip" href={withParam(Astro.url, { p: x.id })} aria-current={x.id === p.id ? 'true' : undefined}>{name(x)}</a>)}
+      </nav>
+      <p class="row mono muted" style="font-size:11px;margin-block-end:28px">
+        <span>{T('admin.products.seats', { n: p.capacity ?? 0 })}</span>
+        {p.duration_min && <span>· {p.duration_min} min</span>}
+        {p.status !== 'published' && <Badge tone="muted">{T(`admin.pstatus.${p.status}`)}</Badge>}
+        {p.demo && <Stamp kind="demo" lang={lang} tilt={false} />}
+        <a href={`/admin/produktet/${p.id}/`}>{T('admin.edit')}</a>
+      </p>
+
+      <div class="cols cols--side">
+        <div class="vstack" style="gap:clamp(36px,4vw,52px)">
+          <section class="blk" aria-labelledby="gen-t">
+            <div class="blk__head"><h2 class="blk__title" id="gen-t">{T('admin.sessions.generate')}</h2></div>
+            <p class="blk__lede">{T('admin.sessions.generate.lede')}</p>
+            <form class="vstack" style="gap:18px" data-api="/api/admin/sessions/generate" data-method="POST" data-success="admin.sessions.generate.done">
+              <input type="hidden" name="product_id" value={p.id} data-type="int" />
+              <fieldset class="group" data-path="weekdays">
+                <legend>{T('admin.sessions.weekdays')}</legend>
+                <div class="chips">{weekdays.map((d) => <label class="chip"><input type="checkbox" name="weekdays" value={d} data-type="intlist" />{wdName(d)}</label>)}</div>
+              </fieldset>
+              <fieldset class="group" data-path="times">
+                <legend>{T('admin.sessions.times')}</legend>
+                <div class="row" data-times>
+                  <input class="fld__input fld__input--s" type="time" name="times" data-type="list" value="09:30" aria-label={T('admin.sessions.times')} />
+                </div>
+                <div><button type="button" class="btn-text" data-add-time>+ {T('admin.sessions.time.add')}</button></div>
+              </fieldset>
+              <div class="fields">
+                <div class="fld"><label class="fld__label mono" for="g-from">{T('admin.from')}</label><input id="g-from" class="fld__input" type="date" name="from" value={t0} required /></div>
+                <div class="fld"><label class="fld__label mono" for="g-to">{T('admin.to')}</label><input id="g-to" class="fld__input" type="date" name="to" value={addDays(t0, 90)} required /></div>
+                <div class="fld"><label class="fld__label mono" for="g-cap">{T('admin.sessions.capacity')}</label><input id="g-cap" class="fld__input" type="number" min="1" max="1000" name="capacity" data-type="int" value={p.capacity ?? 10} /></div>
+              </div>
+              <div class="fld"><label class="fld__label mono" for="g-note">{T('admin.sessions.note')}</label><input id="g-note" class="fld__input" name="note" maxlength="500" /><p class="fld__help">{T('admin.sessions.note.help')}</p></div>
+              <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.sessions.generate.run')}</button></div>
+            </form>
+          </section>
+
+          <section class="blk" aria-labelledby="one-t">
+            <div class="blk__head"><h2 class="blk__title" id="one-t">{T('admin.sessions.add')}</h2></div>
+            <form class="vstack" style="gap:18px" data-api="/api/admin/sessions" data-method="POST">
+              <input type="hidden" name="product_id" value={p.id} data-type="int" />
+              <div class="fields">
+                <div class="fld"><label class="fld__label mono" for="o-start">{T('admin.sessions.starts')}</label><input id="o-start" class="fld__input" type="datetime-local" name="starts_at" required /></div>
+                <div class="fld"><label class="fld__label mono" for="o-cap">{T('admin.sessions.capacity')}</label><input id="o-cap" class="fld__input" type="number" min="1" max="1000" name="capacity" data-type="int" value={p.capacity ?? 10} required /></div>
+              </div>
+              <div class="fld"><label class="fld__label mono" for="o-note">{T('admin.sessions.note')}</label><input id="o-note" class="fld__input" name="note" maxlength="500" /></div>
+              <div class="form-actions"><button class="pill pill--outline pill--s" type="submit">{T('admin.add')}</button></div>
+            </form>
+          </section>
+        </div>
+
+        <section class="blk" aria-labelledby="ls-t">
+          <div class="blk__head">
+            <h2 class="blk__title" id="ls-t">{T('admin.sessions.list')} · {MONTHS[lang][m - 1]} {y}</h2>
+            <span class="row"><a class="chip" href={withParam(Astro.url, { muaj: prev })}>← {T('admin.prev')}</a><a class="chip" href={withParam(Astro.url, { muaj: next })}>{T('admin.next')} →</a></span>
+          </div>
+          {byDay.size ? [...byDay.entries()].map(([day, list]) => (
+            <div>
+              <h3 class="day__head"><span>{formatDate(day, lang, 'long')}</span>{day === t0 && <span class="signal-text">{T('admin.bookings.today')}</span>}</h3>
+              {list.map((s) => (
+                <div class:list={['sess sess--edit', s.status !== 'open' && 'is-closed']}>
+                  <span class="sess__time">{s.starts_at.slice(11, 16)}</span>
+                  <span class="sess__name">{T('admin.bookings.seats', { booked: s.booked, capacity: s.capacity })}{s.note && <span class="cell-sub mono">{noteLabel(s.note)}</span>}</span>
+                  <span>{s.status !== 'open' && <Badge tone="signal">{T(`admin.sstatus.${s.status}`)}</Badge>}</span>
+                  <div class="sess__more">
+                    <form class="row" data-api={`/api/admin/sessions/${s.id}`} data-method="PATCH">
+                      <label class="visually-hidden" for={`cap-${s.id}`}>{T('admin.sessions.capacity')}</label>
+                      <input id={`cap-${s.id}`} class="fld__input fld__input--s" style="inline-size:88px" type="number" min={s.booked} max="1000" name="capacity" data-type="int" value={s.capacity} />
+                      <button class="btn-text" type="submit">{T('admin.save')}</button>
+                      {s.status === 'open' && <button type="button" class="btn-text" data-action={`/api/admin/sessions/${s.id}`} data-method="PATCH" data-body='{"status":"closed"}' data-confirm="admin.bookings.c.close.session">{T('admin.sessions.close')}</button>}
+                      {s.status !== 'open' && <button type="button" class="btn-text" data-action={`/api/admin/sessions/${s.id}`} data-method="PATCH" data-body='{"status":"open"}'>{T('admin.sessions.reopen')}</button>}
+                      {s.status !== 'cancelled' && s.booked > 0 && <button type="button" class="btn-text btn-text--danger" data-action={`/api/admin/sessions/${s.id}`} data-method="PATCH" data-body='{"status":"cancelled"}' data-confirm="admin.sessions.c.cancel" data-danger>{T('admin.sessions.cancel')}</button>}
+                      {s.booked === 0 && <button type="button" class="btn-text btn-text--danger" data-action={`/api/admin/sessions/${s.id}`} data-method="DELETE" data-confirm="admin.sessions.c.delete" data-danger>{T('admin.delete')}</button>}
+                    </form>
+                    {s.guests.length > 0 && (
+                      <details>
+                        <summary>{T('admin.bookings.participants', { n: s.guests.reduce((a, g) => a + Number(g.people), 0) })}</summary>
+                        <ul class="sess__guests">{s.guests.map((g) => <li><a class="mono mono-lc" href={`/admin/porosite/${g.code}/`}>{g.code}</a> · {g.name || '—'} · <span class="mono">{T('admin.order.guests', { n: g.people })}</span></li>)}</ul>
+                      </details>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )) : <p class="adm-empty mono">{T('admin.sessions.none')}</p>}
+        </section>
+      </div>
+    </>
+  )}
+  <script>
+    for (const b of document.querySelectorAll<HTMLButtonElement>('[data-add-time]')) {
+      b.addEventListener('click', () => {
+        const box = b.closest('fieldset')!.querySelector('[data-times]')!;
+        const first = box.querySelector('input')!;
+        const n = first.cloneNode() as HTMLInputElement;
+        n.value = '';
+        box.append(n);
+        n.focus();
+      });
+    }
+  </script>
+</Admin>

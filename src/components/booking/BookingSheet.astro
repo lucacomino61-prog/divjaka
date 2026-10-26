@@ -1,0 +1,35 @@
+---
+/**
+ * BookingSheet — the phone form of the floating permit card (DESIGN §8, Moooor pill): a sticky
+ * pill "Nga 4 100 lekë / natë · Rezervo" at the bottom (left of the Pyet pill) that opens a
+ * full-screen <dialog>. src/scripts/booking.ts moves the page's permit card (.bk inside
+ * [data-bk-slot]) into the sheet on open and back on close, so there is one card and one state.
+ * Swipe down, Esc or the Close button close it; focus returns to the pill. ≥ 1000 px: neither
+ * the pill nor the sheet exist (the card floats beside the plate). No JS: the card stays inline.
+ *
+ * Props: lang, priceLek, per ('night' | 'person'), label (accessible name of the sheet)
+ */
+import { t } from '../../i18n/ui';
+import { money } from '../../i18n/format';
+import { eurRate } from '../site/site-data';
+import type { Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang; priceLek: number; per: 'night' | 'person'; label: string }
+const { lang, priceLek, per, label } = Astro.props;
+const rate = await eurRate();
+const key = per === 'night' ? 'booking.pill.room' : 'booking.pill.exp';
+---
+<button type="button" class="bk-pill" data-bk-pill aria-haspopup="dialog" aria-controls="leja" aria-expanded="false">
+  <span class="bk-pill__price">
+    <span data-cur-all>{t(lang, key, { price: money(priceLek, lang) })}</span>
+    {rate > 0 && <span data-cur-eur>{t(lang, key, { price: money(priceLek, lang, { currency: 'EUR', rate }) })}</span>}
+  </span>
+  <span class="bk-pill__cta">{t(lang, 'booking.pill.cta')}</span>
+</button>
+<dialog class="bk-sheet" id="leja" aria-label={label} data-bk-sheet>
+  <div class="bk-sheet__bar">
+    <span class="bk-sheet__grip" aria-hidden="true"></span>
+    <button type="button" class="pill pill--outline pill--s" data-bk-sheet-close>{t(lang, 'booking.sheet.close')}</button>
+  </div>
+  <div class="bk-sheet__body" data-bk-sheet-body data-scroll></div>
+</dialog>

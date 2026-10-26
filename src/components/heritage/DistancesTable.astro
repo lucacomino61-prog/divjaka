@@ -1,0 +1,40 @@
+---
+/** DistancesTable — driving distances from Divjakë town (components/heritage/distances.ts). */
+import { DISTANCE_FACTS, duration } from './distances';
+import { fact } from './facts';
+import { number } from '../../i18n/format';
+import { t } from '../../i18n/ui';
+import type { Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const rows = DISTANCE_FACTS.filter((d) => fact(d.fact));
+---
+<div class="dist">
+  <table class="dist__table">
+    <caption class="dist__cap mono">{t(lang, 'dist.from')}</caption>
+    <thead><tr><th scope="col" class="mono">{t(lang, 'dist.to')}</th><th scope="col" class="mono dist__num">{t(lang, 'dist.km')}</th><th scope="col" class="mono dist__num">{t(lang, 'dist.time')}</th></tr></thead>
+    <tbody>
+      {rows.map((d) => (
+        <tr>
+          <th scope="row">{d.to[lang]}</th>
+          <td class="mono dist__num">≈ {number(d.km, lang)} km</td>
+          <td class="mono dist__num">≈ {duration(d.min, lang)}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+  <p class="dist__note mono">{t(lang, 'dist.note')}</p>
+</div>
+
+<style>
+  .dist { margin-block: 28px; }
+  .dist__table { inline-size: 100%; border-collapse: collapse; }
+  .dist__cap { text-align: start; font-size: var(--step--2); padding-block: 8px; caption-side: top; }
+  .dist__table thead th { text-align: start; font-size: var(--step--2); font-weight: 450; padding: 8px 0; border-block-end: 2px solid var(--ink); }
+  .dist__table tbody th { text-align: start; font-weight: 600; padding: 12px 12px 12px 0; }
+  .dist__table td { padding: 12px 0; font-size: var(--step--1); }
+  .dist__table tbody tr { border-block-end: 1px solid var(--rule); }
+  .dist__num { text-align: end !important; white-space: nowrap; padding-inline-start: 12px !important; }
+  .dist__note { font-size: var(--step--2); color: var(--muted); margin-block-start: 10px; text-transform: none; letter-spacing: 0; max-inline-size: 66ch; }
+</style>

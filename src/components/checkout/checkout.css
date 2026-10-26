@@ -1,0 +1,12 @@
+/* Shared by the cart page and the checkout (T5): the totals block drawn by scripts/checkout.ts renderSums(). */
+/* totals (shared markup from scripts/checkout.ts renderSums) */
+.sums { display: grid; gap: 8px; margin: 0; }
+.sums__row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.sums__row dt { font-size: var(--step--2); color: var(--muted); }
+.sums__row dd { margin: 0; font-variant-numeric: tabular-nums; }
+.sums__row--note dt { color: var(--pouch-text); }
+.sums__row--total { padding-block-start: 10px; border-block-start: 2px solid var(--ink); }
+.sums__row--total dt { color: var(--ink); }
+.sums__total { font-size: var(--step-3); font-weight: 800; font-stretch: 75%; letter-spacing: -0.03em; line-height: 1; }
+.sums--big .sums__total { font-size: var(--step-4); }
+.sums__row--eur dd { color: var(--muted); font-size: var(--step--2); }

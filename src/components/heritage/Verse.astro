@@ -1,0 +1,76 @@
+---
+/**
+ * Verse — the Opal sentence (DESIGN §5): a large sentence with small inline photo cuts, its words
+ * lit one by one from ink-40 to ink as it is read (scripts/heritage.ts, scrubbed by the scroll).
+ * Words are server-rendered spans, so the sentence reads the same without script; with motion
+ * off every word is lit. Text from the dict key `heritage.verse`: [[photo-slug|words]] puts a
+ * photo cut before those words. Long Albanian words get manual soft hyphens (no browser hyphenation
+ * for sq).
+ */
+import { getPhoto } from '../site/site-data';
+import { photoSrc } from '../site/photo-url';
+import { t } from '../../i18n/ui';
+import { path, type Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang; as?: 'p' | 'h2'; class?: string; id?: string; credits?: boolean }
+const { lang, as: Tag = 'p', class: cls, id, credits = true } = Astro.props;
+const text = t(lang, 'heritage.verse');
+// manual breaks for the long words (browsers carry no Albanian hyphenation)
+const BREAKS: Record<string, string> = {
+  kaçurrelë: 'ka-çur-re-lë', folezojnë: 'fo-le-zoj-në', kallamishte: 'ka-lla-mish-te', nëpër: 'në-për', Dalmatian: 'Dal-ma-tian', flamingot: 'fla-min-got', flamingos: 'fla-min-gos', shallows: 'shal-lows',
+};
+const hy = (w: string) => {
+  const m = /^([^\p{L}]*)([\p{L}]+)([^\p{L}]*)$/u.exec(w);
+  if (!m || !BREAKS[m[2]]) return w;
+  return m[1] + BREAKS[m[2]].replace(/-/g, '\u00AD') + m[3];
+};
+type Part = { kind: 'word'; text: string } | { kind: 'cut'; slug: string; alt: string; src: string; srcset: string; credit: string };
+const parts: Part[] = [];
+for (const piece of text.split(/(\[\[[^\]]+\]\])/)) {
+  const m = /^\[\[([^|\]]+)\|([^\]]+)\]\]$/.exec(piece);
+  if (m) {
+    const p = getPhoto(m[1]);
+    if (p) parts.push({ kind: 'cut', slug: p.slug, alt: p.alt[lang], src: photoSrc(p.slug, 640, 'webp'), srcset: `${photoSrc(p.slug, 640, 'avif')} 640w`, credit: p.credit });
+    m[2].split(/\s+/).filter(Boolean).forEach((w) => parts.push({ kind: 'word', text: hy(w) }));
+  } else {
+    // punctuation right after a marked word ("pisha,") stays on that word
+    const lead = /^[,.;:!?…»”)]+/.exec(piece)?.[0] ?? '';
+    const last = parts.at(-1);
+    if (lead && last?.kind === 'word') last.text += lead;
+    piece.slice(lead.length).split(/\s+/).filter(Boolean).forEach((w) => parts.push({ kind: 'word', text: hy(w) }));
+  }
+}
+const cuts = parts.filter((p): p is Extract<Part, { kind: 'cut' }> => p.kind === 'cut');
+const byAuthor = cuts.filter((c, i) => cuts.findIndex((x) => x.credit === c.credit) === i);
+const plain = text.replace(/\[\[[^|\]]+\|([^\]]+)\]\]/g, '$1');
+---
+<div class="verse-wrap">
+<Tag class:list={['verse', cls]} id={id} data-verse>
+  <span class="visually-hidden">{plain}</span>
+  <span aria-hidden="true">{parts.map((p) => p.kind === 'word'
+    ? <Fragment><span class="verse__w">{p.text}</span>{' '}</Fragment>
+    : <Fragment><span class="verse__cut" aria-hidden="true"><picture><source type="image/avif" srcset={p.srcset} /><img src={p.src} alt="" width="640" height="427" loading="lazy" decoding="async" /></picture></span>{' '}</Fragment>)}</span>
+</Tag>
+{credits && byAuthor.length > 0 && (
+  <p class="verse__credits mono">{t(lang, 'photo.credit')}: {byAuthor.map((c, i) => <Fragment>{i > 0 && ' · '}<a href={`${path('credits', lang)}#${c.slug}`}>{c.credit}</a></Fragment>)}</p>
+)}
+</div>
+
+<style>
+  .verse {
+    font-size: clamp(1.9rem, 1rem + 3.4vw, 4.6rem); font-weight: 600; font-stretch: 82%;
+    font-variation-settings: "opsz" 72; line-height: 1.06; letter-spacing: -0.03em;
+    max-inline-size: 22ch; text-wrap: pretty; hyphens: manual; overflow-wrap: anywhere;
+  }
+  .verse__w { color: var(--ink); transition: color 300ms var(--ease-out); }
+  /* unlit only while the reading script runs (motion on); otherwise every word is ink.
+     Unlit = ink 55 % (3.7:1 on salt, above the 3:1 for large text), lit = ink */
+  :global(.verse.is-reading) .verse__w:not(.is-lit) { color: color-mix(in oklch, var(--ink) 55%, var(--salt)); } /* 3.7:1 — large text stays readable unlit */
+  .verse__cut {
+    display: inline-block; vertical-align: -0.12em; inline-size: 1.9em; block-size: 0.86em;
+    overflow: clip; border: 1px solid var(--ink); background: var(--salt-2); margin-inline: 0.04em;
+  }
+  .verse__credits { font-size: var(--step--2); color: var(--muted); margin-block-start: 14px; }
+  .verse__credits a { color: inherit; }
+  .verse__cut img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+</style>

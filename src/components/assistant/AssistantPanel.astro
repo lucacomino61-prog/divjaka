@@ -1,0 +1,194 @@
+---
+/**
+ * AssistantPanel — the 24/7 assistant (T7). A <dialog id="assistant">: side sheet at the inline
+ * end on desktop, full sheet on phones (swipe down / Esc / button to close, focus trapped by
+ * showModal, returned to the pill). Claims T2's pill: the tiny script below listens for the
+ * cancelable `dv:assistant-open`, calls preventDefault() and loads scripts/assistant.ts on first
+ * use (the chat code is not in the page's first bundle). Without JavaScript the pill stays a link
+ * to the contact page.
+ * The greeting and quick questions are printed in both languages (the answer language can be
+ * switched inside the panel); the log is role="log" aria-live="polite".
+ */
+import { t } from '../../i18n/ui';
+import { path, type Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const langs: Lang[] = ['sq', 'en'];
+---
+<dialog id="assistant" class="asst" aria-labelledby="asst-title" data-assistant data-lang={lang} data-contact-sq={path('contact', 'sq')} data-contact-en={path('contact', 'en')} data-privacy={path('privacy', lang)}>
+  <div class="asst__inner">
+    <header class="asst__head">
+      <div class="asst__headrow">
+        <p class="asst__kicker mono"><span class="live-dot" aria-hidden="true"></span>{t(lang, 'assistant.kicker')}</p>
+        <div class="asst__tools">
+          <div class="asst__lang mono" role="group" aria-label={t(lang, 'assistant.lang')}>
+            {langs.map((l) => <button type="button" data-asst-lang={l} aria-pressed={l === lang ? 'true' : 'false'} lang={l}>{l.toUpperCase()}</button>)}
+          </div>
+          <button type="button" class="pill pill--outline pill--s asst__close" data-close="assistant" aria-label={t(lang, 'assistant.close')}>
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.5" fill="none" /></svg>
+          </button>
+        </div>
+      </div>
+      <h2 id="asst-title" class="asst__title">{t(lang, 'assistant.title')}</h2>
+    </header>
+
+    <div class="asst__scroll" data-scroll data-lenis-prevent data-asst-scroll>
+      <ol class="asst__log" role="log" aria-live="polite" aria-label={t(lang, 'assistant.log')} data-asst-log>
+        <li class="amsg amsg--bot" data-greeting>
+          <p class="amsg__who mono">{t(lang, 'assistant.bot')}</p>
+          {langs.map((l) => <p class="amsg__text" lang={l} data-for-lang={l} hidden={l !== lang}>{t(l, 'assistant.greeting')}</p>)}
+        </li>
+      </ol>
+      <p class="asst__typing mono" data-asst-typing hidden><span>{t(lang, 'assistant.typing')}</span><span class="asst__dots" aria-hidden="true"><i></i><i></i><i></i></span></p>
+      <div class="asst__chips" role="group" aria-label={t(lang, 'assistant.chips.label')} data-asst-chips>
+        {langs.map((l) => [1, 2, 3, 4, 5].map((n) => (
+          <button type="button" class="achip" data-chip lang={l} data-for-lang={l} hidden={l !== lang}>{t(l, `assistant.chip.${n}`)}</button>
+        )))}
+      </div>
+
+      <form class="asst__handoff" data-asst-handoff hidden novalidate aria-labelledby="asst-ho-h">
+        <h3 id="asst-ho-h" class="asst__ho-title">{t(lang, 'assistant.handoff.title')}</h3>
+        <p class="asst__ho-lead">{t(lang, 'assistant.handoff.lead')}</p>
+        <div class="afield">
+          <label for="asst-ho-name" class="mono">{t(lang, 'assistant.handoff.name')}</label>
+          <input id="asst-ho-name" name="name" autocomplete="name" maxlength="120" aria-describedby="asst-ho-name-err" />
+          <p class="afield__err mono" id="asst-ho-name-err" data-err="name"></p>
+        </div>
+        <div class="afield">
+          <label for="asst-ho-email" class="mono">{t(lang, 'assistant.handoff.email')}</label>
+          <input id="asst-ho-email" name="email" type="email" inputmode="email" autocomplete="email" spellcheck="false" maxlength="200" aria-describedby="asst-ho-email-err asst-ho-or" />
+          <p class="afield__err mono" id="asst-ho-email-err" data-err="email"></p>
+        </div>
+        <div class="afield">
+          <label for="asst-ho-phone" class="mono">{t(lang, 'assistant.handoff.phone')}</label>
+          <input id="asst-ho-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="40" aria-describedby="asst-ho-or" />
+          <p class="afield__hint mono" id="asst-ho-or">{t(lang, 'assistant.handoff.or')}</p>
+        </div>
+        <div class="afield">
+          <label for="asst-ho-msg" class="mono">{t(lang, 'assistant.handoff.message')}</label>
+          <textarea id="asst-ho-msg" name="question" rows="3" maxlength="1000" aria-describedby="asst-ho-msg-err"></textarea>
+          <p class="afield__err mono" id="asst-ho-msg-err" data-err="question"></p>
+        </div>
+        <p class="asst__consent">{t(lang, 'assistant.handoff.consent').replace(/\.$/, '')} <a href={path('privacy', lang)}>→</a></p>
+        <p class="afield__err mono" data-err="form" role="alert"></p>
+        <div class="asst__ho-actions">
+          <button type="submit" class="pill pill--primary pill--s">{t(lang, 'assistant.handoff.send')}</button>
+          <button type="button" class="pill pill--quiet pill--s" data-ho-cancel>{t(lang, 'assistant.handoff.cancel')}</button>
+        </div>
+      </form>
+    </div>
+
+    <form class="asst__compose" data-asst-form>
+      <label class="visually-hidden" for="asst-input">{t(lang, 'assistant.input.label')}</label>
+      <input id="asst-input" name="message" maxlength="600" autocomplete="off" enterkeyhint="send" placeholder={t(lang, 'assistant.input.placeholder')} />
+      <button type="submit" class="pill pill--primary pill--s asst__send">{t(lang, 'assistant.send')}</button>
+    </form>
+    <p class="asst__note mono"><span>{t(lang, 'assistant.note')}</span> <button type="button" class="asst__clear" data-asst-clear>{t(lang, 'assistant.clear')}</button></p>
+  </div>
+</dialog>
+
+<script>
+  // Claim the pill synchronously; load the chat module on first use.
+  let mod: Promise<typeof import('../../scripts/assistant')> | null = null;
+  const load = () => (mod ??= import('../../scripts/assistant'));
+  window.addEventListener('dv:assistant-open', (e) => {
+    if (!document.getElementById('assistant')) return;
+    e.preventDefault();
+    const from = document.activeElement as HTMLElement | null;
+    load().then((m) => m.openAssistant(from));
+  });
+  // warm the module when the pill is approached (no layout work)
+  document.addEventListener('pointerover', (e) => { if ((e.target as HTMLElement).closest?.('[data-assistant-open]')) load(); }, { passive: true });
+</script>
+
+<style>
+  .asst {
+    position: fixed; inset: 0 0 0 auto; margin: 0; padding: 0; border: 0; border-inline-start: 1px solid var(--ink);
+    inline-size: min(460px, 100vw); max-inline-size: 100vw; block-size: 100dvh; max-block-size: 100dvh;
+    background: var(--salt); color: var(--ink); overflow: hidden;
+    transition: transform 280ms var(--ease-out), display 280ms allow-discrete, overlay 280ms allow-discrete;
+  }
+  .asst:not([open]) { transform: translateX(100%); }
+  @starting-style { .asst[open] { transform: translateX(100%); } }
+  .asst::backdrop { background: color-mix(in oklch, var(--ink) 40%, transparent); transition: opacity 280ms var(--ease-out), display 280ms allow-discrete, overlay 280ms allow-discrete; }
+  .asst:not([open])::backdrop { opacity: 0; }
+  @starting-style { .asst[open]::backdrop { opacity: 0; } }
+  @media (max-width: 639px) {
+    .asst { inset: auto 0 0 0; inline-size: 100vw; block-size: 100dvh; border-inline-start: 0; }
+    .asst:not([open]) { transform: translateY(100%); }
+    @starting-style { .asst[open] { transform: translateY(100%); } }
+  }
+  html[data-motion="off"] .asst, html[data-motion="off"] .asst::backdrop { transition: none; }
+  @media (prefers-reduced-motion: reduce) { .asst, .asst::backdrop { transition: none; } }
+
+  .asst__inner { block-size: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; }
+  .asst__head { padding: 12px 20px 14px; border-block-end: 3px double var(--ink); display: grid; gap: 8px; }
+  .asst__headrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-block-size: 44px; }
+  .asst__kicker { display: inline-flex; align-items: center; gap: 10px; font-size: var(--step--2); }
+  .asst__tools { display: flex; align-items: center; gap: 8px; }
+  .asst__lang { display: inline-flex; border: 1px solid var(--ink); border-radius: var(--radius-pill); overflow: hidden; }
+  .asst__lang button { min-block-size: 44px; min-inline-size: 44px; padding-inline: 10px; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: var(--step--2); cursor: pointer; }
+  .asst__lang button[aria-pressed="true"] { background: var(--ink); color: var(--salt); }
+  .asst__close { inline-size: 44px; padding: 0; }
+  .asst__title { font-size: var(--step-3); font-weight: 700; font-stretch: 85%; line-height: 1; }
+
+  .asst__scroll { overflow-y: auto; overscroll-behavior: contain; padding: 8px 20px 20px; scroll-behavior: auto; }
+  .asst__log { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+  .asst__log :global(.amsg) { padding-block: 14px; border-block-end: 1px solid var(--rule); display: grid; gap: 6px; }
+  .asst__log :global(.amsg__who) { font-size: 0.6875rem; color: var(--muted); display: flex; gap: 10px; }
+  .asst__log :global(.amsg__text) { white-space: pre-line; overflow-wrap: anywhere; }
+  .asst__log :global(.amsg--user) { padding-inline-start: 14%; }
+  .asst__log :global(.amsg--user .amsg__text) { font-weight: 600; border-inline-start: 2px solid var(--ink); padding-inline-start: 12px; }
+  .asst__log :global(.amsg--user .amsg__who) { padding-inline-start: 14px; }
+  .asst__log :global(.amsg--error .amsg__text) { color: var(--pouch-text); text-decoration: underline; text-decoration-color: var(--pouch); text-underline-offset: 3px; }
+  .asst__log :global(.amsg__links) { display: flex; flex-wrap: wrap; gap: 6px; margin-block-start: 4px; }
+  .asst__log :global(.amsg__links a) { display: inline-flex; align-items: center; min-block-size: 36px; padding-inline: 12px; border: 1px solid var(--ink); border-radius: var(--radius-pill); text-decoration: none; font-size: var(--step--1); font-weight: 600; }
+  @media (pointer: coarse) { .asst__log :global(.amsg__links a) { min-block-size: 44px; } }
+  .asst__log :global(.amsg__cards) { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 8px; }
+  .asst__log :global(.acard) { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; align-items: center; padding: 8px; border: 1px solid var(--ink); text-decoration: none; min-block-size: 44px; }
+  .asst__log :global(.acard__img) { inline-size: 56px; block-size: 56px; object-fit: cover; background: var(--salt-2); display: block; }
+  .asst__log :global(.acard__name) { font-weight: 650; line-height: 1.15; overflow-wrap: anywhere; }
+  .asst__log :global(.acard__meta) { font-size: var(--step--2); color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; margin-block-start: 3px; }
+  .asst__log :global(.amsg__handoff) { justify-self: start; }
+  .asst__typing { display: flex; align-items: center; gap: 8px; font-size: var(--step--2); color: var(--muted); padding-block: 12px; }
+  .asst__typing[hidden] { display: none; }
+  .asst__dots { display: inline-flex; gap: 4px; }
+  .asst__dots i { inline-size: 5px; block-size: 5px; border-radius: 99px; background: var(--ink-40); animation: asst-dot 1.2s var(--ease-out) 4 both; }
+  .asst__dots i:nth-child(2) { animation-delay: 0.15s; }
+  .asst__dots i:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes asst-dot { 0%, 100% { opacity: .3; } 40% { opacity: 1; } }
+  html[data-motion="off"] .asst__dots i { animation: none; opacity: .7; }
+  @media (prefers-reduced-motion: reduce) { .asst__dots i { animation: none; opacity: .7; } }
+
+  .asst__chips { display: flex; flex-wrap: wrap; gap: 8px; padding-block: 14px 4px; }
+  .achip, .asst__chips :global(.achip) {
+    min-block-size: 44px; padding: 6px 14px; border: 1px solid var(--ink); border-radius: var(--radius-pill); background: transparent; color: var(--ink);
+    font: inherit; font-size: var(--step--1); font-weight: 600; text-align: start; cursor: pointer; line-height: 1.2;
+    transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-press) var(--ease-out);
+  }
+  .achip:active, .asst__chips :global(.achip:active) { transform: scale(0.97); }
+  @media (hover: hover) and (pointer: fine) { .achip:hover, .asst__chips :global(.achip:hover) { background: var(--salt-2); } }
+
+  .asst__handoff { display: grid; gap: 12px; margin-block-start: 12px; padding: 16px; border: 1px solid var(--ink); }
+  .asst__ho-title { font-size: var(--step-1); font-weight: 700; font-stretch: 88%; }
+  .asst__ho-lead { font-size: var(--step--1); color: var(--muted); }
+  .afield { display: grid; gap: 6px; }
+  .afield label { font-size: var(--step--2); }
+  .afield input, .afield textarea { min-block-size: 48px; inline-size: 100%; padding: 10px 12px; font: inherit; font-size: 16px; background: var(--salt); color: var(--ink); border: 0; border-block-end: 1px solid var(--ink); border-radius: 0; }
+  .afield textarea { resize: vertical; }
+  .afield input:focus-visible, .afield textarea:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  .afield [aria-invalid="true"] { border-block-end-color: var(--pouch); border-block-end-width: 2px; }
+  .afield__err { font-size: var(--step--2); color: var(--pouch-text); }
+  .afield__err:empty { display: none; }
+  .afield__hint { font-size: var(--step--2); color: var(--muted); }
+  .asst__consent { font-size: var(--step--1); color: var(--muted); }
+  .asst__ho-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .asst__compose { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 12px 20px; border-block-start: 3px double var(--ink); background: var(--salt); }
+  .asst__compose input { min-block-size: 48px; padding: 0 14px; font: inherit; font-size: 16px; background: var(--salt); color: var(--ink); border: 1px solid var(--ink); border-radius: var(--radius-pill); }
+  .asst__compose input:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  .asst__send { min-block-size: 48px; }
+  .asst__note { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 0.625rem; color: var(--muted); padding: 0 20px max(12px, env(safe-area-inset-bottom)); }
+  .asst__clear { border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-block-size: 24px; padding: 0; }
+</style>

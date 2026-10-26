@@ -1,0 +1,39 @@
+---
+/**
+ * WxGlyph — a weather mark drawn as 1.5 px ink strokes (DESIGN §10: no stock icon sets).
+ * Takes a MET Norway symbol code (clearsky_day, lightrainshowers_night, …).
+ *   <WxGlyph symbol="partlycloudy_day" size={28} />
+ */
+interface Props { symbol: string; size?: number; class?: string }
+const { symbol, size = 28, class: cls } = Astro.props;
+const night = /_night$/.test(symbol);
+const base = symbol.replace(/_(day|night|polartwilight)$/, '');
+const sky = base === 'clearsky' ? 'clear' : base === 'fair' ? 'fair' : base === 'partlycloudy' ? 'partly' : base === 'fog' ? 'fog' : 'cloud';
+const precip = /rain/.test(base) ? 'rain' : /sleet/.test(base) ? 'sleet' : /snow/.test(base) ? 'snow' : null;
+const level = /^light/.test(base) ? 1 : /^heavy/.test(base) ? 3 : 2;
+const thunder = /thunder/.test(base);
+const showers = /showers/.test(base);
+const drops = [0, 1, 2].slice(0, level);
+---
+<svg class:list={['wx', cls]} viewBox="0 0 32 32" width={size} height={size} aria-hidden="true" focusable="false">
+  <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    {(sky === 'clear' || sky === 'fair' || sky === 'partly' || showers) && (
+      night
+        ? <path d={sky === 'clear' ? 'M19 7a9 9 0 1 0 6 13 7 7 0 0 1-6-13z' : 'M13 5a6 6 0 1 0 5 8.5 4.6 4.6 0 0 1-5-8.5z'} />
+        : sky === 'clear'
+          ? <g><circle cx="16" cy="16" r="5" />{[0, 45, 90, 135, 180, 225, 270, 315].map((a) => <path d="M16 6.5V4" transform={`rotate(${a} 16 16)`} />)}</g>
+          : <g><circle cx="11" cy="11" r="3.6" />{[0, 60, 120, 180, 240, 300].map((a) => <path d="M11 4.6V3" transform={`rotate(${a} 11 11)`} />)}</g>
+    )}
+    {sky !== 'clear' && sky !== 'fog' && (
+      <path d={sky === 'fair' ? 'M17 24h7.5a3.5 3.5 0 0 0 .2-7 5 5 0 0 0-9.5 1.4A2.8 2.8 0 0 0 17 24z' : 'M9 23h15a4.5 4.5 0 0 0 .3-9 7 7 0 0 0-13.3 2A3.5 3.5 0 0 0 9 23z'} />
+    )}
+    {sky === 'fog' && <g><path d="M6 12h20M4 17h22M8 22h18" /></g>}
+    {precip === 'rain' && drops.map((i) => <path d={`M${12 + i * 5} 26l-1.5 3`} />)}
+    {precip === 'sleet' && <g><path d="M13 26l-1.5 3" /><circle cx="19" cy="27.5" r="0.9" fill="currentColor" /></g>}
+    {precip === 'snow' && drops.map((i) => <circle cx={12 + i * 5} cy="27.5" r="0.9" fill="currentColor" />)}
+    {thunder && <path d="M17 24l-3 4h4l-2.5 3.5" />}
+  </g>
+</svg>
+<style>
+  .wx { display: block; flex: none; color: inherit; overflow: visible; }
+</style>

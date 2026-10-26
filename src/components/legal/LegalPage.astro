@@ -1,0 +1,98 @@
+---
+/**
+ * LegalPage — the shared sheet for the privacy notice and the booking terms (T7): poster title,
+ * a DRAFT stamp and note, a numbered contents rail (sticky on desktop), ruled sections, and the
+ * way to ask. Content comes from ./content.ts with the live settings filled in (legal.ts helper).
+ */
+import Base from '../../layouts/Base.astro';
+import Breadcrumbs from '../site/Breadcrumbs.astro';
+import SectionHead from '../site/SectionHead.astro';
+import Stamp from '../site/Stamp.astro';
+import Pill from '../site/Pill.astro';
+import { legalContext } from './context';
+import { privacySections, termsSections } from './content';
+import { siteOriginOf } from '../site/site-data';
+import { t } from '../../i18n/ui';
+import { formatDate } from '../../i18n/format';
+import { path, type Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang; kind: 'privacy' | 'terms' }
+const { lang, kind } = Astro.props;
+const ctx = await legalContext(lang);
+const sections = kind === 'privacy' ? privacySections(ctx) : termsSections(ctx);
+const VERSION = '2026-10-23';
+const origin = await siteOriginOf(Astro.url, Astro.site);
+const other = kind === 'privacy' ? 'terms' : 'privacy';
+const jsonld = { '@context': 'https://schema.org', '@type': 'WebPage', name: t(lang, `page.${kind}.title`), url: new URL(path(kind, lang), origin).href, inLanguage: lang === 'sq' ? 'sq-AL' : 'en', dateModified: VERSION };
+---
+<Base lang={lang} title={t(lang, `page.${kind}.title`)} description={t(lang, `page.${kind}.description`)} routeKey={kind} jsonld={jsonld}>
+  <section class="wrap lg__head" aria-labelledby="lg-h">
+    <Breadcrumbs lang={lang} items={[{ label: t(lang, `page.${kind}.title`) }]} />
+    <SectionHead as="h1" id="lg-h" index={t(lang, `legal.${kind}.index`)} kicker={t(lang, 'legal.updated', { date: formatDate(VERSION, lang, 'medium') })} title={t(lang, `legal.${kind}.poster`)} size="poster" />
+    <div class="lg__intro">
+      <p class="lg__lead">{t(lang, `legal.${kind}.lead`)}</p>
+      <div class="lg__draft" role="note">
+        <Stamp tone="signal">{t(lang, 'legal.draft')}</Stamp>
+        <p>{t(lang, 'legal.draft.note')}</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap lg__body sheet">
+    <nav class="lg__toc" aria-labelledby="lg-toc-h">
+      <p id="lg-toc-h" class="lg__toc-h mono">{t(lang, 'legal.toc')}</p>
+      <ol>
+        {sections.map((s, i) => <li><a href={`#${s.id}`}><span class="mono">{String(i + 1).padStart(2, '0')}</span>{s.h[lang]}</a></li>)}
+      </ol>
+    </nav>
+    <div class="lg__text">
+      {sections.map((s, i) => (
+        <section class="lg__sec" id={s.id} aria-labelledby={`${s.id}-h`}>
+          <h2 id={`${s.id}-h`} class="lg__h"><span class="lg__n mono">{String(i + 1).padStart(2, '0')}</span>{s.h[lang]}</h2>
+          {s.blocks.map((b) => (
+            'p' in b ? <p>{b.p[lang]}</p>
+            : 'ul' in b ? <ul>{b.ul.map((x) => <li>{x[lang]}</li>)}</ul>
+            : <dl class="lg__dl">{b.dl.map((x) => <div><dt>{x.k[lang]}</dt><dd>{x.v[lang]}</dd></div>)}</dl>
+          ))}
+        </section>
+      ))}
+      <div class="lg__ask">
+        <Pill href={path('contact', lang)} arrow>{t(lang, 'legal.contact')}</Pill>
+        <a class="mono" href={path(other, lang)}>{t(lang, `legal.other.${kind}`)} →</a>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .lg__head { padding-block-start: clamp(16px, 2vw, 28px); }
+  .lg__intro { display: grid; gap: 24px; margin-block-start: clamp(20px, 3vw, 40px); }
+  @media (min-width: 1000px) { .lg__intro { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: start; } }
+  .lg__lead { font-size: var(--step-2); line-height: 1.3; max-inline-size: 30ch; font-weight: 600; font-stretch: 90%; }
+  .lg__draft { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: start; padding: 16px; border: 1px solid var(--ink); }
+  .lg__draft p { font-size: var(--step--1); color: var(--muted); }
+  .lg__body { display: grid; gap: clamp(28px, 4vw, 64px); }
+  @media (min-width: 1000px) { .lg__body { grid-template-columns: minmax(0, 3fr) minmax(0, 7fr); align-items: start; } .lg__toc { position: sticky; inset-block-start: calc(var(--header-h) + 24px); } }
+  .lg__toc { padding-block-start: 10px; border-block-start: 2px solid var(--ink); }
+  .lg__toc-h { font-size: var(--step--2); color: var(--muted); margin-block-end: 8px; }
+  .lg__toc ol { list-style: none; margin: 0; padding: 0; }
+  .lg__toc a { display: flex; gap: 12px; align-items: baseline; min-block-size: 44px; padding-block: 8px; border-block-end: 1px solid var(--rule); text-decoration: none; font-weight: 600; }
+  .lg__toc a span { font-size: var(--step--2); color: var(--muted); font-weight: 400; }
+  @media (hover: hover) and (pointer: fine) { .lg__toc a:hover { text-decoration: underline; text-underline-offset: 3px; } }
+  .lg__text { min-inline-size: 0; max-inline-size: 72ch; }
+  .lg__sec { padding-block: 8px 28px; scroll-margin-top: calc(var(--header-h) + 16px); }
+  .lg__sec + .lg__sec { border-block-start: 1px solid var(--rule); padding-block-start: 24px; }
+  .lg__h { display: flex; gap: 14px; align-items: baseline; font-size: var(--step-3); font-weight: 700; font-stretch: 85%; line-height: 1.05; margin-block-end: 14px; overflow-wrap: anywhere; }
+  .lg__n { font-size: var(--step--1); font-weight: 400; color: var(--muted); }
+  .lg__sec > :global(p) { max-inline-size: 66ch; }
+  .lg__sec > :global(p + p), .lg__sec > :global(p + ul), .lg__sec > :global(ul + p) { margin-block-start: 0.9em; }
+  .lg__sec ul { margin: 0; padding-inline-start: 1.1em; display: grid; gap: 8px; max-inline-size: 66ch; }
+  .lg__dl { margin: 0; }
+  .lg__dl > div { display: grid; gap: 6px; padding-block: 14px; border-block-start: 1px solid var(--rule); }
+  .lg__dl > div:first-child { border-block-start: 0; padding-block-start: 0; }
+  .lg__dl dt { font-family: var(--font-mono); font-size: var(--step--2); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .lg__dl dd { margin: 0; max-inline-size: 66ch; }
+  @media (min-width: 720px) { .lg__dl > div { grid-template-columns: 12em minmax(0, 1fr); gap: 16px; } }
+  .lg__ask { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center; padding-block: 24px var(--section-gap); border-block-start: 3px double var(--ink); }
+  .lg__ask a.mono { font-size: var(--step--2); min-block-size: 44px; display: inline-flex; align-items: center; }
+</style>

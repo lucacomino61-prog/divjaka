@@ -1,0 +1,114 @@
+---
+/** /admin/dhomat/ — Dhomat & çmimet (T6): units + base price per room type, seasonal rates, a 60-night strip, close/open nights. */
+import Admin from '../../layouts/Admin.astro';
+import Badge from '../../components/admin/Badge.astro';
+import Stamp from '../../components/site/Stamp.astro';
+import { adminLang, tr, lek, today } from '../../components/admin/admin-data';
+import { listProducts } from '../../lib/db/repo/products';
+import { listRates } from '../../lib/db/repo/rooms';
+import { roomNights } from '../../lib/availability';
+import { formatDate, formatRange, addDays, parseYMD, WEEKDAYS_MIN, weekdayIndex, MONTHS_SHORT, number } from '../../i18n/format';
+
+const lang = adminLang(Astro);
+const T = tr(lang);
+const owner = (Astro.locals.admin as { role: string } | null)?.role === 'owner';
+const rooms = listProducts({ kind: 'room', status: 'any' }).filter((p) => p.status !== 'archived');
+const t0 = today();
+const rows = rooms.map((p) => ({ p, rates: listRates(p.id), nights: roomNights(p, t0, addDays(t0, 60)) }));
+const name = (p: { name_sq: string; name_en: string }) => (lang === 'en' ? p.name_en : p.name_sq);
+---
+<Admin lang={lang} title={T('admin.rooms.title')} section="rooms" kicker={T('admin.rooms.kicker')}>
+  {!rows.length && <p class="adm-empty mono">{T('admin.rooms.none')}</p>}
+  {!owner && <p class="note-box note-box--ink" style="margin-block-end:24px">{T('admin.product.owner.fields')}</p>}
+  {rows.map(({ p, rates, nights }, i) => (
+    <section class="blk room" id={`room-${p.id}`} aria-labelledby={`r-${p.id}`}>
+      <div class="blk__head">
+        <h2 class="blk__title" id={`r-${p.id}`}><span class="mono">{String(i + 1).padStart(2, '0')}</span>{name(p)}</h2>
+        <span class="row">
+          {p.status !== 'published' && <Badge tone="muted">{T(`admin.pstatus.${p.status}`)}</Badge>}
+          {p.demo && <Stamp kind="demo" lang={lang} tilt={false} />}
+          <a class="mono blk__meta" href={`/admin/produktet/${p.id}/`}>{T('admin.rooms.edit.product')}</a>
+        </span>
+      </div>
+      {p.demo && <p class="fld__help">{T('admin.demo.note')}</p>}
+
+      <form class="row" style="align-items:end;gap:14px 20px" data-api={`/api/admin/products/${p.id}`} data-method="PATCH">
+        <div class="fld"><label class="fld__label mono" for={`u-${p.id}`}>{T('admin.rooms.units')}</label><input id={`u-${p.id}`} class="fld__input" style="inline-size:120px" type="number" min="0" max="500" name="units" data-type="int" value={p.units ?? 0} /></div>
+        <div class="fld"><label class="fld__label mono" for={`bp-${p.id}`}>{T('admin.rooms.base')} ({T('admin.lek')})</label><input id={`bp-${p.id}`} class="fld__input" style="inline-size:160px" type="number" min="0" name="price" data-type="int" value={p.price} disabled={!owner} /></div>
+        <button class="pill pill--primary pill--s" type="submit">{T('admin.rooms.save')}</button>
+      </form>
+
+      <div class="vstack" style="gap:8px">
+        <h3 class="mono" style="font-size:11px">{T('admin.rooms.strip')}</h3>
+        <div class="strip" tabindex="0" role="region" aria-label={`${name(p)} · ${T('admin.rooms.strip.desc')}`}>
+          {nights.map((n) => {
+            const d = parseYMD(n.night)!;
+            return (
+              <div class:list={['strip__night', n.price !== p.price && 'is-rate', n.left <= 0 && 'is-full', d.d === 1 && 'is-month']} title={`${formatDate(n.night, lang, 'long')} · ${lek(n.price, lang)} · ${T('admin.rooms.left', { n: n.left })}`}>
+                <span class="strip__d">{WEEKDAYS_MIN[lang][weekdayIndex(d)]} {d.d}{d.d === 1 || n.night === t0 ? ` ${MONTHS_SHORT[lang][d.m - 1]}` : ''}</span>
+                <span class="strip__p">{number(Math.round(n.price / 100) / 10, lang, 1)}K</span>
+                <span class="strip__l">{n.left}/{p.units ?? 0}</span>
+              </div>
+            );
+          })}
+        </div>
+        <p class="legend"><span><i class="lg-rate"></i>{T('admin.rooms.strip.legend.rate')} ({T('admin.rooms.strip.legend.base')}: {lek(p.price, lang)})</span><span><i class="lg-closed"></i>{T('admin.rooms.strip.legend.full')}</span><span>{T('admin.rooms.strip.legend.k')}</span></p>
+      </div>
+
+      <div class="cols cols--2">
+        <div class="vstack" style="gap:10px">
+          <h3 class="mono" style="font-size:11px">{T('admin.rooms.rates')}</h3>
+          <p class="fld__help">{T('admin.rooms.rates.help')}</p>
+          {rates.length ? rates.map((r) => (
+            <details class="rec">
+              <summary><span class="rec__title">{formatRange(r.date_from, r.date_to, lang)} · {lek(r.price, lang)}</span><span class="rec__meta mono">{r.note ?? ''}</span></summary>
+              <form class="rec__body" data-api={`/api/admin/room-rates/${r.id}`} data-method="PATCH">
+                <div class="fields">
+                  <div class="fld"><label class="fld__label mono" for={`rf-${r.id}`}>{T('admin.from')}</label><input id={`rf-${r.id}`} class="fld__input" type="date" name="date_from" value={r.date_from} disabled={!owner} /></div>
+                  <div class="fld"><label class="fld__label mono" for={`rt-${r.id}`}>{T('admin.to')}</label><input id={`rt-${r.id}`} class="fld__input" type="date" name="date_to" value={r.date_to} disabled={!owner} /></div>
+                  <div class="fld"><label class="fld__label mono" for={`rp-${r.id}`}>{T('admin.rooms.rate.price')}</label><input id={`rp-${r.id}`} class="fld__input" type="number" min="0" name="price" data-type="int" value={r.price} disabled={!owner} /></div>
+                  <div class="fld"><label class="fld__label mono" for={`rn-${r.id}`}>{T('admin.rooms.rate.note')}</label><input id={`rn-${r.id}`} class="fld__input" name="note" data-nullable value={r.note ?? ''} disabled={!owner} /></div>
+                </div>
+                {owner && <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.save')}</button><button type="button" class="btn-text btn-text--danger" data-action={`/api/admin/room-rates/${r.id}`} data-method="DELETE" data-confirm="admin.rooms.c.rate.delete" data-danger>{T('admin.delete')}</button></div>}
+              </form>
+            </details>
+          )) : <p class="adm-empty mono">{T('admin.rooms.rates.none')}</p>}
+          {owner && (
+            <details class="rec rec--new">
+              <summary><span class="rec__title">{T('admin.rooms.rate.add')}</span></summary>
+              <form class="rec__body" data-api="/api/admin/room-rates" data-method="POST">
+                <input type="hidden" name="product_id" value={p.id} data-type="int" />
+                <div class="fields">
+                  <div class="fld"><label class="fld__label mono" for={`nf-${p.id}`}>{T('admin.from')}</label><input id={`nf-${p.id}`} class="fld__input" type="date" name="date_from" required /></div>
+                  <div class="fld"><label class="fld__label mono" for={`nt-${p.id}`}>{T('admin.to')}</label><input id={`nt-${p.id}`} class="fld__input" type="date" name="date_to" required /></div>
+                  <div class="fld"><label class="fld__label mono" for={`np-${p.id}`}>{T('admin.rooms.rate.price')}</label><input id={`np-${p.id}`} class="fld__input" type="number" min="0" name="price" data-type="int" required /></div>
+                  <div class="fld"><label class="fld__label mono" for={`nn-${p.id}`}>{T('admin.rooms.rate.note')}</label><input id={`nn-${p.id}`} class="fld__input" name="note" /></div>
+                </div>
+                <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.add')}</button></div>
+              </form>
+            </details>
+          )}
+        </div>
+
+        <div class="vstack" style="gap:10px">
+          <h3 class="mono" style="font-size:11px">{T('admin.rooms.close')}</h3>
+          <p class="fld__help">{T('admin.rooms.close.help')}</p>
+          <form class="vstack" style="gap:14px" data-api="/api/admin/room-nights" data-method="POST">
+            <input type="hidden" name="product_id" value={p.id} data-type="int" />
+            <div class="fields">
+              <div class="fld"><label class="fld__label mono" for={`cf-${p.id}`}>{T('admin.from')}</label><input id={`cf-${p.id}`} class="fld__input" type="date" name="from" value={t0} required /></div>
+              <div class="fld"><label class="fld__label mono" for={`ct-${p.id}`}>{T('admin.to')}</label><input id={`ct-${p.id}`} class="fld__input" type="date" name="to" value={addDays(t0, 1)} required /></div>
+              <div class="fld"><label class="fld__label mono" for={`cc-${p.id}`}>{T('admin.rooms.close.count')}</label>
+                <select id={`cc-${p.id}`} class="fld__input" name="closed" data-type="json">
+                  {Array.from({ length: (p.units ?? 0) + 1 }, (_, n) => <option value={n}>{n}</option>)}
+                  <option value='"all"'>{T('admin.rooms.close.all')}</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-actions"><button class="pill pill--outline pill--s" type="submit">{T('admin.rooms.close.run')}</button><a class="mono" style="font-size:11.5px" href="/admin/rezervimet/">{T('admin.nav.bookings')}</a></div>
+          </form>
+        </div>
+      </div>
+    </section>
+  ))}
+</Admin>

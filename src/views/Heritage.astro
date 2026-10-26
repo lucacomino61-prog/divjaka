@@ -1,13 +1,143 @@
 ---
 /**
- * Heritage view — PLACEHOLDER from T2 (route shell). The owning feature task (PLAN §9)
- * replaces this file. Props contract: { lang, params?, data? } — data comes from
- * the view itself.
+ * Heritage hub (/trashegimia/, /en/heritage/). First screen (DESIGN §6): poster TRASHËGIMIA ·
+ * the Opal sentence (words lit by scroll, small photo cuts) · the index of sheets as a ruled list
+ * (number, title, what it covers, reading time, a small plate). Then the month strip (what happens
+ * each month, this month marked, each linking to the month table) and the sources behind the
+ * sentence. JSON-LD: CollectionPage with the sheets as an ItemList.
  */
-import PlaceholderView from '../components/site/PlaceholderView.astro';
-import type { Lang } from '../i18n/routes';
+import Base from '../layouts/Base.astro';
+import SectionHead from '../components/site/SectionHead.astro';
+import Breadcrumbs from '../components/site/Breadcrumbs.astro';
+import Photo from '../components/site/Photo.astro';
+import SourceList from '../components/site/SourceList.astro';
+import Verse from '../components/heritage/Verse.astro';
+import { sheetsFor } from '../components/heritage/articles';
+import { seasonMonths, sourcesFor } from '../components/heritage/facts';
+import { siteOriginOf } from '../components/site/site-data';
+import { tirane } from '../lib/time';
+import { t } from '../i18n/ui';
+import { path, type Lang } from '../i18n/routes';
 
 interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
-const { lang, params = {} } = Astro.props;
+const { lang } = Astro.props;
+const list = sheetsFor(lang);
+const months = seasonMonths();
+const now = tirane().month;
+const origin = await siteOriginOf(Astro.url, Astro.site);
+const birds = list.find((s) => s.slug === 'zogjte-sipas-stineve');
+const verseSources = sourcesFor(['lagoon-01', 'flora-02', 'lagoon-13', 'birds-10', 'birds-25']);
+const jsonld = {
+  '@context': 'https://schema.org', '@type': 'CollectionPage',
+  name: t(lang, 'page.heritage.title'), description: t(lang, 'page.heritage.description'),
+  url: new URL(path('heritage', lang), origin).href, inLanguage: lang === 'sq' ? 'sq-AL' : 'en',
+  mainEntity: {
+    '@type': 'ItemList',
+    itemListElement: list.map((s, i) => ({ '@type': 'ListItem', position: i + 1, url: new URL(path('article', lang, { slug: s.slug }), origin).href, name: s.title })),
+  },
+};
 ---
-<PlaceholderView lang={lang} routeKey="heritage" index="06" params={params} />
+<Base lang={lang} title={t(lang, 'page.heritage.title')} description={t(lang, 'page.heritage.description')} routeKey="heritage" jsonld={jsonld}>
+  <section class="wrap hub__head" aria-labelledby="hub-h">
+    <Breadcrumbs lang={lang} items={[{ label: t(lang, 'article.crumb') }]} />
+    <SectionHead as="h1" id="hub-h" index={t(lang, 'heritage.index')} kicker={t(lang, 'heritage.kicker')} title={t(lang, 'heritage.poster')} size="poster" />
+    <div class="hub__intro">
+      <Verse lang={lang} class="hub__verse" />
+      <p class="hub__lead">{t(lang, 'heritage.lead')}</p>
+    </div>
+  </section>
+
+  <section class="wrap sheet hub__index" aria-labelledby="hub-list-h">
+    <p class="hub__rule mono"><span id="hub-list-h">{t(lang, 'heritage.list.title')}</span><span>{t(lang, 'heritage.list.count', { n: String(list.length) })}</span></p>
+    <ol class="sheets">
+      {list.map((s, i) => (
+        <li class="sheets__row">
+          <span class="sheets__n mono">{String(i + 1).padStart(2, '0')}</span>
+          <div class="sheets__main">
+            <h2 class="sheets__t"><a href={path('article', lang, { slug: s.slug })} class="sheets__a"><span class="sheets__tt">{s.title}</span></a></h2>
+            <p class="sheets__d">{s.description}</p>
+          </div>
+          <p class="sheets__meta mono"><span>{t(lang, `heritage.topic.${s.topic}`)}</span><span>{t(lang, 'heritage.minutes', { n: String(s.minutes) })}</span></p>
+          <div class="sheets__plate"><Photo slug={s.hero} lang={lang} ratio="4 / 3" sizes="(min-width: 900px) 180px, 120px" crosshair={false} /></div>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  {months.length > 0 && (
+    <section class="hub__months sheet" aria-labelledby="hub-months-h">
+      <div class="wrap">
+        <SectionHead id="hub-months-h" index="—" kicker={t(lang, 'heritage.months.lead')} title={t(lang, 'heritage.months.title')} size="heading" />
+      </div>
+      <ol class="months" data-months>
+        {months.map((m) => (
+          <li class:list={['months__m', m.month === now && 'is-now']} aria-current={m.month === now ? 'date' : undefined}>
+            <a href={birds ? `${path('article', lang, { slug: birds.slug })}#muaji-${m.month}` : '#'} class="months__a">
+              <span class="months__n mono">{String(m.month).padStart(2, '0')}{m.month === now && <span class="months__now"> {t(lang, 'heritage.months.now')}</span>}</span>
+              <span class="months__name">{m.name[lang]}</span>
+              <span class="months__t">{t(lang, `heritage.month.${m.month}`)}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )}
+
+  <div class="wrap hub__sources">
+    <SourceList lang={lang} items={verseSources} title={t(lang, 'heritage.verse.sources')} id="burimet" />
+  </div>
+</Base>
+
+<style>
+  .hub__head { padding-block-start: clamp(16px, 2vw, 28px); display: grid; gap: 18px; }
+  .hub__intro { display: grid; gap: 28px; margin-block-start: clamp(28px, 4vw, 64px); }
+  .hub__lead { color: var(--muted); max-inline-size: 44ch; font-size: var(--step-1); line-height: 1.4; }
+  @media (min-width: 1000px) { .hub__intro { grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); align-items: end; } }
+  .hub__rule { display: flex; justify-content: space-between; gap: 14px; font-size: var(--step--2); padding-block: 10px; border-block-start: 3px double var(--ink); }
+  .sheets { list-style: none; margin: 0; padding: 0; }
+  .sheets__row {
+    position: relative; display: grid; gap: 6px 18px; padding-block: 20px; border-block-end: 1px solid var(--rule);
+    grid-template-columns: 2.4em minmax(0, 1fr) 72px; grid-template-areas: "n title plate" "n desc desc" "n meta meta";
+    align-items: start;
+  }
+  .sheets__n { grid-area: n; font-size: var(--step--1); padding-block-start: 6px; }
+  .sheets__main { display: contents; }
+  .sheets__t { grid-area: title; min-inline-size: 0; }
+  .sheets__d { grid-area: desc; }
+  .sheets__t { font-size: var(--step-3); line-height: 1; }
+  .sheets__a { display: block; min-block-size: 44px; text-decoration: none; color: inherit; }
+  .sheets__a::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+  .sheets__a:focus-visible { outline: none; box-shadow: none; }
+  .sheets__a:focus-visible::after { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  .sheets__tt { display: inline-block; transition: transform 200ms var(--ease-out); }
+  .sheets__d { color: var(--muted); margin-block-start: 2px; max-inline-size: 60ch; }
+  .sheets__meta { grid-area: meta; display: flex; gap: 14px; font-size: var(--step--2); color: var(--muted); }
+  .sheets__plate { grid-area: plate; }
+  .sheets__plate :global(.plate__caption) { display: none; }
+  @media (hover: hover) and (pointer: fine) { .sheets__row:hover .sheets__tt { transform: translateX(8px); } }
+  @media (min-width: 900px) {
+    .sheets__row { grid-template-columns: 3.5em minmax(0, 1fr) 12em 180px; grid-template-areas: "n title meta plate" "n desc meta plate"; align-items: center; padding-block: 24px; }
+    .sheets__meta { flex-direction: column; gap: 4px; }
+    .sheets__t { align-self: end; }
+    .sheets__d { align-self: start; }
+  }
+  .hub__months { overflow: clip; }
+  .months { list-style: none; margin: clamp(20px, 3vw, 36px) 0 0; padding: 0 var(--page-pad) 14px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(200px, 1fr); overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: thin; scrollbar-color: var(--ink) transparent; border-block-start: 1px solid var(--rule); }
+  .months__m { border-inline-end: 1px solid var(--rule); scroll-snap-align: start; }
+  .months__a { display: grid; gap: 8px; align-content: start; padding: 16px 16px 20px; min-block-size: 100%; text-decoration: none; }
+  .months__n { font-size: var(--step--2); color: var(--muted); }
+  .months__name { font-size: var(--step-2); font-weight: 700; font-stretch: 85%; }
+  .months__t { font-size: var(--step--1); line-height: 1.4; color: var(--muted); }
+  .months__m.is-now { background: var(--ink); color: var(--salt); }
+  .months__m.is-now .months__n, .months__m.is-now .months__t { color: var(--salt-70); }
+  .months__now { color: var(--salt); }
+  .months__now::before { content: ""; display: inline-block; inline-size: 7px; block-size: 7px; border-radius: 99px; background: var(--pouch); margin-inline: 2px 6px; vertical-align: 1px; }
+  @media (min-width: 1400px) { .months { grid-auto-columns: minmax(0, 1fr); padding-inline: max(var(--page-pad), calc((100vw - var(--page-max)) / 2 + var(--page-pad))); } }
+  .hub__sources { padding-block-end: var(--section-gap); }
+</style>
+
+<script>
+  import { initVerses, initMonthStrip } from '../scripts/heritage';
+  initVerses();
+  initMonthStrip();
+</script>

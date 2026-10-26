@@ -1,13 +1,204 @@
 ---
 /**
- * Room view — PLACEHOLDER from T2 (route shell). The owning feature task (PLAN §9)
- * replaces this file. Props contract: { lang, params?, data? } — data comes from
- * src/views/room.load.ts.
+ * Room (/qendrimi/[slug]/, /en/stay/[slug]/) — T4. iyO split (DESIGN §5/§6): the room's name in
+ * poster type, its verified specification (size, beds, sleeps) and a full-bleed plate of the
+ * setting on the left; the floating permit card on the right (calendar with the price of every
+ * night, rooms, guests ≤ capacity × rooms, server total with seasonal rates and automatic offers,
+ * Add to cart / Book now). Phones: the sticky pill "Nga 4 100 lekë / natë · Rezervo" opens the
+ * card in a full-screen sheet. Below: the room, house rules (verified listings, sourced), the
+ * other rooms, recommendations, sources. JSON-LD HotelRoom + Offer.
+ * State in the URL: ?nga=&deri=&persona=&dhoma=&muaji=.
  */
-import PlaceholderView from '../components/site/PlaceholderView.astro';
-import type { Lang } from '../i18n/routes';
+import Base from '../layouts/Base.astro';
+import SectionHead from '../components/site/SectionHead.astro';
+import Breadcrumbs from '../components/site/Breadcrumbs.astro';
+import Photo from '../components/site/Photo.astro';
+import Price from '../components/site/Price.astro';
+import SourceList from '../components/site/SourceList.astro';
+import RecommendRail from '../components/recommend/RecommendRail.astro';
+import RoomPermit from '../components/booking/RoomPermit.astro';
+import BookingSheet from '../components/booking/BookingSheet.astro';
+import RoomTags from '../components/stay/RoomTags.astro';
+import { hotelInfo } from '../components/stay/facts';
+import { hotelSpot, siteOriginOf } from '../components/site/site-data';
+import { bestRateConfirmed, horizonDate, nextFreeNight, pickMonth, rangeFromParams, roomDays, todayLocal, ymOf } from '../components/booking/server';
+import type { Source } from '../components/site/SourceList.astro';
+import { t } from '../i18n/ui';
+import { coords } from '../i18n/format';
+import { path, type Lang } from '../i18n/routes';
+import type { RoomData } from './room.load';
 
-interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
-const { lang, params = {} } = Astro.props;
+interface Props { lang: Lang; params?: Record<string, string>; data?: RoomData }
+const { lang, params = {}, data } = Astro.props;
+const { product: p, n, rooms } = data!;
+const sp = Astro.url.searchParams;
+const spot = await hotelSpot();
+const origin = await siteOriginOf(Astro.url, Astro.site);
+const name = lang === 'en' ? p.name_en : p.name_sq;
+const summary = (lang === 'en' ? p.summary_en : p.summary_sq) ?? '';
+const body = ((lang === 'en' ? p.body_en : p.body_sq) ?? '').split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
+const includes = lang === 'en' ? p.includes_en : p.includes_sq;
+const beds = String((lang === 'en' ? p.options.beds_en : p.options.beds_sq) ?? '');
+const size = Number(p.options.size_m2) || null;
+const cap = Math.max(1, p.capacity ?? 2);
+const sleeps = Number(p.options.sleeps ?? cap) || cap;
+const next = nextFreeNight(p);
+const fromPrice = next?.price ?? p.price;
+
+// booking state from the URL
+const range = rangeFromParams(sp.get('nga'), sp.get('deri'));
+const roomsQty = Math.min(5, Math.max(1, Number(sp.get('dhoma')) || 1));
+const guests = Math.min(cap * roomsQty, Math.max(1, Number(sp.get('persona')) || Math.min(2, cap)));
+const maxYm = ymOf(horizonDate());
+const ym = pickMonth(sp.get('muaji'), range ? ymOf(range.from) : next ? ymOf(next.night) : ymOf(todayLocal()), maxYm);
+const days = roomDays(p, ym);
+const self = path('room', lang, { slug: p.slug });
+const hrefFor = (m: string) => { const q = new URLSearchParams(sp); q.set('muaji', m); return `${self}?${q}`; };
+
+const info = await hotelInfo(lang);
+const rules = info.rows.filter((r) => ['checkin', 'checkout', 'children', 'pets'].includes(r.key));
+const numbers = Object.fromEntries(rooms.map((r, i) => [r.slug, String(i + 1).padStart(2, '0')]));
+const img = p.images[0] ?? null;
+const sources: Source[] = [
+  ...((Array.isArray(p.options.sources) ? p.options.sources : []) as Source[]).filter((s) => s && /^https:\/\//.test(s.url)),
+  ...info.sources.filter((s) => rules.length && /booking\.com/.test(s.url)),
+];
+const factsLine = [size ? `≈ ${size} m²` : '', beds, t(lang, 'room.spec.sleeps.v', { n: sleeps })].filter(Boolean).join(', ');
+const url = new URL(self, origin).href;
+const jsonld = [
+  {
+    '@context': 'https://schema.org', '@type': 'HotelRoom', '@id': `${url}#room`, name, url,
+    description: summary,
+    ...(beds ? { bed: { '@type': 'BedDetails', typeOfBed: beds } } : {}),
+    occupancy: { '@type': 'QuantitativeValue', maxValue: sleeps },
+    ...(size ? { floorSize: { '@type': 'QuantitativeValue', value: size, unitCode: 'MTK' } } : {}),
+    amenityFeature: includes.map((x) => ({ '@type': 'LocationFeatureSpecification', name: x, value: true })),
+    containedInPlace: { '@id': `${origin}/#hotel` },
+  },
+  {
+    '@context': 'https://schema.org', '@type': 'Offer', url,
+    itemOffered: { '@id': `${url}#room` },
+    price: fromPrice, priceCurrency: 'ALL',
+    priceSpecification: { '@type': 'UnitPriceSpecification', price: fromPrice, priceCurrency: 'ALL', unitText: lang === 'sq' ? 'natë' : 'night' },
+    availability: next ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut',
+    seller: { '@id': `${origin}/#hotel` },
+  },
+];
 ---
-<PlaceholderView lang={lang} routeKey="room" index="02" params={params} />
+<Base
+  lang={lang} title={`${name} · Hotel Pelikan`} description={t(lang, 'room.meta.description', { name, facts: factsLine })}
+  routeKey="room" params={params} jsonld={jsonld} clientKeys={['booking.', 'recommend.']}
+>
+  <div class="room-page">
+    <div class="room-split wrap">
+      <div class="room-main">
+        <Breadcrumbs lang={lang} items={[{ label: t(lang, 'nav.stay'), href: path('stay', lang) }, { label: name }]} class="room-crumbs" />
+        <SectionHead as="h1" index={t(lang, 'room.nr', { n })} kicker={t(lang, 'room.kicker')} title={name} size="poster">
+          <span slot="aside" class="mono room-coords">{coords(spot.lat, spot.lon)}</span>
+        </SectionHead>
+        <dl class="room-spec">
+          {size && <div><dt class="label">{t(lang, 'room.spec.size')}</dt><dd>≈ {size} m²</dd></div>}
+          {beds && <div><dt class="label">{t(lang, 'room.spec.beds')}</dt><dd>{beds}</dd></div>}
+          <div><dt class="label">{t(lang, 'room.spec.sleeps')}</dt><dd>{t(lang, 'room.spec.sleeps.v', { n: sleeps })}</dd></div>
+          <div><dt class="label">{t(lang, 'room.spec.from')}</dt><dd><Price lek={fromPrice} lang={lang} per="night" size="title" /></dd></div>
+        </dl>
+        <div class="room-plate">
+          <Photo slug={img?.slug ?? null} lang={lang} caption ratio="16 / 10" sizes="(min-width: 1000px) 60vw, 100vw" priority parallax alt={lang === 'en' ? img?.alt_en : img?.alt_sq} />
+          <p class="room-note mono">{t(lang, 'room.photo.note')}</p>
+        </div>
+
+        <section class="room-sec" aria-labelledby="room-about-h">
+          <SectionHead id="room-about-h" index={t(lang, 'room.about.index')} kicker={t(lang, 'room.about.kicker')} title={t(lang, 'room.about.title')} size="heading" />
+          <div class="room-about">
+            <div class="room-body">{body.map((para) => <p>{para}</p>)}</div>
+            {includes.length > 0 && (
+              <div class="room-inc">
+                <h3 class="label">{t(lang, 'room.includes.title')}</h3>
+                <ul>{includes.map((x) => <li>{x}</li>)}</ul>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {rules.length > 0 && (
+          <section class="room-sec" aria-labelledby="room-rules-h">
+            <SectionHead id="room-rules-h" index={t(lang, 'room.rules.index')} kicker={t(lang, 'room.rules.kicker')} title={t(lang, 'room.rules.title')} size="heading" />
+            <dl class="room-rules">
+              {rules.map((r) => (
+                <div>
+                  <dt class="label">{r.label}</dt>
+                  <dd>{r.value}</dd>
+                  <dd class="mono room-rules__src">{r.source}</dd>
+                </div>
+              ))}
+            </dl>
+            <p class="room-note mono">{t(lang, 'room.rules.note')} · <a href={path('terms', lang)}>{t(lang, 'room.rules.terms')}</a></p>
+          </section>
+        )}
+      </div>
+      <aside class="room-card" data-bk-slot data-lenis-prevent aria-label={t(lang, 'booking.permit.room', { n })}>
+        <RoomPermit lang={lang} product={p} n={n} ym={ym} days={days} min={ymOf(todayLocal())} max={maxYm} hrefFor={hrefFor} from={range?.from} to={range?.to} guests={guests} rooms={roomsQty} fromPrice={fromPrice} bestRate={bestRateConfirmed()} />
+      </aside>
+    </div>
+
+    {rooms.length > 1 && (
+      <section class="sheet wrap" aria-labelledby="room-others-h">
+        <SectionHead id="room-others-h" index={t(lang, 'room.others.index')} kicker={t(lang, 'room.others.kicker')} title={t(lang, 'room.others.title')} size="heading" />
+        <div class="room-others"><RoomTags lang={lang} rooms={rooms} exclude={p.slug} numbers={numbers} /></div>
+      </section>
+    )}
+    <RecommendRail lang={lang} index="04" title={t(lang, 'room.recommend.title')} exclude={[p.slug]} kinds={['experience', 'bundle', 'goods', 'gift']} limit={4} id="rekomanduar-dhoma" />
+    <div class="wrap room-sources"><SourceList lang={lang} items={sources} title={t(lang, 'room.sources.title')} id="burimet-dhoma" /></div>
+    <BookingSheet lang={lang} priceLek={fromPrice} per="night" label={`${name} · ${t(lang, 'booking.permit.room', { n })}`} />
+  </div>
+</Base>
+
+<script>
+  import { initBooking } from '../scripts/booking';
+  initBooking();
+</script>
+
+<style>
+  .room-main :global(.room-crumbs) { margin-block-end: -12px; }
+  .room-coords { color: var(--muted); font-size: var(--step--2); }
+  .room-split { display: grid; gap: clamp(28px, 4vw, 56px); padding-block: clamp(14px, 2vw, 24px) var(--section-gap); }
+  .room-main { display: grid; gap: clamp(22px, 3vw, 40px); align-content: start; min-inline-size: 0; }
+  .room-spec { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); border-block: 1px solid var(--ink); }
+  .room-spec > div { display: grid; gap: 6px; align-content: start; padding: 14px 16px 16px 0; }
+  .room-spec > div + div { border-inline-start: 1px solid var(--rule); padding-inline-start: 16px; }
+  .room-spec dt { color: var(--muted); }
+  .room-spec dd { margin: 0; font-size: var(--step-1); font-weight: 600; font-stretch: 90%; line-height: 1.2; }
+  .room-plate { display: grid; gap: 8px; }
+  .room-note { margin: 0; font-size: var(--step--2); color: var(--muted); max-inline-size: 64ch; }
+  .room-sec { display: grid; gap: clamp(16px, 2vw, 24px); padding-block-start: clamp(24px, 4vw, 56px); }
+  .room-about { display: grid; gap: clamp(20px, 3vw, 40px); }
+  .room-body { display: grid; gap: 14px; }
+  .room-body p { max-inline-size: 60ch; }
+  .room-body p:first-child { font-size: var(--step-1); line-height: 1.35; font-weight: 500; }
+  .room-inc ul { list-style: none; padding: 0; margin: 10px 0 0; display: grid; }
+  .room-inc li { padding-block: 10px; border-block-start: 1px solid var(--rule); }
+  .room-inc li:last-child { border-block-end: 1px solid var(--rule); }
+  .room-rules { margin: 0; display: grid; }
+  .room-rules > div { display: grid; gap: 4px 20px; padding-block: 12px; border-block-start: 1px solid var(--rule); }
+  .room-rules > div:last-child { border-block-end: 1px solid var(--rule); }
+  .room-rules dt { color: var(--muted); }
+  .room-rules dd { margin: 0; }
+  .room-note a { display: inline-flex; align-items: center; min-block-size: 24px; }
+  @media (pointer: coarse) { .room-note a { min-block-size: 44px; } }
+  .room-rules__src { font-size: var(--step--2); color: var(--muted); }
+  @media (min-width: 700px) {
+    .room-about { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+    .room-rules > div { grid-template-columns: minmax(8em, 1fr) minmax(0, 3fr) auto; }
+  }
+  .room-others :global(.rt-tags) { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
+  .room-sources { padding-block-end: var(--section-gap); }
+  @media (min-width: 1000px) {
+    .room-split { grid-template-columns: minmax(0, 1fr) minmax(380px, 440px); }
+    .room-card { scroll-padding-block-end: 260px; position: sticky; inset-block-start: calc(var(--header-h) + 16px); align-self: start; max-block-size: calc(100svh - var(--header-h) - var(--ticker-h) - 112px); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 0 6px 6px 0; }
+    /* the plate bleeds to the left edge of the window (iyO) */
+    .room-plate { margin-inline-start: calc(-1 * var(--page-pad)); }
+    .room-plate :global(.plate--mat .plate__frame) { margin-inline-start: 0; outline-offset: 0; }
+    .room-plate .room-note { padding-inline-start: var(--page-pad); }
+  }
+  @media (max-width: 999px) { .room-page { padding-block-end: 84px; } }
+</style>

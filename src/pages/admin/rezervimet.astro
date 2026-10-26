@@ -1,0 +1,176 @@
+---
+/**
+ * /admin/rezervimet/ — Rezervimet (T6): room-night grid (room types × nights: booked/closed/left
+ * of units; click a night to close or open units), the stays in the window, and the experience
+ * time slots per day with their participants. Window in the URL: ?from=YYYY-MM-DD&span=7|14|30.
+ */
+import Admin from '../../layouts/Admin.astro';
+import Badge from '../../components/admin/Badge.astro';
+import OrderBadges from '../../components/admin/OrderBadges.astro';
+import { adminLang, tr, today, withParam, callApi } from '../../components/admin/admin-data';
+import { GET as bookingsGET } from '../api/admin/bookings';
+import { formatDate, formatRange, WEEKDAYS_MIN, weekdayIndex, parseYMD, addDays } from '../../i18n/format';
+import { listProducts } from '../../lib/db/repo/products';
+
+const lang = adminLang(Astro);
+const T = tr(lang);
+const sp = Astro.url.searchParams;
+const from = /^\d{4}-\d{2}-\d{2}$/.test(sp.get('from') ?? '') ? sp.get('from')! : today();
+const span = [7, 14, 30].includes(Number(sp.get('span'))) ? Number(sp.get('span')) : 14;
+const to = addDays(from, span);
+const u = new URL(Astro.url); u.searchParams.set('from', from); u.searchParams.set('to', to);
+type Night = { night: string; booked: number; closed: number; left: number; price: number };
+type Stay = { code: string; order_id: number; name: string; phone: string | null; from: string; to: string; rooms: number; guests: number | null; status: string; payment_status: string };
+type Room = { id: number; slug: string; name_sq: string; name_en: string; units: number | null; nights: Night[]; stays: Stay[] };
+type Guest = { code: string; order_id: number; name: string; phone: string | null; people: number; status: string };
+type Sess = { id: number; slug: string; name_sq: string; starts_at: string; capacity: number; booked: number; status: string; note: string | null; guests: Guest[] };
+const data = (await callApi<{ rooms: Room[]; sessions: Sess[] }>(bookingsGET as never, Astro, u.href)) ?? { rooms: [], sessions: [] };
+const roomRows = listProducts({ kind: 'room', status: 'any' });
+const demoRooms = roomRows.some((p) => p.demo && p.status === 'published');
+const draftIds = new Set(roomRows.filter((p) => p.status === 'draft').map((p) => p.id));
+const nights = data.rooms[0]?.nights.map((n) => n.night) ?? Array.from({ length: span }, (_, i) => addDays(from, i));
+const t0 = today();
+const stays = data.rooms.flatMap((r) => r.stays.map((s) => ({ ...s, room: lang === 'en' ? r.name_en : r.name_sq }))).sort((a, b) => a.from.localeCompare(b.from));
+const byDay = new Map<string, Sess[]>();
+for (const s of data.sessions) { const d = s.starts_at.slice(0, 10); byDay.set(d, [...(byDay.get(d) ?? []), s]); }
+const noteLabel = (n: string | null) => (n === 'sunrise' || n === 'sunset' ? T(`admin.sessions.note.${n}`) : n);
+const roomName = (r: Room) => (lang === 'en' ? r.name_en : r.name_sq);
+---
+<Admin lang={lang} title={T('admin.bookings.title')} section="bookings" kicker={T('admin.bookings.kicker')}>
+  <div class="range" role="group" aria-label={T('admin.range.label')}>
+    <ul class="range__presets">
+      <li><a class="chip" href={withParam(Astro.url, { from: addDays(from, -span) })}>← {T('admin.prev')}</a></li>
+      <li><a class="chip" href={withParam(Astro.url, { from: null })} aria-current={from === t0 ? 'true' : undefined}>{T('admin.bookings.today')}</a></li>
+      <li><a class="chip" href={withParam(Astro.url, { from: addDays(from, span) })}>{T('admin.next')} →</a></li>
+    </ul>
+    <ul class="range__presets">
+      {[[7, 'week'], [14, 'fortnight'], [30, 'month']].map(([n, k]) => <li><a class="chip" href={withParam(Astro.url, { span: n === 14 ? null : n })} aria-current={span === n ? 'true' : undefined}>{T(`admin.bookings.${k}`)}</a></li>)}
+    </ul>
+    <form class="range__custom" method="get">
+      <label class="visually-hidden" for="bk-from">{T('admin.from')}</label>
+      <input id="bk-from" class="fld__input fld__input--s" type="date" name="from" value={from} />
+      {span !== 14 && <input type="hidden" name="span" value={span} />}
+      <button class="pill pill--outline pill--s" type="submit">{T('admin.range.apply')}</button>
+    </form>
+    <p class="range__now mono muted">{formatRange(from, addDays(to, -1), lang)}</p>
+  </div>
+
+  <section class="blk" aria-labelledby="grid-t">
+    <div class="blk__head"><h2 class="blk__title" id="grid-t">{T('admin.bookings.grid')}</h2></div>
+    <p class="blk__lede">{T('admin.bookings.grid.desc')}</p>
+    {demoRooms && <p class="note-box note-box--ink small">{T('admin.bookings.demo.units')} <a href="/admin/dhomat/">{T('admin.nav.rooms')}</a></p>}
+    {data.rooms.length ? (
+      <div class="ngrid-wrap" tabindex="0" role="region" aria-labelledby="grid-t">
+        <table class="ngrid">
+          <thead>
+            <tr>
+              <th scope="col" class="ngrid__room mono">{T('admin.bookings.roomtype')}</th>
+              {nights.map((n) => { const p = parseYMD(n)!; const wd = weekdayIndex(p); return (
+                <th scope="col" class:list={[(wd >= 5) && 'is-weekend', n === t0 && 'is-today']}>{WEEKDAYS_MIN[lang][wd]}<br />{p.d}{(p.d === 1 || n === nights[0]) && <><br />{formatDate(n, lang, 'short').split(' ')[1]}</>}</th>
+              ); })}
+            </tr>
+          </thead>
+          <tbody>
+            {data.rooms.map((r) => (
+              <tr>
+                <th scope="row" class="ngrid__room"><b>{roomName(r)}</b><span class="mono">{T('admin.products.units', { n: r.units ?? 0 })}{draftIds.has(r.id) && <> · {T('admin.pstatus.draft')}</>}</span></th>
+                {r.nights.map((n) => {
+                  const units = r.units ?? 0;
+                  const used = n.booked + n.closed;
+                  const label = T('admin.bookings.cell', { booked: n.booked, closed: n.closed, left: n.left, units });
+                  return (
+                    <td>
+                      <button type="button" class:list={['ncell', used >= units && 'is-full', n.closed > 0 && 'has-closed']} style={`--fill:${units ? Math.min(100, (n.booked / units) * 100) : 0}%`}
+                        data-night={n.night} data-date={formatDate(n.night, lang, 'medium')} data-product={r.id} data-room={roomName(r)} data-units={units} data-booked={n.booked} data-closed={n.closed}
+                        aria-label={`${roomName(r)}, ${formatDate(n.night, lang, 'medium')}: ${label}`} title={label}>
+                        <span class="ncell__fill"></span>
+                        <span class="ncell__n">{n.booked}<span class="muted">/{units}</span></span>
+                        {n.closed > 0 && <span class="ncell__closed" aria-hidden="true"></span>}
+                      </button>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ) : <p class="adm-empty mono">{T('admin.rooms.none')}</p>}
+    <p class="legend"><span><i class="lg-booked"></i>{T('admin.sessions.booked')}</span><span><i class="lg-full"></i>{T('admin.rooms.strip.legend.full')}</span><span><i class="lg-closed"></i>{T('admin.sstatus.closed')}</span></p>
+  </section>
+
+  <div class="cols cols--side" style="margin-block-start:clamp(36px,4vw,56px)">
+    <section class="blk" aria-labelledby="st-t">
+      <div class="blk__head"><h2 class="blk__title" id="st-t">{T('admin.bookings.stays')}</h2><span class="blk__meta mono">{stays.length}</span></div>
+      {stays.length ? (
+        <ul class="ledger">
+          {stays.map((s) => (
+            <li class="ledger__row">
+              <span class="ledger__main"><a class="mono mono-lc" href={`/admin/porosite/${s.code}/`}>{s.code}</a> · {s.name || '—'}</span>
+              <span class="ledger__side mono">{T('admin.order.rooms', { n: s.rooms })}</span>
+              <span class="ledger__sub"><span>{s.room}</span><span class="mono">{formatRange(s.from, s.to, lang)}</span>{s.guests && <span class="mono">{T('admin.order.guests', { n: s.guests })}</span>}<OrderBadges lang={lang} status={s.status} payment_status={s.payment_status} compact /></span>
+            </li>
+          ))}
+        </ul>
+      ) : <p class="adm-empty mono">{T('admin.bookings.stays.none')}</p>}
+    </section>
+
+    <section class="blk" id="sessions" aria-labelledby="se-t">
+      <div class="blk__head"><h2 class="blk__title" id="se-t">{T('admin.bookings.sessions')}</h2><a class="blk__meta mono" href="/admin/oraret/">{T('admin.nav.sessions')}</a></div>
+      {byDay.size ? (
+        <div>
+          {[...byDay.entries()].map(([day, list]) => (
+            <div>
+              <h3 class="day__head"><span>{formatDate(day, lang, 'long')}</span><span class="muted">{day === t0 ? T('admin.bookings.today') : ''}</span></h3>
+              {list.map((s) => {
+                const ppl = s.guests.reduce((a, g) => a + Number(g.people), 0);
+                const full = s.booked >= s.capacity;
+                return (
+                  <div class:list={['sess', s.status !== 'open' && 'is-closed']} data-action-scope>
+                    <span class="sess__time">{s.starts_at.slice(11, 16)}</span>
+                    <span class="sess__name">{s.name_sq}{s.note && <span class="cell-sub mono">{noteLabel(s.note)}</span>}</span>
+                    <span class="sess__seats">{T('admin.bookings.seats', { booked: s.booked, capacity: s.capacity })}<span class:list={['meter', full && 'is-full']} aria-hidden="true"><span style={`--w:${s.capacity ? Math.min(100, (s.booked / s.capacity) * 100) : 0}%`}></span></span></span>
+                    <div class="sess__more row">
+                      {s.status !== 'open' && <Badge tone="signal">{T(`admin.sstatus.${s.status}`)}</Badge>}
+                      {s.guests.length > 0 && (
+                        <details>
+                          <summary>{T('admin.bookings.participants', { n: ppl })}</summary>
+                          <ul class="sess__guests">
+                            {s.guests.map((g) => <li><a class="mono mono-lc" href={`/admin/porosite/${g.code}/`}>{g.code}</a> · {g.name || '—'} · <span class="mono">{T('admin.order.guests', { n: g.people })}</span>{g.phone && <> · <a href={`tel:${g.phone.replace(/[^\d+]/g, '')}`}>{g.phone}</a></>}{g.status === 'pending' && <> · <Badge tone="muted">{T('admin.order.status.pending')}</Badge></>}</li>)}
+                          </ul>
+                        </details>
+                      )}
+                      {s.status === 'open'
+                        ? <button type="button" class="btn-text" data-action={`/api/admin/sessions/${s.id}`} data-method="PATCH" data-body='{"status":"closed"}' data-confirm="admin.bookings.c.close.session">{T('admin.bookings.close.session')}</button>
+                        : s.status === 'closed' && <button type="button" class="btn-text" data-action={`/api/admin/sessions/${s.id}`} data-method="PATCH" data-body='{"status":"open"}'>{T('admin.bookings.open.session')}</button>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      ) : <p class="adm-empty mono">{T('admin.bookings.sessions.none')}</p>}
+    </section>
+  </div>
+
+  <dialog id="night-dlg" class="adm-dialog" aria-labelledby="night-t">
+    <form class="adm-dialog__form" data-night-form>
+      <h2 class="adm-dialog__title" id="night-t" data-night-title></h2>
+      <p class="mono muted" style="font-size:11px" data-night-reading></p>
+      <div class="fld">
+        <label class="fld__label mono" for="night-closed">{T('admin.bookings.night.closed')}</label>
+        <select id="night-closed" class="fld__input" name="closed"></select>
+        <p class="fld__help">{T('admin.bookings.night.help')}</p>
+      </div>
+      <p class="form-status" data-form-status role="status"></p>
+      <div class="adm-dialog__actions">
+        <button type="button" class="pill pill--outline" data-close="night-dlg">{T('admin.cancel')}</button>
+        <button type="submit" class="pill pill--primary">{T('admin.save')}</button>
+      </div>
+    </form>
+  </dialog>
+  <script>
+    import '../../scripts/admin/bookings';
+  </script>
+</Admin>

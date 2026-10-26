@@ -1,0 +1,116 @@
+---
+/**
+ * RoomTags — the room types as specimen tags (DESIGN §3) or, with view="list", as a ruled table
+ * (nr · name · beds · size · first free night · from). The "from" price is the price of the first
+ * free night in the next 60 days (live, room_nights + room_rates); room counts are never shown.
+ * Plates show the setting (no licensed photo of a room exists) and say so once under the tags.
+ *
+ * Props: lang, rooms (Product[]), view 'tags' | 'list', exclude? (slug), numbers? (slug → "01")
+ */
+import Photo from '../site/Photo.astro';
+import Price from '../site/Price.astro';
+import { t } from '../../i18n/ui';
+import { formatDate, relativeDay } from '../../i18n/format';
+import { path, type Lang } from '../../i18n/routes';
+import type { Product } from '../../lib/db/repo/products';
+import { nextFreeNight } from '../booking/server';
+
+interface Props { lang: Lang; rooms: Product[]; view?: 'tags' | 'list'; exclude?: string; numbers: Record<string, string>; headingLevel?: 'h2' | 'h3' }
+const { lang, rooms, view = 'tags', exclude, numbers, headingLevel: H = 'h3' } = Astro.props;
+const nightLabel = (d: string) => {
+  const rel = relativeDay(d, lang);
+  return /^(sot|nesër|today|tomorrow)$/.test(rel) ? `${rel}, ${formatDate(d, lang, 'day-month')}` : `${formatDate(d, lang, 'weekday')}, ${formatDate(d, lang, 'day-month')}`;
+};
+const list = rooms.filter((r) => r.slug !== exclude).map((r) => {
+  const nf = nextFreeNight(r);
+  return {
+    r, n: numbers[r.slug] ?? '00', name: lang === 'en' ? r.name_en : r.name_sq, url: path('room', lang, { slug: r.slug }),
+    beds: String((lang === 'en' ? r.options.beds_en : r.options.beds_sq) ?? ''), size: Number(r.options.size_m2) || null,
+    sleeps: Number(r.options.sleeps ?? r.capacity) || null, next: nf, price: nf?.price ?? r.price,
+    img: r.images[0] ?? null,
+  };
+});
+---
+{view === 'list' ? (
+  <div class="rt-table" role="region" aria-label={t(lang, 'stay.rooms.title')} tabindex="0">
+    <table class="rt-list">
+      <thead>
+        <tr>
+          <th scope="col" class="mono">{t(lang, 'stay.rooms.col.nr')}</th>
+          <th scope="col" class="mono">{t(lang, 'stay.rooms.col.name')}</th>
+          <th scope="col" class="mono">{t(lang, 'stay.rooms.col.beds')}</th>
+          <th scope="col" class="mono">{t(lang, 'stay.rooms.col.size')}</th>
+          <th scope="col" class="mono">{t(lang, 'stay.rooms.col.next')}</th>
+          <th scope="col" class="mono rt-list__num">{t(lang, 'stay.rooms.col.price')}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {list.map((x) => (
+          <tr>
+            <td class="mono">{x.n}</td>
+            <th scope="row"><a href={x.url}>{x.name}</a></th>
+            <td>{x.beds}{x.sleeps ? ` · ${t(lang, 'stay.rooms.sleeps', { n: x.sleeps })}` : ''}</td>
+            <td class="mono">{x.size ? t(lang, 'stay.rooms.size', { n: x.size }) : '—'}</td>
+            <td class="mono">{x.next ? nightLabel(x.next.night) : t(lang, 'stay.rooms.noneSoon')}</td>
+            <td class="rt-list__num"><Price lek={x.price} lang={lang} per="night" /></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+) : (
+  <ol class="rt-tags">
+    {list.map((x) => (
+      <li class="rt">
+        <article class="rt__card">
+          <p class="rt__row mono">
+            <span>{t(lang, 'stay.rooms.nr')} {x.n}</span>
+            {x.size && <span>{t(lang, 'stay.rooms.size', { n: x.size })}</span>}
+          </p>
+          <Photo slug={x.img?.slug ?? null} lang={lang} ratio="4 / 3" sizes="(min-width: 900px) 30vw, 90vw" alt={lang === 'en' ? x.img?.alt_en : x.img?.alt_sq} />
+          <H class="rt__name"><a href={x.url} class="rt__a"><span class="rt__nm">{x.name}</span></a></H>
+          <p class="rt__beds mono">{x.beds}{x.sleeps ? ` · ${t(lang, 'stay.rooms.sleeps', { n: x.sleeps })}` : ''}</p>
+          <div class="rt__buy">
+            <Price lek={x.price} lang={lang} per="night" from size="title" />
+            <span class="rt__open mono" aria-hidden="true">{t(lang, 'stay.rooms.open')} →</span>
+          </div>
+          <p class="rt__next mono">{x.next ? t(lang, 'stay.rooms.next', { date: nightLabel(x.next.night) }) : t(lang, 'stay.rooms.noneSoon')}</p>
+        </article>
+      </li>
+    ))}
+  </ol>
+)}
+
+<style>
+  .rt-tags { list-style: none; margin: 0; padding: 0; display: grid; gap: clamp(28px, 3vw, 40px) var(--gutter); grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
+  .rt { position: relative; border-block-start: 2px solid var(--ink); padding-block-start: 10px; display: grid; gap: 10px; }
+  .rt__card { display: contents; }
+  @supports (grid-template-rows: subgrid) { .rt { grid-row: span 6; grid-template-rows: subgrid; row-gap: 10px; } }
+  .rt__row { display: flex; justify-content: space-between; gap: 10px; font-size: var(--step--2); margin: 0; }
+  .rt__name { margin: 4px 0 0; font-size: var(--step-3); font-weight: 700; font-stretch: 85%; line-height: 1.02; letter-spacing: -0.02em; }
+  .rt__a { display: block; color: inherit; text-decoration: none; min-block-size: 44px; }
+  .rt__a::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+  .rt :global(.plate__credit) { position: relative; z-index: 2; }
+  .rt__a:focus-visible { outline: none; box-shadow: none; }
+  .rt__a:focus-visible::after { outline: 2px solid var(--pouch); outline-offset: 4px; }
+  .rt__nm { display: inline-block; transition: transform 200ms var(--ease-out); }
+  .rt__beds { margin: 0; font-size: var(--step--2); color: var(--muted); }
+  .rt__buy { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; padding-block-start: 10px; border-block-start: 1px solid var(--rule); }
+  .rt__open { font-size: var(--step--2); }
+  .rt__next { margin: 0; font-size: var(--step--2); color: var(--muted); }
+  .rt:has(.rt__a:active) { transform: scale(0.99); transition: transform 120ms var(--ease-out); }
+  @media (hover: hover) and (pointer: fine) {
+    .rt:hover .rt__nm { transform: translateX(6px); }
+    .rt:hover .rt__open { text-decoration: underline; text-underline-offset: 3px; }
+  }
+  .rt-table { overflow-x: auto; overscroll-behavior-x: contain; }
+  .rt-table:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  .rt-list { inline-size: 100%; border-collapse: collapse; min-inline-size: 640px; }
+  .rt-list :is(th, td) { text-align: start; padding: 14px 12px 14px 0; border-block-end: 1px solid var(--rule); vertical-align: baseline; }
+  .rt-list thead th { font-size: var(--step--2); color: var(--muted); border-block-end: 2px solid var(--ink); font-weight: 450; }
+  .rt-list tbody th { font-weight: 650; font-stretch: 90%; font-size: var(--step-1); }
+  .rt-list tbody th a { text-decoration: none; display: inline-flex; min-block-size: 44px; align-items: center; }
+  .rt-list tbody th a:hover { text-decoration: underline; }
+  .rt-list td.mono { font-size: var(--step--1); }
+  .rt-list__num { text-align: end !important; }
+</style>

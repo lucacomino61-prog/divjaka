@@ -1,13 +1,218 @@
 ---
 /**
- * Credits view — PLACEHOLDER from T2 (route shell). The owning feature task (PLAN §9)
- * replaces this file. Props contract: { lang, params?, data? } — data comes from
- * the view itself.
+ * Credits (/kreditet/, /en/credits/): every photo (thumbnail, what it shows, author, licence,
+ * Commons page; each row has id = photo slug, the target of every plate's credit link), the chart
+ * (© OpenStreetMap contributors, ODbL), the weather data (the provider's own attribution, filled
+ * from /api/live — the hook is [data-weather-credit]; a generic line until it loads), the
+ * typefaces (OFL, with their licence files), the software, and a summary of the research sources.
  */
-import PlaceholderView from '../components/site/PlaceholderView.astro';
-import type { Lang } from '../i18n/routes';
+import Base from '../layouts/Base.astro';
+import SectionHead from '../components/site/SectionHead.astro';
+import Breadcrumbs from '../components/site/Breadcrumbs.astro';
+import Photo from '../components/site/Photo.astro';
+import { photos, readResearch } from '../components/site/site-data';
+import { facts, publisherOf, hostOf } from '../components/heritage/facts';
+import { t } from '../i18n/ui';
+import { path, type Lang } from '../i18n/routes';
 
 interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
-const { lang, params = {} } = Astro.props;
+const { lang } = Astro.props;
+type Raw = Record<string, any>;
+const list = photos();
+const rawBySlug = new Map(((readResearch<Raw>('photos.json')?.photos ?? []) as Raw[]).map((p) => [String(p.slug), p]));
+const TAME = new Set(['pelican-xhimi', 'pelicans-visitor-centre']);
+const rows = list.map((p) => {
+  const r = rawBySlug.get(p.slug) ?? {};
+  return {
+    slug: p.slug, caption: p.caption[lang], credit: p.credit, license: p.license,
+    licenseUrl: typeof r.license_url === 'string' ? r.license_url : '',
+    source: p.source_url, verified: p.location_verified, tame: TAME.has(p.slug),
+  };
+});
+
+// research sources grouped by publisher (verified facts only)
+const groups = new Map<string, { publisher: string; n: number; example: { title: string; url: string } }>();
+for (const f of facts().values()) {
+  const host = hostOf(f.source.url);
+  const g = groups.get(host);
+  if (g) g.n++;
+  else groups.set(host, { publisher: publisherOf(f.source.url), n: 1, example: { title: f.source.title, url: f.source.url } });
+}
+const research = [...groups.values()].sort((a, b) => b.n - a.n);
+const nFacts = facts().size;
+
+const FONTS = [
+  { name: 'Bricolage Grotesque', use: 'credits.fonts.bricolage', license: '/fonts/LICENSES/BricolageGrotesque-OFL.txt', source: 'https://github.com/ateliertriay/bricolage' },
+  { name: 'Instrument Serif', use: 'credits.fonts.instrument', license: '/fonts/LICENSES/InstrumentSerif-OFL.txt', source: 'https://github.com/Instrument/instrument-serif' },
+  { name: 'Geist Mono', use: 'credits.fonts.geist', license: '/fonts/LICENSES/GeistMono-OFL.txt', source: 'https://github.com/vercel/geist-font' },
+];
+const CODE = [
+  { name: 'Astro', url: 'https://astro.build/', license: 'MIT' },
+  { name: 'GSAP', url: 'https://gsap.com/', license: 'GreenSock Standard License' },
+  { name: 'Lenis', url: 'https://github.com/darkroomengineering/lenis', license: 'MIT' },
+];
+const toc = [
+  { id: 'fotot', label: t(lang, 'credits.photos.title') },
+  { id: 'harta', label: t(lang, 'credits.map.title') },
+  { id: 'moti', label: t(lang, 'credits.weather.title') },
+  { id: 'shkronjat', label: t(lang, 'credits.fonts.title') },
+  { id: 'programet', label: t(lang, 'credits.code.title') },
+  { id: 'kerkimi', label: t(lang, 'credits.research.title') },
+];
 ---
-<PlaceholderView lang={lang} routeKey="credits" index="—" params={params} />
+<Base lang={lang} title={t(lang, 'page.credits.title')} description={t(lang, 'page.credits.description')} routeKey="credits">
+  <section class="wrap cr__head" aria-labelledby="cr-h">
+    <Breadcrumbs lang={lang} items={[{ label: t(lang, 'nav.credits') }]} />
+    <SectionHead as="h1" id="cr-h" index="—" kicker={t(lang, 'credits.kicker')} title={t(lang, 'credits.poster')} size="poster" />
+    <div class="cr__intro">
+      <p class="lede cr__lead">{t(lang, 'credits.lead')}</p>
+      <nav class="cr__toc" aria-label={t(lang, 'credits.toc')}>
+        <ol>{toc.map((x, i) => <li><a href={`#${x.id}`}><span class="mono">{String(i + 1).padStart(2, '0')}</span> {x.label}</a></li>)}</ol>
+      </nav>
+    </div>
+  </section>
+
+  <section class="wrap sheet cr__sec" id="fotot" aria-labelledby="fotot-h">
+    <SectionHead id="fotot-h" index="01" kicker={t(lang, 'credits.photos.count', { n: String(rows.length) })} title={t(lang, 'credits.photos.title')} size="heading" />
+    <p class="cr__p cr__sub">{t(lang, 'credits.photos.lead')}</p>
+    <ol class="ph">
+      {rows.map((r) => (
+        <li class="ph__row" id={r.slug}>
+          <div class="ph__plate"><Photo slug={r.slug} lang={lang} ratio="4 / 3" sizes="160px" crosshair={false} credit={false} /></div>
+          <div class="ph__main">
+            <p class="ph__cap">{r.caption}</p>
+            {r.tame && <p class="ph__flag mono">{t(lang, 'credits.photo.tame')}</p>}
+            <p class="ph__place mono">{r.verified ? t(lang, 'credits.photo.place.ok') : t(lang, 'credits.photo.place.near')}</p>
+          </div>
+          <dl class="ph__meta">
+            <div><dt class="mono">{t(lang, 'credits.photo.author')}</dt><dd>{r.credit}</dd></div>
+            <div><dt class="mono">{t(lang, 'credits.photo.license')}</dt><dd>{r.licenseUrl ? <a href={r.licenseUrl} rel="noopener license">{r.license}</a> : r.license}</dd></div>
+            <div><dt class="mono">{t(lang, 'credits.photo.source')}</dt><dd>{r.source ? <a href={r.source} rel="noopener">{t(lang, 'credits.photo.commons')}</a> : '—'}</dd></div>
+          </dl>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <section class="wrap sheet cr__sec" id="harta" aria-labelledby="harta-h">
+    <SectionHead id="harta-h" index="02" kicker="OpenStreetMap · ODbL" title={t(lang, 'credits.map.title')} size="heading" />
+    <div class="cr__cols">
+      <p class="cr__p">{t(lang, 'credits.map.body')}</p>
+      <ul class="cr__links">
+        <li><a href="https://www.openstreetmap.org/copyright" rel="noopener">© OpenStreetMap · {t(lang, 'credits.map.osm')}</a></li>
+        <li><a href="https://opendatacommons.org/licenses/odbl/1-0/" rel="noopener license">{t(lang, 'credits.map.odbl')}</a></li>
+        <li class="muted">{t(lang, 'credits.map.note')}</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="wrap sheet cr__sec" id="moti" aria-labelledby="moti-h">
+    <SectionHead id="moti-h" index="03" title={t(lang, 'credits.weather.title')} size="heading" />
+    <div class="cr__cols">
+      <p class="cr__p">{t(lang, 'credits.weather.body')}</p>
+      <p class="cr__weather mono" data-weather-credit><span class="muted">{t(lang, 'credits.weather.provider')}:</span> <span data-weather-credit-text>{t(lang, 'credits.weather.pending')}</span></p>
+    </div>
+  </section>
+
+  <section class="wrap sheet cr__sec" id="shkronjat" aria-labelledby="shkronjat-h">
+    <SectionHead id="shkronjat-h" index="04" kicker="SIL OFL 1.1" title={t(lang, 'credits.fonts.title')} size="heading" />
+    <p class="cr__p cr__sub">{t(lang, 'credits.fonts.body')}</p>
+    <ul class="fonts">
+      {FONTS.map((f, i) => (
+        <li class="fonts__row">
+          <p class:list={['fonts__specimen', i === 0 && 'fonts__specimen--sans', i === 1 && 'water', i === 2 && 'mono']}>{f.name}</p>
+          <p class="fonts__use">{t(lang, f.use)}</p>
+          <p class="fonts__links mono"><a href={f.license}>{t(lang, 'credits.fonts.license')}</a> · <a href={f.source} rel="noopener">{t(lang, 'credits.fonts.source')}</a></p>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section class="wrap sheet cr__sec" id="programet" aria-labelledby="programet-h">
+    <SectionHead id="programet-h" index="05" title={t(lang, 'credits.code.title')} size="heading" />
+    <p class="cr__p cr__sub">{t(lang, 'credits.code.body')}</p>
+    <ul class="cr__links cr__links--row">
+      {CODE.map((c) => <li><a href={c.url} rel="noopener">{c.name}</a> <span class="mono muted">· {c.license}</span></li>)}
+    </ul>
+  </section>
+
+  <section class="wrap sheet cr__sec" id="kerkimi" aria-labelledby="kerkimi-h">
+    <SectionHead id="kerkimi-h" index="06" kicker={t(lang, 'credits.research.facts', { n: String(nFacts) })} title={t(lang, 'credits.research.title')} size="heading" />
+    <p class="cr__p cr__sub">{t(lang, 'credits.research.body', { n: String(nFacts) })}</p>
+    <table class="rs">
+      <thead><tr><th scope="col" class="mono">{t(lang, 'credits.research.publisher')}</th><th scope="col" class="mono rs__n">{t(lang, 'credits.research.count')}</th><th scope="col" class="mono">{t(lang, 'credits.research.example')}</th></tr></thead>
+      <tbody>
+        {research.map((g) => (
+          <tr><th scope="row">{g.publisher}</th><td class="mono rs__n">{g.n}</td><td><a href={g.example.url} rel="noopener">{g.example.title}</a></td></tr>
+        ))}
+      </tbody>
+    </table>
+    <p class="cr__p cr__note">{t(lang, 'credits.research.hotel')}</p>
+    <p><a href={path('heritage', lang)}>{t(lang, 'credits.research.heritage')} →</a></p>
+  </section>
+</Base>
+
+<style>
+  .cr__head { padding-block-start: clamp(16px, 2vw, 28px); display: grid; gap: 18px; }
+  .cr__intro { display: grid; gap: 28px; margin-block-start: 12px; }
+  .cr__lead { max-inline-size: 32ch; }
+  .cr__toc ol { list-style: none; margin: 0; padding: 0; border-block-start: 1px solid var(--rule); }
+  .cr__toc a { display: flex; gap: 14px; align-items: baseline; padding-block: 10px; border-block-end: 1px solid var(--rule); text-decoration: none; min-block-size: 44px; }
+  .cr__toc .mono { font-size: var(--step--2); color: var(--muted); }
+  @media (min-width: 900px) { .cr__intro { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: end; } }
+  .cr__sec { scroll-margin-block-start: var(--header-h); }
+  .ph { list-style: none; margin: 28px 0 0; padding: 0; }
+  .ph__row { display: grid; gap: 10px 20px; padding-block: 16px; border-block-end: 1px solid var(--rule); grid-template-columns: 112px minmax(0, 1fr); grid-template-areas: "plate main" "meta meta"; scroll-margin-block-start: calc(var(--header-h) + 16px); }
+  .ph__row:target { background: var(--salt-2); box-shadow: -12px 0 0 var(--salt-2), 12px 0 0 var(--salt-2); }
+  .ph__plate { grid-area: plate; }
+  .ph__main { grid-area: main; min-inline-size: 0; }
+  .ph__cap { font-weight: 600; }
+  .ph__flag { font-size: var(--step--2); color: var(--signal-text); margin-block-start: 4px; text-transform: none; letter-spacing: 0; }
+  .ph__place { font-size: var(--step--2); color: var(--muted); margin-block-start: 4px; }
+  .ph__meta { grid-area: meta; margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .ph__meta dt { font-size: var(--step--2); color: var(--muted); }
+  .ph__meta dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+  .ph__meta a, .fonts__links a, .cr__links a, .rs td a, .cr__weather a, .cr__sec > p > a { display: inline-flex; align-items: center; min-block-size: 24px; }
+  .rs td a { min-block-size: 24px; padding-block: 2px; }
+  @media (pointer: coarse) { .ph__meta a, .fonts__links a, .cr__links a { min-block-size: 44px; } }
+  @media (min-width: 900px) { .ph__row { grid-template-columns: 160px minmax(0, 5fr) minmax(0, 6fr); grid-template-areas: "plate main meta"; align-items: center; } }
+  .cr__cols { display: grid; gap: 24px; margin-block-start: 22px; }
+  @media (min-width: 900px) { .cr__cols { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); } }
+  .cr__p { max-inline-size: 64ch; }
+  .cr__sub { margin-block-start: 18px; color: var(--muted); }
+  .cr__links { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .cr__links--row { margin-block-start: 20px; display: flex; flex-wrap: wrap; gap: 10px 28px; }
+  .cr__weather { font-size: var(--step--1); text-transform: none; letter-spacing: 0.02em; }
+  .fonts { list-style: none; margin: 24px 0 0; padding: 0; }
+  .fonts__row { display: grid; gap: 6px 24px; padding-block: 18px; border-block-end: 1px solid var(--rule); align-items: baseline; }
+  .fonts__specimen { font-size: var(--step-4); line-height: 1; overflow-wrap: anywhere; }
+  .fonts__specimen--sans { font-weight: 800; font-stretch: 75%; text-transform: uppercase; letter-spacing: -0.03em; }
+  .fonts__specimen.mono { font-size: var(--step-2); }
+  .fonts__specimen.water { font-size: var(--step-4); }
+  .fonts__use { color: var(--muted); }
+  .fonts__links { font-size: var(--step--2); }
+  @media (min-width: 900px) { .fonts__row { grid-template-columns: minmax(0, 6fr) minmax(0, 4fr) minmax(0, 3fr); } }
+  .rs { inline-size: 100%; border-collapse: collapse; margin-block: 24px; }
+  .rs thead th { text-align: start; font-size: var(--step--2); font-weight: 450; padding: 8px 12px 8px 0; border-block-end: 2px solid var(--ink); }
+  .rs tbody th, .rs td { text-align: start; padding: 10px 12px 10px 0; border-block-end: 1px solid var(--rule); vertical-align: top; }
+  .rs tbody th { font-weight: 600; }
+  .rs td a { overflow-wrap: anywhere; }
+  .rs__n { text-align: end !important; white-space: nowrap; }
+  .cr__note { color: var(--muted); margin-block-end: 12px; }
+  @media (max-width: 599px) { .rs thead th:nth-child(3), .rs td:nth-child(3) { display: none; } }
+</style>
+
+<script>
+  import { getLive } from '../scripts/livefeed';
+  const el = document.querySelector<HTMLElement>('[data-weather-credit-text]');
+  if (el) {
+    getLive().then((l) => {
+      if (!l?.attribution) return;
+      const a = document.createElement('a');
+      a.href = l.attribution.url;
+      a.rel = 'noopener';
+      a.textContent = document.documentElement.lang === 'en' ? l.attribution.en : l.attribution.sq;
+      el.replaceChildren(a);
+    });
+  }
+</script>

@@ -1,13 +1,263 @@
 ---
 /**
- * Stay view — PLACEHOLDER from T2 (route shell). The owning feature task (PLAN §9)
- * replaces this file. Props contract: { lang, params?, data? } — data comes from
- * the view itself.
+ * Stay (/qendrimi/, /en/stay/) — T4. First screen (DESIGN §6): poster "QËNDRIMI", Hotel Pelikan
+ * as its own document states it (SPEC: 20+ years, near the sea and the pine park, modern rooms,
+ * bar-restaurant, sustainable tourism, personal service), the proof line when the owner shows it,
+ * and the permit card that searches every room type for the chosen dates and guests.
+ * Then 01 the rooms as specimen tags ↔ list (?pamja=liste), 02 the bar-restaurant (verified facts
+ * only, no menu), 03 the hotel on the chart with straight-line distances, 04 services and house
+ * rules (verified public listings, each row with its source), sources. JSON-LD: the Hotel node
+ * (same @id as Base's) with verified check-in/out, amenities and the room types.
  */
-import PlaceholderView from '../components/site/PlaceholderView.astro';
-import type { Lang } from '../i18n/routes';
+import Base from '../layouts/Base.astro';
+import SectionHead from '../components/site/SectionHead.astro';
+import Breadcrumbs from '../components/site/Breadcrumbs.astro';
+import Photo from '../components/site/Photo.astro';
+import Pill from '../components/site/Pill.astro';
+import SourceList from '../components/site/SourceList.astro';
+import Chart from '../components/chart/Chart.astro';
+import StaySearch from '../components/booking/StaySearch.astro';
+import RoomTags from '../components/stay/RoomTags.astro';
+import { hotelInfo, amenities, proofLine } from '../components/stay/facts';
+import { fromHotelKm, kmLabel, poi } from '../components/chart/geo';
+import { hotelSpot, siteOriginOf, business, confirmed } from '../components/site/site-data';
+import {
+  bestRateConfirmed, horizonDate, pickMonth, publishedRooms, rangeFromParams, stayDays, todayLocal, ymOf,
+} from '../components/booking/server';
+import { findPublished } from '../lib/catalog';
+import { t } from '../i18n/ui';
+import { coords, formatDate } from '../i18n/format';
+import { path, type Lang } from '../i18n/routes';
 
 interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
-const { lang, params = {} } = Astro.props;
+const { lang } = Astro.props;
+const sp = Astro.url.searchParams;
+const spot = await hotelSpot();
+const origin = await siteOriginOf(Astro.url, Astro.site);
+const rooms = publishedRooms();
+const numbers = Object.fromEntries(rooms.map((r, i) => [r.slug, String(i + 1).padStart(2, '0')]));
+const view = sp.get('pamja') === 'liste' ? 'list' : 'tags';
+
+// search card state from the URL (?nga=&deri=&persona=&muaji=)
+const range = rangeFromParams(sp.get('nga'), sp.get('deri'));
+const guests = Math.min(20, Math.max(1, Number(sp.get('persona')) || 2));
+const maxYm = ymOf(horizonDate());
+const ym = pickMonth(sp.get('muaji'), range ? ymOf(range.from) : ymOf(todayLocal()), maxYm);
+const days = stayDays(rooms, ym);
+const base = path('stay', lang);
+const keep = new URLSearchParams(sp);
+const hrefFor = (m: string) => { const q = new URLSearchParams(keep); q.set('muaji', m); return `${base}?${q}`; };
+const viewHref = (v: 'tags' | 'list') => { const q = new URLSearchParams(keep); q.delete('muaji'); if (v === 'list') q.set('pamja', 'liste'); else q.delete('pamja'); const s = q.toString(); return `${base}${s ? `?${s}` : ''}#dhomat`; };
+
+const info = await hotelInfo(lang);
+const proof = await proofLine();
+const bestRate = bestRateConfirmed();
+const dinner = findPublished('darke-me-peshk-ne-restorantin-e-hotelit');
+const b = await business();
+const address = confirmed(b, lang === 'en' ? 'address_en' : 'address_sq') || confirmed(b, 'address');
+
+// chart: the hotel + the places a guest walks to first (straight-line distances from geo.json)
+const places = ['divjaka-beach', 'visitor-centre', 'lagoon-boat-trips'].filter((id) => poi(id));
+const pins = places.map((id, i) => ({ id, n: String(i + 1).padStart(2, '0'), tag: 'number' as const }));
+const tableIds = [...places, 'divjake-centre'].filter((id) => poi(id));
+const distRows = tableIds.map((id) => ({ id, n: pins.find((p) => p.id === id)?.n ?? '', name: poi(id)?.name[lang] ?? id, km: fromHotelKm(id) })).filter((r) => r.km != null);
+
+const facts = ['years', 'place', 'rooms', 'way'];
+const sources = [
+  ...info.sources,
+  { title: 'Overfishing and recent risk for collapse of fishery in Karavasta lagoon (2023)', url: 'https://koreascience.kr/article/JAKO202317843241828.do', publisher: 'Fisheries and Aquatic Sciences · KoreaScience', accessed: '2026-10-23' },
+  { title: 'Vendim nr. 413, datë 22.08.1994 (zona ekologjike Pisha e Divjakës – Laguna e Karavastasë)', url: 'https://faolex.fao.org/docs/pdf/alb60532E.pdf', publisher: 'FAO FAOLEX', accessed: '2026-10-23' },
+  ...(proof ? [{ title: lang === 'sq' ? 'Vlerësimi i mysafirëve' : 'Guest score', url: proof.url, publisher: proof.site, accessed: proof.date }] : []),
+];
+
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'Hotel',
+  '@id': `${origin}/#hotel`,
+  name: 'Hotel Pelikan',
+  url: new URL(base, origin).href,
+  ...(address ? { address: { '@type': 'PostalAddress', streetAddress: address, addressLocality: 'Divjakë', postalCode: '9022', addressCountry: 'AL' } } : {}),
+  ...(spot.verified ? { geo: { '@type': 'GeoCoordinates', latitude: spot.lat, longitude: spot.lon } } : {}),
+  ...(info.checkin ? { checkinTime: info.checkin } : {}),
+  ...(info.checkout ? { checkoutTime: info.checkout } : {}),
+  amenityFeature: amenities(lang).map((name) => ({ '@type': 'LocationFeatureSpecification', name, value: true })),
+  petsAllowed: lang === 'sq' ? 'Me kërkesë' : 'On request',
+  availableLanguage: ['sq', 'en', 'it'],
+  containsPlace: rooms.map((r) => ({
+    '@type': 'HotelRoom', '@id': new URL(path('room', lang, { slug: r.slug }), origin).href + '#room',
+    name: lang === 'en' ? r.name_en : r.name_sq, url: new URL(path('room', lang, { slug: r.slug }), origin).href,
+    ...(r.capacity ? { occupancy: { '@type': 'QuantitativeValue', maxValue: r.capacity } } : {}),
+  })),
+};
 ---
-<PlaceholderView lang={lang} routeKey="stay" index="02" params={params} />
+<Base lang={lang} title={t(lang, 'page.stay.title')} description={t(lang, 'stay.meta.description')} routeKey="stay" jsonld={jsonld} clientKeys={['booking.', 'stay.search.']}>
+  <div class="stay">
+    <section class="stay-hero wrap" aria-labelledby="stay-h">
+      <Breadcrumbs lang={lang} items={[{ label: t(lang, 'nav.stay') }]} class="stay-hero__crumbs" />
+      <SectionHead as="h1" id="stay-h" index={t(lang, 'stay.index')} kicker={t(lang, 'stay.kicker')} title={t(lang, 'stay.title')} size="poster">
+        <span slot="aside" class="mono stay-hero__coords">{coords(spot.lat, spot.lon)}</span>
+      </SectionHead>
+      <div class="stay-hero__grid">
+        <div class="stay-hero__text">
+          <p class="lede stay-hero__lead">{t(lang, 'stay.lead')}</p>
+          <dl class="stay-facts">
+            {facts.map((f) => (
+              <div class="stay-facts__row">
+                <dt class="mono">{t(lang, `stay.f.${f}.k`)}</dt>
+                <dd>{t(lang, `stay.f.${f}.v`)}</dd>
+              </div>
+            ))}
+          </dl>
+          <p class="stay-facts__src mono">{t(lang, 'stay.f.src.spec')}</p>
+          {proof && (
+            <p class="stay-proof mono">
+              <a href={proof.url} rel="noopener">{t(lang, 'stay.proof', { value: proof.value, site: proof.site, count: String(proof.count ?? '') })}</a>
+              <span class="muted"> · {t(lang, 'stay.proofDate', { date: formatDate(proof.date, lang, 'medium') })}</span>
+            </p>
+          )}
+          <p class="stay-direct">
+            <span class="stay-direct__pin" aria-hidden="true"></span>
+            <span>{t(lang, 'stay.direct.title')}</span>
+          </p>
+        </div>
+        <div class="stay-hero__card">
+          <StaySearch lang={lang} rooms={rooms} ym={ym} days={days} min={ymOf(todayLocal())} max={maxYm} hrefFor={hrefFor} from={range?.from} to={range?.to} guests={guests} bestRate={bestRate} />
+        </div>
+      </div>
+    </section>
+
+    <section class="sheet wrap" id="dhomat" aria-labelledby="rooms-h">
+      <SectionHead id="rooms-h" index={t(lang, 'stay.rooms.index')} kicker={t(lang, 'stay.rooms.kicker')} title={t(lang, 'stay.rooms.title')} size="heading" />
+      <div class="stay-bar">
+        <p class="stay-sub">{t(lang, 'stay.rooms.lead')}</p>
+        <nav class="viewsw mono" aria-label={t(lang, 'stay.rooms.view')}>
+          <a href={viewHref('tags')} aria-current={view === 'tags' ? 'true' : undefined}>{t(lang, 'stay.rooms.grid')}</a>
+          <a href={viewHref('list')} aria-current={view === 'list' ? 'true' : undefined}>{t(lang, 'stay.rooms.list')}</a>
+        </nav>
+      </div>
+      <RoomTags lang={lang} rooms={rooms} view={view} numbers={numbers} />
+      {view === 'tags' && <p class="stay-note mono">{t(lang, 'stay.rooms.photoNote')}</p>}
+    </section>
+
+    <section class="sheet wrap food" aria-labelledby="food-h">
+      <SectionHead id="food-h" index={t(lang, 'stay.food.index')} kicker={t(lang, 'stay.food.kicker')} title={t(lang, 'stay.food.title')} size="heading" />
+      <div class="food__grid">
+        <div class="food__text">
+          <p class="lede">{t(lang, 'stay.food.lead')}</p>
+          <ul class="ruled">
+            <li>{t(lang, 'stay.food.kitchen')}</li>
+            <li>{t(lang, 'stay.food.breakfast')}</li>
+            <li>{t(lang, 'stay.food.lagoon')}</li>
+          </ul>
+          <p class="food__menu muted">{t(lang, 'stay.food.noMenu')}</p>
+          {dinner && <Pill href={path('experience', lang, { slug: dinner.slug })} variant="outline" arrow>{t(lang, 'stay.food.dinner')}</Pill>}
+        </div>
+        <div class="food__plate">
+          <Photo slug="lagoon-fishing-boats" lang={lang} caption ratio="4 / 3" sizes="(min-width: 900px) 45vw, 100vw" parallax reveal />
+          <p class="stay-note mono">{t(lang, 'stay.food.photoNote')}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="sheet wrap where" aria-labelledby="map-h">
+      <SectionHead id="map-h" index={t(lang, 'stay.map.index')} kicker={t(lang, 'stay.map.kicker')} title={t(lang, 'stay.map.title')} size="heading" />
+      <div class="where__grid">
+        <Chart lang={lang} mode="pin" pins={pins} highlight="hotel-pelikan" class="where__chart" />
+        <div class="where__side">
+          <p class="stay-sub">{t(lang, 'stay.map.lead')}</p>
+          <table class="dist">
+            <thead><tr><th scope="col" class="mono">{t(lang, 'stay.map.col.place')}</th><th scope="col" class="mono dist__km">{t(lang, 'stay.map.col.km')}</th></tr></thead>
+            <tbody>
+              <tr><th scope="row"><span class="dist__n mono" aria-hidden="true">◉</span>Hotel Pelikan</th><td class="mono dist__km">{t(lang, 'stay.map.here')}</td></tr>
+              {distRows.map((r) => <tr><th scope="row"><span class="dist__n mono">{r.n}</span>{r.name}</th><td class="mono dist__km">{kmLabel(r.km, lang)}</td></tr>)}
+            </tbody>
+          </table>
+          <p class="stay-note mono">{coords(spot.lat, spot.lon)} · {t(lang, 'stay.map.straight')}</p>
+          {address && <p class="where__addr">{address}</p>}
+        </div>
+      </div>
+    </section>
+
+    <section class="sheet wrap" aria-labelledby="info-h">
+      <SectionHead id="info-h" index={t(lang, 'stay.info.index')} kicker={t(lang, 'stay.info.kicker')} title={t(lang, 'stay.info.title')} size="heading" />
+      <p class="stay-sub">{t(lang, 'stay.info.lead')}</p>
+      <dl class="info">
+        {info.rows.map((r) => (
+          <div class="info__row">
+            <dt class="mono">{r.label}</dt>
+            <dd class="info__v">{r.value}</dd>
+            <dd class="info__src mono">{r.source}</dd>
+          </div>
+        ))}
+      </dl>
+      <p class="info__terms"><a href={path('terms', lang)}>{t(lang, 'room.rules.terms')}</a></p>
+      <SourceList lang={lang} items={sources} title={t(lang, 'stay.sources.title')} id="burimet-hoteli" class="stay-sources" />
+    </section>
+  </div>
+</Base>
+
+<script>
+  import { initBooking } from '../scripts/booking';
+  initBooking();
+</script>
+
+<style>
+  .stay-hero { display: grid; gap: clamp(14px, 2vw, 24px); padding-block: clamp(10px, 1.6vw, 20px) var(--section-gap); }
+  .stay-hero :global(.stay-hero__crumbs) { margin-block-end: -4px; }
+  .stay-hero__coords { color: var(--muted); font-size: var(--step--2); }
+  .stay-hero__grid { display: grid; gap: clamp(28px, 4vw, 64px); align-items: start; margin-block-start: clamp(12px, 2.4vw, 44px); }
+  .stay-hero__text { display: grid; gap: 18px; align-content: start; }
+  .stay-hero__lead { max-inline-size: 22ch; }
+  .stay-facts { margin: 6px 0 0; display: grid; }
+  .stay-facts__row { display: grid; grid-template-columns: minmax(7em, 1fr) minmax(0, 2.6fr); gap: 4px 18px; padding-block: 12px; border-block-start: 1px solid var(--rule); }
+  .stay-facts__row:last-child { border-block-end: 1px solid var(--rule); }
+  .stay-facts dt { font-size: var(--step--2); padding-block-start: 4px; color: var(--muted); }
+  .stay-facts dd { margin: 0; }
+  .stay-facts__src { margin: -8px 0 0; font-size: var(--step--2); color: var(--muted); }
+  .stay-proof { margin: 0; font-size: var(--step--1); }
+  .stay-proof a, .info__terms a { display: inline-flex; align-items: center; min-block-size: 24px; }
+  @media (pointer: coarse) { .stay-proof a, .info__terms a { min-block-size: 44px; } }
+  .stay-direct { display: flex; align-items: center; gap: 12px; margin: 6px 0 0; font-weight: 650; font-stretch: 90%; font-size: var(--step-1); }
+  .stay-direct__pin { inline-size: 14px; block-size: 14px; border-radius: var(--radius-pill); border: 2px solid var(--ink); background: var(--salt); flex: none; }
+  @media (min-width: 1000px) {
+    .stay-hero__grid { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); }
+    .stay-hero__card { position: sticky; inset-block-start: calc(var(--header-h) + var(--ticker-h) + 16px); align-self: start; }
+  }
+  .stay-bar { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; margin-block: 16px 28px; }
+  .stay-bar .stay-sub { margin: 0; }
+  .viewsw { display: inline-flex; gap: 4px; font-size: var(--step--2); }
+  .viewsw a { display: inline-flex; align-items: center; min-block-size: 32px; padding: 0 12px; border: 1px solid var(--rule-strong); border-radius: var(--radius-pill); text-decoration: none; color: inherit; }
+  .viewsw a[aria-current] { background: var(--ink); color: var(--salt); }
+  @media (pointer: coarse) { .viewsw a { min-block-size: 44px; } }
+  @media (hover: hover) and (pointer: fine) { .viewsw a:not([aria-current]):hover { background: color-mix(in oklch, var(--ink) 8%, transparent); } }
+  .stay-sub { color: var(--muted); max-inline-size: 60ch; margin-block: 16px 28px; }
+  .stay-note { font-size: var(--step--2); color: var(--muted); max-inline-size: 64ch; margin-block-start: 18px; }
+  .food__grid, .where__grid { display: grid; gap: clamp(28px, 4vw, 64px); margin-block-start: clamp(20px, 3vw, 40px); align-items: start; }
+  .food__text { display: grid; gap: 18px; justify-items: start; }
+  .ruled { list-style: none; padding: 0; margin: 0; display: grid; inline-size: 100%; }
+  .ruled li { padding-block: 12px; border-block-start: 1px solid var(--rule); max-inline-size: 60ch; }
+  .ruled li:last-child { border-block-end: 1px solid var(--rule); }
+  .food__menu { font-size: var(--step--1); max-inline-size: 52ch; }
+  @media (min-width: 900px) {
+    .food__grid { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }
+    .where__grid { grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); }
+  }
+  .where :global(.where__chart) { inline-size: 100%; }
+  .dist { inline-size: 100%; border-collapse: collapse; }
+  .dist :is(th, td) { text-align: start; padding: 12px 0; border-block-end: 1px solid var(--rule); font-weight: 450; }
+  .dist thead th { font-size: var(--step--2); color: var(--muted); border-block-end: 2px solid var(--ink); }
+  .dist tbody th { font-weight: 600; font-stretch: 92%; }
+  .dist__n { display: inline-block; min-inline-size: 3ch; color: var(--muted); font-size: var(--step--2); }
+  .dist__km { text-align: end !important; white-space: nowrap; font-size: var(--step--1); }
+  .where__addr { margin-block-start: 10px; }
+  .info { margin: 0; display: grid; }
+  .info__row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px 24px; padding-block: 14px; border-block-start: 1px solid var(--rule); }
+  .info__row:last-child { border-block-end: 1px solid var(--rule); }
+  .info dt { font-size: var(--step--2); color: var(--muted); }
+  .info dd { margin: 0; }
+  .info__v { max-inline-size: 62ch; }
+  .info__src { font-size: var(--step--2); color: var(--muted); }
+  @media (min-width: 800px) { .info__row { grid-template-columns: minmax(10em, 2fr) minmax(0, 6fr) minmax(0, 2fr); } .info__src { text-align: end; } }
+  .info__terms { margin-block: 18px 0; }
+  .stay :global(.stay-sources) { margin-block-start: clamp(40px, 5vw, 72px); }
+</style>

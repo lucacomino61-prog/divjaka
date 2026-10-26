@@ -1,0 +1,18 @@
+---
+/** Order status + payment status (+ TEST / DEMO stamps) as readings. */
+import Badge from './Badge.astro';
+import Stamp from '../site/Stamp.astro';
+import type { Lang } from '../../i18n/routes';
+import { t } from '../../i18n/ui';
+
+interface Props { lang: Lang; status: string; payment_status: string; test?: number | boolean; demo?: number | boolean; compact?: boolean }
+const { lang, status, payment_status, test, demo, compact = false } = Astro.props;
+const st = status === 'cancelled' ? 'signal' : status === 'pending' ? 'muted' : 'ink';
+const pt = payment_status === 'paid' ? 'ink' : payment_status === 'failed' ? 'signal' : 'outline';
+---
+<span class:list={['badges', compact && 'badges--compact']}>
+  <Badge tone={st}>{t(lang, `admin.order.status.${status}`)}</Badge>
+  <Badge tone={pt}>{t(lang, `admin.pay.status.${payment_status}`)}</Badge>
+  {!!test && <Stamp kind="test" lang={lang} tilt={false} />}
+  {!!demo && <Stamp kind="demo" lang={lang} tone="ink" tilt={false} />}
+</span>

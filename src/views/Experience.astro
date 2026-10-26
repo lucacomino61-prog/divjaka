@@ -1,13 +1,319 @@
 ---
 /**
- * Experience view — PLACEHOLDER from T2 (route shell). The owning feature task (PLAN §9)
- * replaces this file. Props contract: { lang, params?, data? } — data comes from
- * src/views/experience.load.ts.
+ * Experience (/eksperienca/[slug]/, /en/experiences/[slug]/) — T4. iyO split: poster name, the
+ * specification (length, meeting point, distance from the hotel, price per person) and a full-bleed
+ * plate on the left; the permit card on the right (calendar with free places per day, the day's
+ * time slots, people ≤ places left, server total, Add to cart / Book now). Phones: sticky pill +
+ * full-screen sheet. Then: how it goes (body, included / not included, the schedule note, the
+ * dedicated-guides sentence from SPEC), the meeting point on the chart, what you see by season
+ * (seasons.json), park rules (heritage.json, Law 81/2017), the other experiences, recommendations,
+ * sources. JSON-LD TouristTrip + the next sessions as Events with offers.
+ * State in the URL: ?muaji=&data=&orari=&persona=.
  */
-import PlaceholderView from '../components/site/PlaceholderView.astro';
-import type { Lang } from '../i18n/routes';
+import Base from '../layouts/Base.astro';
+import SectionHead from '../components/site/SectionHead.astro';
+import Breadcrumbs from '../components/site/Breadcrumbs.astro';
+import Photo from '../components/site/Photo.astro';
+import Price from '../components/site/Price.astro';
+import SourceList from '../components/site/SourceList.astro';
+import Chart from '../components/chart/Chart.astro';
+import RecommendRail from '../components/recommend/RecommendRail.astro';
+import ExperiencePermit from '../components/booking/ExperiencePermit.astro';
+import BookingSheet from '../components/booking/BookingSheet.astro';
+import ExpStrip from '../components/experiences/ExpStrip.astro';
+import { lines } from '../components/experiences/lineup';
+import { seasonRows, rulesFor, ruleText, ruleSource } from '../components/experiences/seasons';
+import { fromHotelKm, kmLabel, poi } from '../components/chart/geo';
+import { siteOriginOf } from '../components/site/site-data';
+import {
+  bestRateConfirmed, duration, experienceMonth, lastSessionMonth, maxPeoplePerSlot, nextSession, pickMonth, tiraneOffset, todayLocal, ymOf,
+} from '../components/booking/server';
+import { nextSessions } from '../lib/availability';
+import type { Source } from '../components/site/SourceList.astro';
+import { t } from '../i18n/ui';
+import { MONTHS_SHORT } from '../i18n/format';
+import { path, type Lang } from '../i18n/routes';
+import type { ExperienceData } from './experience.load';
 
-interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
-const { lang, params = {} } = Astro.props;
+interface Props { lang: Lang; params?: Record<string, string>; data?: ExperienceData }
+const { lang, params = {}, data } = Astro.props;
+const { product: p, n, lineup } = data!;
+const sp = Astro.url.searchParams;
+const origin = await siteOriginOf(Astro.url, Astro.site);
+const name = lang === 'en' ? p.name_en : p.name_sq;
+const summary = (lang === 'en' ? p.summary_en : p.summary_sq) ?? '';
+const body = ((lang === 'en' ? p.body_en : p.body_sq) ?? '').split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
+const includes = lang === 'en' ? p.includes_en : p.includes_sq;
+const o = p.options as Record<string, any>;
+const excludes: string[] = Array.isArray(o[`excludes_${lang}`]) ? o[`excludes_${lang}`] : [];
+const scheduleNote: string = typeof o[`schedule_note_${lang}`] === 'string' ? o[`schedule_note_${lang}`] : '';
+const meeting = o.meeting && typeof o.meeting === 'object' ? { poi: String(o.meeting.poi ?? ''), text: String(o.meeting[lang] ?? o.meeting.sq ?? '') } : null;
+const meetKm = meeting?.poi ? fromHotelKm(meeting.poi) : null;
+const placeKm = p.poi ? fromHotelKm(p.poi) : null;
+const length = duration(p.duration_min, lang);
+
+// booking state from the URL
+const next = nextSession(p);
+const maxYm = lastSessionMonth(p);
+const wantDate = /^\d{4}-\d{2}-\d{2}$/.test(sp.get('data') ?? '') ? sp.get('data')! : null;
+const ym = pickMonth(sp.get('muaji'), wantDate ? ymOf(wantDate) : next ? ymOf(next.date) : ymOf(todayLocal()), maxYm);
+const month = experienceMonth(p, ym);
+const date = wantDate && month.days.some((d) => d.date === wantDate && d.status === 'open') ? wantDate : null;
+const session = Number(sp.get('orari')) || null;
+const people = Math.max(1, Number(sp.get('persona')) || 2);
+const self = path('experience', lang, { slug: p.slug });
+const hrefFor = (m: string) => { const q = new URLSearchParams(sp); q.set('muaji', m); q.delete('data'); q.delete('orari'); return `${self}?${q}`; };
+
+// chart: the meeting point (selected) and the place itself
+const pinIds = [...new Set([meeting?.poi, p.poi].filter((x): x is string => !!x && !!poi(x) && x !== 'pelican-island' && x !== 'pelican-tower'))];
+const pins = pinIds.map((id) => ({ id, selected: id === meeting?.poi }));
+const chartable = pinIds.length > 0 && !(pinIds.length === 1 && pinIds[0] === 'hotel-pelikan' && p.poi === 'hotel-pelikan' && !p.tags.includes('nature'));
+
+const seasons = seasonRows(p, lang);
+const monthOrder = [...seasons.months.filter((m) => m.month >= Number(todayLocal().slice(5, 7))), ...seasons.months.filter((m) => m.month < Number(todayLocal().slice(5, 7)))].filter((m) => m.items.length && m.runs);
+const firstMonths = monthOrder.slice(0, 2);
+const moreMonths = monthOrder.slice(2);
+const nowMonth = Number(todayLocal().slice(5, 7));
+const ruleIds = rulesFor(p);
+const others = lines(lang, lineup.filter((x) => x.id !== p.id));
+const img = p.images[0] ?? null;
+const img2 = p.images[1] ?? null;
+const tame = (slug?: string | null) => slug === 'pelicans-visitor-centre' || slug === 'pelican-xhimi';
+
+const sources: Source[] = [];
+const addSrc = (s: Source | null | undefined) => { if (s && /^https:\/\//.test(s.url) && !sources.some((x) => x.url === s.url)) sources.push(s); };
+((Array.isArray(o.sources) ? o.sources : []) as Source[]).forEach(addSrc);
+seasons.sources.forEach(addSrc);
+ruleIds.forEach((id) => addSrc(ruleSource(id)));
+
+// JSON-LD: the trip + its next sessions as events (times are Europe/Tirane wall clock)
+const url = new URL(self, origin).href;
+const upcoming = nextSessions(p.id, 5);
+const endOf = (start: string) => {
+  const d = new Date(`${start}:00Z`); d.setUTCMinutes(d.getUTCMinutes() + (p.duration_min ?? 60));
+  return d.toISOString().slice(0, 16);
+};
+const place = (id?: string | null) => {
+  const q = id ? poi(id) : null;
+  return q ? { '@type': 'Place', name: q.name[lang], geo: { '@type': 'GeoCoordinates', latitude: q.lat, longitude: q.lon } } : { '@type': 'Place', name: 'Divjakë' };
+};
+const jsonld = [
+  {
+    '@context': 'https://schema.org', '@type': 'TouristTrip', '@id': `${url}#trip`, name, url, description: summary,
+    touristType: p.tags, provider: { '@id': `${origin}/#hotel` },
+    ...(p.poi ? { itinerary: { '@type': 'ItemList', itemListElement: [{ '@type': 'ListItem', position: 1, item: place(p.poi) }] } } : {}),
+    offers: { '@type': 'Offer', price: p.price, priceCurrency: 'ALL', url, availability: next ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut', priceSpecification: { '@type': 'UnitPriceSpecification', price: p.price, priceCurrency: 'ALL', unitText: lang === 'sq' ? 'person' : 'person' } },
+  },
+  ...upcoming.map((s) => ({
+    '@context': 'https://schema.org', '@type': 'Event', name, url: `${url}?data=${s.date}&orari=${s.id}`,
+    startDate: `${s.starts_at}${tiraneOffset(s.starts_at)}`, endDate: `${endOf(s.starts_at)}${tiraneOffset(endOf(s.starts_at))}`,
+    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode', eventStatus: 'https://schema.org/EventScheduled',
+    location: place(meeting?.poi || p.poi), organizer: { '@id': `${origin}/#hotel` }, superEvent: { '@id': `${url}#trip` },
+    offers: { '@type': 'Offer', price: p.price, priceCurrency: 'ALL', url, availability: s.left > 0 ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut', validFrom: `${todayLocal()}T00:00${tiraneOffset(todayLocal())}` },
+  })),
+];
 ---
-<PlaceholderView lang={lang} routeKey="experience" index="03" params={params} />
+<Base
+  lang={lang} title={name} description={t(lang, 'xp.meta.description', { name, summary })}
+  routeKey="experience" params={params} jsonld={jsonld} clientKeys={['booking.', 'recommend.']}
+>
+  <div class="xp-page">
+    <div class="xp-split wrap">
+      <div class="xp-main">
+        <Breadcrumbs lang={lang} items={[{ label: t(lang, 'nav.experiences'), href: path('experiences', lang) }, { label: name }]} class="xp-crumbs" />
+        <SectionHead as="h1" index={t(lang, 'xp.nr', { n })} kicker={t(lang, 'xp.kicker')} title={name} size="heading" class="xp-head" />
+        <dl class="xp-spec">
+          {length && <div><dt class="label">{t(lang, 'xp.spec.length')}</dt><dd>{length}</dd></div>}
+          {meeting?.text && <div><dt class="label">{t(lang, 'xp.spec.meet')}</dt><dd>{meeting.text}</dd></div>}
+          {placeKm != null && <div><dt class="label">{t(lang, 'xp.spec.km')}</dt><dd>{placeKm < 0.1 ? t(lang, 'xp.meet.hotel') : kmLabel(placeKm, lang)}</dd></div>}
+          <div><dt class="label">{t(lang, 'xp.spec.price')}</dt><dd><Price lek={p.price} lang={lang} size="title" /></dd></div>
+        </dl>
+        <div class="xp-plate">
+          <Photo slug={img?.slug ?? null} lang={lang} caption ratio="16 / 10" sizes="(min-width: 1000px) 60vw, 100vw" priority parallax alt={lang === 'en' ? img?.alt_en : img?.alt_sq} />
+          {tame(img?.slug) && <p class="xp-note mono">{t(lang, 'xp.photo.island')}</p>}
+        </div>
+
+        <section class="xp-sec" aria-labelledby="xp-about-h">
+          <SectionHead id="xp-about-h" index={t(lang, 'xp.about.index')} kicker={t(lang, 'xp.about.kicker')} title={t(lang, 'xp.about.title')} size="heading" />
+          <div class="xp-about">
+            <div class="xp-body">
+              {body.map((para) => <p>{para}</p>)}
+              {scheduleNote && <p class="xp-sched mono"><span class="xp-sched__k">{t(lang, 'xp.schedule')}</span> {scheduleNote}</p>}
+            </div>
+            <div class="xp-lists">
+              {includes.length > 0 && (
+                <div><h3 class="label">{t(lang, 'xp.includes')}</h3><ul class="xp-ul">{includes.map((x) => <li>{x}</li>)}</ul></div>
+              )}
+              {excludes.length > 0 && (
+                <div><h3 class="label">{t(lang, 'xp.excludes')}</h3><ul class="xp-ul xp-ul--out">{excludes.map((x) => <li>{x}</li>)}</ul></div>
+              )}
+            </div>
+          </div>
+          {(p.tags.includes('nature') || p.tags.includes('birds')) && <figure class="xp-guide">
+            <p class="label">{t(lang, 'xp.guide.kicker')}</p>
+            <blockquote><p>{t(lang, 'exp.guide')}</p></blockquote>
+            <figcaption class="mono">{t(lang, 'exp.guide.src')}</figcaption>
+          </figure>}
+          {img2 && (
+            <div class="xp-plate2">
+              <Photo slug={img2.slug ?? null} lang={lang} caption ratio="3 / 2" sizes="(min-width: 1000px) 40vw, 100vw" reveal alt={lang === 'en' ? img2.alt_en : img2.alt_sq} />
+              {tame(img2.slug) && <p class="xp-note mono">{t(lang, 'xp.photo.island')}</p>}
+            </div>
+          )}
+        </section>
+
+        {meeting && chartable && (
+          <section class="xp-sec" aria-labelledby="xp-meet-h">
+            <SectionHead id="xp-meet-h" index={t(lang, 'xp.meet.index')} kicker={t(lang, 'xp.meet.kicker')} title={t(lang, 'xp.meet.title')} size="heading" />
+            <div class="xp-meet">
+              <Chart lang={lang} mode="pin" pins={pins} highlight={meeting.poi || undefined} class="xp-chart" />
+              <div class="xp-meet__text">
+                <p class="xp-meet__name">{meeting.text}</p>
+                <p class="mono xp-note">{meetKm != null && meetKm >= 0.1 ? t(lang, 'xp.meet.km', { km: kmLabel(meetKm, lang) }) : t(lang, 'xp.meet.hotel')}</p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {(seasons.months.some((m) => m.items.length) || seasons.yearRound.length > 0) && (
+          <section class="xp-sec" aria-labelledby="xp-season-h">
+            <SectionHead id="xp-season-h" index={t(lang, 'xp.season.index')} kicker={t(lang, 'xp.season.kicker')} title={t(lang, 'xp.season.title')} size="heading" />
+            <p class="xp-lead">{t(lang, 'xp.season.lead')}</p>
+            <ol class="xp-band" aria-label={t(lang, 'xp.season.kicker')}>
+              {seasons.months.map((m) => (
+                <li class:list={['xp-band__m', m.runs && 'is-on', m.month === nowMonth && 'is-now']}>
+                  <span class="mono">{MONTHS_SHORT[lang][m.month - 1]}</span>
+                  <span class="visually-hidden">{m.name}: {m.runs ? t(lang, 'xp.season.runs') : t(lang, 'xp.season.off')}{m.month === nowMonth ? `, ${t(lang, 'xp.season.now')}` : ''}</span>
+                </li>
+              ))}
+            </ol>
+            <dl class="xp-months">
+              {firstMonths.map((m) => (
+                <div class:list={['xp-months__row', m.month === nowMonth && 'is-now']}>
+                  <dt class="mono">{m.name}{m.month === nowMonth && <span class="xp-now"> · {t(lang, 'xp.season.now')}</span>}</dt>
+                  <dd><ul>{m.items.map((i) => <li>{i.text}</li>)}</ul></dd>
+                </div>
+              ))}
+              {seasons.yearRound.length > 0 && (
+                <div class="xp-months__row">
+                  <dt class="mono">{t(lang, 'xp.season.year')}</dt>
+                  <dd><ul>{seasons.yearRound.map((i) => <li>{i.text}</li>)}</ul></dd>
+                </div>
+              )}
+            </dl>
+            {moreMonths.length > 0 && (
+              <details class="xp-more">
+                <summary class="mono">{t(lang, 'xp.season.more', { n: moreMonths.length })}</summary>
+                <dl class="xp-months">
+                  {moreMonths.map((m) => (
+                    <div class="xp-months__row">
+                      <dt class="mono">{m.name}</dt>
+                      <dd><ul>{m.items.map((i) => <li>{i.text}</li>)}</ul></dd>
+                    </div>
+                  ))}
+                </dl>
+              </details>
+            )}
+          </section>
+        )}
+
+        {ruleIds.length > 0 && (
+          <section class="xp-sec" aria-labelledby="xp-rules-h">
+            <SectionHead id="xp-rules-h" index={t(lang, 'xp.rules.index')} kicker={t(lang, 'xp.rules.kicker')} title={t(lang, 'xp.rules.title')} size="heading" />
+            <p class="xp-lead">{t(lang, 'xp.rules.lead')}</p>
+            <ol class="xp-rules">{ruleIds.map((id, i) => <li><span class="mono xp-rules__n">{String(i + 1).padStart(2, '0')}</span><span>{ruleText(id, lang)}</span></li>)}</ol>
+          </section>
+        )}
+      </div>
+      <aside class="xp-card" data-bk-slot data-lenis-prevent aria-label={t(lang, 'booking.permit.exp', { n })}>
+        <ExperiencePermit lang={lang} product={p} n={n} ym={ym} days={month.days} sessions={month.sessions} min={ymOf(todayLocal())} max={maxYm} hrefFor={hrefFor} date={date} session={session} people={people} maxGroup={maxPeoplePerSlot()} bestRate={bestRateConfirmed()} />
+      </aside>
+    </div>
+
+    {others.length > 0 && (
+      <section class="sheet xp-others" aria-labelledby="xp-others-h">
+        <div class="wrap"><SectionHead id="xp-others-h" index={t(lang, 'xp.others.index')} kicker={t(lang, 'xp.others.kicker')} title={t(lang, 'xp.others.title')} size="heading" /></div>
+        <ExpStrip lang={lang} lines={others} id="te-tjera" label={t(lang, 'xp.others.kicker')} end={false} />
+      </section>
+    )}
+    <RecommendRail lang={lang} index="06" title={t(lang, 'xp.recommend.title')} exclude={[p.slug]} limit={4} id="rekomanduar-eksperienca" />
+    <div class="wrap xp-sources"><SourceList lang={lang} items={sources} title={t(lang, 'xp.sources.title')} id="burimet-eksperienca" /></div>
+    <BookingSheet lang={lang} priceLek={p.price} per="person" label={`${name} · ${t(lang, 'booking.permit.exp', { n })}`} />
+  </div>
+</Base>
+
+<script>
+  import { initBooking } from '../scripts/booking';
+  import { initExperiences } from '../scripts/experiences';
+  initBooking();
+  initExperiences();
+</script>
+
+<style>
+  .xp-split { display: grid; gap: clamp(28px, 4vw, 56px); padding-block: clamp(14px, 2vw, 24px) var(--section-gap); }
+  .xp-main { display: grid; gap: clamp(22px, 3vw, 40px); align-content: start; min-inline-size: 0; }
+  .xp-main :global(.xp-crumbs) { margin-block-end: -12px; }
+  .xp-spec { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); border-block: 1px solid var(--ink); }
+  .xp-spec > div { display: grid; gap: 6px; align-content: start; padding: 14px 16px 16px 0; }
+  .xp-spec > div + div { border-inline-start: 1px solid var(--rule); padding-inline-start: 16px; }
+  .xp-spec dt { color: var(--muted); }
+  .xp-spec dd { margin: 0; font-size: var(--step-1); font-weight: 600; font-stretch: 90%; line-height: 1.2; }
+  .xp-plate, .xp-plate2 { display: grid; gap: 8px; }
+  .xp-note { margin: 0; font-size: var(--step--2); color: var(--muted); max-inline-size: 64ch; }
+  .xp-sec { display: grid; gap: clamp(16px, 2vw, 24px); padding-block-start: clamp(24px, 4vw, 56px); }
+  .xp-lead { color: var(--muted); max-inline-size: 60ch; margin: 0; }
+  .xp-about { display: grid; gap: clamp(20px, 3vw, 40px); }
+  .xp-body { display: grid; gap: 14px; }
+  .xp-body p { max-inline-size: 60ch; }
+  .xp-body p:first-child { font-size: var(--step-1); line-height: 1.35; font-weight: 500; }
+  .xp-sched { font-size: var(--step--2); color: var(--muted); padding-block-start: 10px; border-block-start: 1px dashed var(--rule); }
+  .xp-sched__k { color: var(--fg); }
+  .xp-lists { display: grid; gap: 22px; align-content: start; }
+  .xp-ul { list-style: none; padding: 0; margin: 10px 0 0; display: grid; }
+  .xp-ul li { padding-block: 10px 10px; padding-inline-start: 22px; border-block-start: 1px solid var(--rule); position: relative; }
+  .xp-ul li:last-child { border-block-end: 1px solid var(--rule); }
+  .xp-ul li::before { content: "+"; position: absolute; inset-inline-start: 2px; font-family: var(--font-mono); color: var(--muted); }
+  .xp-ul--out li::before { content: "−"; }
+  .xp-guide { margin: 0; display: grid; gap: 8px; padding: 18px 0 18px 18px; border-inline-start: 2px solid var(--ink); }
+  .xp-guide .label { color: var(--muted); margin: 0; }
+  .xp-guide blockquote { margin: 0; }
+  .xp-guide blockquote p { font-family: var(--font-serif); font-style: italic; font-size: var(--step-2); line-height: 1.2; max-inline-size: 36ch; }
+  .xp-guide figcaption { font-size: var(--step--2); color: var(--muted); }
+  @media (min-width: 700px) { .xp-about { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
+  .xp-meet { display: grid; gap: 20px; align-items: start; }
+  .xp-meet :global(.xp-chart) { inline-size: 100%; max-inline-size: 640px; }
+  .xp-meet__name { font-size: var(--step-1); font-weight: 600; font-stretch: 90%; margin: 0 0 6px; max-inline-size: 30ch; }
+  @media (min-width: 760px) { .xp-meet { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
+  .xp-band { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); border-block-end: 1px solid var(--ink); }
+  .xp-band__m { display: grid; gap: 6px; padding-block: 8px 0; text-align: center; font-size: var(--step--2); color: var(--muted); position: relative; }
+  .xp-band__m:not(.is-on) .mono { text-decoration: line-through; text-decoration-color: var(--ink-40); }
+  .xp-band__m::after { content: ""; block-size: 6px; background: transparent; margin-inline: 1px; }
+  .xp-band__m.is-on { color: var(--fg); }
+  .xp-band__m.is-on::after { background: var(--ink); }
+  .xp-band__m.is-now::before { content: ""; position: absolute; inset-block-start: -6px; inset-inline-start: 50%; inline-size: 8px; block-size: 8px; translate: -50% 0; border-radius: var(--radius-pill); background: var(--pouch); }
+  .xp-band__m .mono { font-size: 10px; letter-spacing: 0.02em; }
+  .xp-main :global(.xp-head .section-head__title) { font-family: var(--font-poster); font-weight: 800; font-stretch: 75%; font-variation-settings: "opsz" 96; text-transform: uppercase; letter-spacing: -0.03em; line-height: 0.86; font-size: clamp(3rem, 1.2rem + 6.4vw, 8.5rem); text-wrap: balance; padding-block-start: 0.06em; }
+  .xp-more summary { cursor: pointer; min-block-size: 44px; display: inline-flex; align-items: center; font-size: var(--step--2); text-decoration: underline; text-underline-offset: 3px; }
+  .xp-months { margin: 0; display: grid; }
+  .xp-months__row { display: grid; gap: 6px 24px; padding-block: 14px; border-block-end: 1px solid var(--rule); }
+  .xp-months__row dt { font-size: var(--step--2); color: var(--muted); }
+  .xp-months__row.is-now dt { color: var(--fg); }
+  .xp-now { color: var(--signal-text); }
+  .xp-months__row dd { margin: 0; }
+  .xp-months__row ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .xp-months__row li { max-inline-size: 62ch; }
+  @media (min-width: 700px) { .xp-months__row { grid-template-columns: minmax(8em, 1fr) minmax(0, 4fr); } }
+  .xp-rules { list-style: none; padding: 0; margin: 0; display: grid; }
+  .xp-rules li { display: grid; grid-template-columns: 3ch minmax(0, 1fr); gap: 14px; padding-block: 14px; border-block-start: 1px solid var(--rule); max-inline-size: 72ch; }
+  .xp-rules li:last-child { border-block-end: 1px solid var(--rule); }
+  .xp-rules__n { color: var(--muted); font-size: var(--step--2); padding-block-start: 4px; }
+  .xp-others { display: grid; gap: 22px; }
+  .xp-sources { padding-block-end: var(--section-gap); }
+  @media (min-width: 1000px) {
+    .xp-split { grid-template-columns: minmax(0, 1fr) minmax(380px, 440px); }
+    .xp-card { scroll-padding-block-end: 260px; position: sticky; inset-block-start: calc(var(--header-h) + 16px); align-self: start; max-block-size: calc(100svh - var(--header-h) - var(--ticker-h) - 112px); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 0 6px 6px 0; }
+    .xp-plate { margin-inline-start: calc(-1 * var(--page-pad)); }
+    .xp-plate :global(.plate--mat .plate__frame) { margin-inline-start: 0; outline-offset: 0; }
+  }
+  @media (max-width: 999px) { .xp-page { padding-block-end: 84px; } }
+</style>

@@ -1,0 +1,33 @@
+---
+/**
+ * SessionPicker — the time slots of the chosen day, each with its free places (real numbers
+ * from the sessions table). Native radios in a fieldset; full or closed slots are shown struck
+ * and cannot be chosen. Light-linked slots say "set by sunrise / sunset". Rendered on the server
+ * for the selected day (?data=…&orari=…) and re-rendered by src/scripts/booking.ts.
+ *
+ * Props: lang, id, date? (YYYY-MM-DD), sessions (SessionCell[] of that day), selected? (id)
+ */
+import { t } from '../../i18n/ui';
+import { formatDate, seats as seatsLabel } from '../../i18n/format';
+import type { Lang } from '../../i18n/routes';
+import type { SessionCell } from './server';
+
+interface Props { lang: Lang; id: string; date?: string | null; sessions: SessionCell[]; selected?: number | null }
+const { lang, id, date = null, sessions, selected = null } = Astro.props;
+const note = (n: string | null) => (n === 'sunrise' ? t(lang, 'booking.session.sunrise') : n === 'sunset' ? t(lang, 'booking.session.sunset') : '');
+---
+<fieldset class="bk-slots" data-slots data-name={id}>
+  <legend class="label bk-slots__legend" data-slots-legend>{date ? t(lang, 'booking.session.for', { date: formatDate(date, lang, 'day-month') }) : t(lang, 'booking.session')}</legend>
+  <div class="bk-slots__list" data-slots-list>
+    {!date && <p class="bk-slots__empty mono">{t(lang, 'booking.session.pickDay')}</p>}
+    {date && !sessions.some((s) => s.status === 'open') && <p class="bk-slots__empty mono">{t(lang, 'booking.session.none')}</p>}
+    {date && sessions.map((s) => (
+      <label class:list={['bk-slot', s.status !== 'open' && 'bk-slot--off']}>
+        <input type="radio" name={id} value={s.id} checked={selected === s.id} disabled={s.status !== 'open'} data-left={s.left} />
+        <span class="bk-slot__time">{s.time}</span>
+        <span class="bk-slot__left mono">{s.status === 'open' ? seatsLabel(s.left, lang) : s.status === 'full' ? t(lang, 'booking.session.full') : t(lang, 'booking.session.closed')}</span>
+        {note(s.note) && <span class="bk-slot__note mono">{note(s.note)}</span>}
+      </label>
+    ))}
+  </div>
+</fieldset>

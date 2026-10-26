@@ -1,0 +1,30 @@
+---
+/**
+ * Date range, one row above the charts (dataviz: presets first, custom range behind them).
+ * Plain links + a GET form: the range lives in the URL (?r=7|30|90|month or ?from&to).
+ */
+import type { Lang } from '../../i18n/routes';
+import { t } from '../../i18n/ui';
+import { formatRange } from '../../i18n/format';
+
+interface Props { lang: Lang; url: URL; from: string; to: string; preset: string }
+const { lang, url, from, to, preset } = Astro.props;
+const presets = ['7', '30', '90', 'month'];
+const base = url.pathname;
+---
+<div class="range" role="group" aria-label={t(lang, 'admin.range.label')}>
+  <ul class="range__presets">
+    {presets.map((p) => (
+      <li><a class="chip" href={p === '30' ? base : `${base}?r=${p}`} aria-current={preset === p ? 'true' : undefined}>{t(lang, `admin.range.${p}`)}</a></li>
+    ))}
+  </ul>
+  <form class="range__custom" method="get" action={base}>
+    <label class="visually-hidden" for="range-from">{t(lang, 'admin.from')}</label>
+    <input id="range-from" class="fld__input fld__input--s" type="date" name="from" value={from} max={to} required />
+    <span class="mono muted" aria-hidden="true">–</span>
+    <label class="visually-hidden" for="range-to">{t(lang, 'admin.to')}</label>
+    <input id="range-to" class="fld__input fld__input--s" type="date" name="to" value={to} required />
+    <button class="pill pill--outline pill--s" type="submit">{t(lang, 'admin.range.apply')}</button>
+  </form>
+  <p class="range__now mono muted">{formatRange(from, to, lang)}</p>
+</div>

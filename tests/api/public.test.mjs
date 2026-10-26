@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { call, BASE, tiraneToday, addDays } from './_lib.mjs';
 
-test('/api/live shape (real Open-Meteo; weather parts skipped when offline)', async (t) => {
+test('/api/live shape (real MET Norway; weather parts skipped when offline)', async (t) => {
   const r = await call('GET', '/api/live');
   assert.equal(r.status, 200);
   const d = r.data;
@@ -12,9 +12,11 @@ test('/api/live shape (real Open-Meteo; weather parts skipped when offline)', as
   assert.equal(typeof d.season_now.month, 'number');
   assert.ok(Array.isArray(d.season_now.items));
   assert.ok('rooms_left' in d.availability_today && Array.isArray(d.availability_today.sessions));
-  assert.match(d.attribution.url, /open-meteo\.com/);
+  assert.match(d.attribution.url, /api\.met\.no/); // T7: MET Norway (free for commercial use)
+  assert.ok(Array.isArray(d.sources) && d.sources.every((x) => x.url && x.license), 'sources with licences');
   if (!d.weather) return t.skip('offline: no weather data');
-  for (const k of ['temp', 'feels', 'code', 'wind_kmh', 'wind_dir', 'gust_kmh', 'humidity']) assert.equal(typeof d.weather[k], 'number', k);
+  for (const k of ['temp', 'feels', 'code', 'wind_kmh', 'wind_dir', 'humidity']) assert.equal(typeof d.weather[k], 'number', k);
+  assert.ok(d.weather.gust_kmh === null || typeof d.weather.gust_kmh === 'number', 'gust_kmh'); // MET has no gusts for Albania
   assert.equal(typeof d.weather.label_sq, 'string');
   assert.equal(typeof d.weather.is_day, 'boolean');
   if (d.sun) for (const k of ['sunrise', 'sunset', 'golden_start']) assert.match(d.sun[k], /^\d{2}:\d{2}$/);

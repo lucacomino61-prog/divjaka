@@ -1,13 +1,369 @@
 ---
 /**
- * Order view — PLACEHOLDER from T2 (route shell). The owning feature task (PLAN §9)
- * replaces this file. Props contract: { lang, params?, data? } — data comes from
- * src/views/order.load.ts.
+ * Order (T5) — /porosia/<code>/?t=<token> · /en/order/<code>/?t=. The confirmation and status
+ * page: the order code as the poster, the status timeline (received → confirmed → completed, or
+ * cancelled) with the payment state, a TEST label for simulator orders, the hold deadline as
+ * plain text (no ticking clock), bank-transfer details or pay-at-hotel notes, "Pay now" for an
+ * unpaid card order, the lines with dates and times, totals, the personal plan (nights and
+ * sessions in order + their places on T3's chart), add-to-calendar (.ics built in the browser),
+ * print, recommendations.
+ * Without a valid token the page asks for the order's e-mail instead (POST here, or
+ * /api/lookup with JavaScript) — rate-limited like the lookup API. noindex; the middleware sends
+ * private, no-store and no-referrer for this route.
  */
-import PlaceholderView from '../components/site/PlaceholderView.astro';
-import type { Lang } from '../i18n/routes';
+import Base from '../layouts/Base.astro';
+import SectionHead from '../components/site/SectionHead.astro';
+import PermitCard from '../components/site/PermitCard.astro';
+import Stamp from '../components/site/Stamp.astro';
+import Chart from '../components/chart/Chart.astro';
+import RecommendRail from '../components/recommend/RecommendRail.astro';
+import { orderByCode, orderView, tokenMatches, type OrderView } from '../lib/orders';
+import { orderItems } from '../lib/db/repo/orders';
+import { syncPok } from '../lib/payments/index';
+import { getProductBySlug } from '../lib/db/repo/products';
+import { getSession } from '../lib/db/repo/sessions';
+import { clientIp, rateLimit } from '../lib/security';
+import { poi } from '../components/chart/geo';
+import '../components/checkout/checkout.css';
+import { t } from '../i18n/ui';
+import { formatDate, formatRange, money, nights as fmtNights, guests as fmtGuests, tirane } from '../i18n/format';
+import { path, type Lang } from '../i18n/routes';
+import type { OrderPageData } from './order.load';
 
-interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
-const { lang, params = {} } = Astro.props;
+interface Props { lang: Lang; params?: Record<string, string>; data?: OrderPageData }
+const { lang, data } = Astro.props;
+const code = data?.code ?? '';
+const token = Astro.url.searchParams.get('t');
+
+let o = orderByCode(code);
+let open = !!o && tokenMatches(o, token);
+let lockedError = '';
+let typedEmail = '';
+// the "open with your e-mail" form without JavaScript
+if (!open && Astro.request.method === 'POST') {
+  try {
+    rateLimit('lookup', clientIp({ clientAddress: Astro.clientAddress, request: Astro.request }), 10, 10 * 60_000);
+    const form = await Astro.request.formData();
+    typedEmail = String(form.get('email') ?? '').trim().slice(0, 200);
+    if (o && typedEmail && o.email.toLowerCase() === typedEmail.toLowerCase()) open = true;
+    else lockedError = t(lang, 'account.err.notfound');
+  } catch {
+    lockedError = t(lang, 'account.err.rate');
+  }
+}
+
+let v: OrderView | null = null;
+if (open && o) {
+  try { o = await syncPok(o); } catch { /* POK unreachable: show what we have */ }
+  v = orderView(o, lang);
+}
+
+const pay = Astro.url.searchParams.get('pay');
+const when = (iso: string | null | undefined) => {
+  if (!iso) return null;
+  const p = tirane(iso);
+  return { date: formatDate(p.iso, lang, 'medium'), time: p.time };
+};
+
+// ---- view model ----
+type PlanItem = { sort: string; date: string; time?: string; title: string; sub: string[]; poi?: string | null };
+const plan: PlanItem[] = [];
+const events: { uid: string; title: string; start: string; end: string; allDay: boolean; location: string; desc: string }[] = [];
+const pins: string[] = [];
+const slugs: string[] = [];
+if (v && o) {
+  const raw = orderItems(o.id);
+  v.lines.forEach((l, i) => {
+    const p = l.slug ? getProductBySlug(l.slug) : undefined;
+    if (l.slug) slugs.push(l.slug);
+    const meetObj = p?.options.meeting as { poi?: string; sq?: string; en?: string } | undefined;
+    const meet = meetObj ? (lang === 'en' ? meetObj.en : meetObj.sq) ?? '' : '';
+    const place = p?.poi && !['pelican-tower', 'pelican-island'].includes(p.poi) && poi(p.poi) ? p.poi : null;
+    if (l.kind === 'room' && l.date_from && l.date_to) {
+      plan.push({ sort: `${l.date_from}T00:00`, date: l.date_from, title: l.name, sub: [t(lang, 'order.plan.stay', { nights: fmtNights(l.nights ?? 0, lang) }), `${t(lang, 'order.plan.leave')}: ${formatDate(l.date_to, lang, 'medium')}`], poi: 'hotel-pelikan' });
+      events.push({ uid: `${o!.code}-${i}`, title: t(lang, 'order.ics.stay', { name: l.name }), start: l.date_from, end: l.date_to, allDay: true, location: 'Hotel Pelikan, Divjakë', desc: t(lang, 'order.ics.desc', { code: o!.code }) });
+    } else if (l.kind === 'experience' && l.starts_at) {
+      const s = raw[i]?.session_id ? getSession(raw[i].session_id!) : undefined;
+      const sun = s?.note === 'sunrise' || s?.note === 'sunset' ? t(lang, `order.plan.sun.${s.note}`) : '';
+      const sub = [fmtGuests(l.guests ?? l.qty, lang), meet && t(lang, 'order.plan.meet', { place: meet }), sun].filter(Boolean) as string[];
+      plan.push({ sort: l.starts_at, date: l.starts_at.slice(0, 10), time: l.starts_at.slice(11, 16), title: l.name, sub, poi: place });
+      const mins = p?.duration_min ?? 120;
+      const startMs = Date.UTC(+l.starts_at.slice(0, 4), +l.starts_at.slice(5, 7) - 1, +l.starts_at.slice(8, 10), +l.starts_at.slice(11, 13), +l.starts_at.slice(14, 16)) + mins * 60_000;
+      const e = new Date(startMs);
+      const end = `${e.getUTCFullYear()}-${String(e.getUTCMonth() + 1).padStart(2, '0')}-${String(e.getUTCDate()).padStart(2, '0')}T${String(e.getUTCHours()).padStart(2, '0')}:${String(e.getUTCMinutes()).padStart(2, '0')}`;
+      events.push({ uid: `${o!.code}-${i}`, title: l.name, start: l.starts_at, end, allDay: false, location: meet || 'Divjakë', desc: t(lang, 'order.ics.desc', { code: o!.code }) });
+    }
+    if (place && !pins.includes(place)) pins.push(place);
+  });
+  plan.sort((a, b) => a.sort.localeCompare(b.sort));
+}
+const lineMeta = (l: OrderView['lines'][number]) => {
+  const bits: string[] = [];
+  if (l.kind === 'room' && l.date_from && l.date_to) bits.push(formatRange(l.date_from, l.date_to, lang), fmtNights(l.nights ?? 0, lang));
+  if (l.kind === 'experience' && l.starts_at) bits.push(`${formatDate(l.starts_at, lang, 'weekday')}, ${formatDate(l.starts_at, lang, 'medium')} · ${l.starts_at.slice(11, 16)}`);
+  if ((l.kind === 'room' || l.kind === 'experience') && l.guests) bits.push(fmtGuests(l.guests, lang));
+  if (l.kind === 'gift') bits.push(`${t(lang, 'product.amount')}: ${money(l.unit_price, lang)}`);
+  return bits.join(' · ');
+};
+
+const status = v?.status ?? 'pending';
+const cancelled = status === 'cancelled';
+const steps = v ? [
+  { key: 'received', label: t(lang, 'order.st.received'), at: when(v.created_at), state: 'done' },
+  ...(cancelled
+    ? [{ key: 'cancelled', label: t(lang, 'order.st.cancelled'), at: when(v.cancelled_at), state: 'stop' }]
+    : [
+        { key: 'confirmed', label: t(lang, 'order.st.confirmed'), at: null, state: status === 'confirmed' || status === 'completed' ? 'done' : 'current' },
+        { key: 'completed', label: t(lang, 'order.st.completed'), at: null, state: status === 'completed' ? 'done' : 'todo' },
+      ]),
+] : [];
+const isTest = !!v?.payment.test;
+const method = v?.payment_method;
+const methodLabel = method ? t(lang, method === 'card' && isTest ? 'order.method.card.test' : `order.method.${method}`) : '';
+const payState = v ? (v.payment_status === 'paid' && v.paid_at ? t(lang, 'order.pay.paid.at', { date: `${when(v.paid_at)!.date}, ${when(v.paid_at)!.time}` }) : t(lang, `order.pay.${v.payment_status}`)) : '';
+const hold = when(v?.hold_until);
+const holdText = hold ? t(lang, method === 'card' ? 'order.hold.card' : method === 'hotel' ? 'order.hold.hotel' : 'order.hold', hold) : '';
+const ins = v?.payment.instructions;
+// a TEST order is never a real booking: it keeps the 'registered' wording even when the simulator marked it paid
+const lead = v ? t(lang, `order.lead.${isTest && status !== 'cancelled' ? 'pending' : status}`, { code }) : '';
+const rate = v?.eur_rate ?? 0;
+const island = { 'order.copied': t(lang, 'order.copied'), 'order.ics.file': t(lang, 'order.ics.file', { code }) };
+const eventsJson = JSON.stringify(events).replace(/</g, '\\u003c');
+const orderPath = path('order', lang, { code: code || 'DV-0000' });
 ---
-<PlaceholderView lang={lang} routeKey="order" index="04" params={params} noindex />
+<Base lang={lang} title={`${t(lang, 'order.title')} ${code}`} description={t(lang, 'order.title')} routeKey="order" params={{ code: code || 'DV-0000' }} noindex clientKeys={['account.']} langHref={token ? `${path('order', lang === 'sq' ? 'en' : 'sq', { code: code || 'DV-0000' })}?t=${encodeURIComponent(token)}` : undefined}>
+  <script type="application/json" data-dv-i18n set:html={JSON.stringify(island).replace(/</g, '\\u003c')} />
+
+  {!v ? (
+    <section class="wrap locked">
+      <SectionHead as="h1" index={t(lang, 'order.index')} kicker={t(lang, 'order.title')} title={code} size="poster" />
+      <div class="locked__body">
+        <h2 class="title">{t(lang, 'order.locked.title')}</h2>
+        <p class="muted">{t(lang, 'order.locked.body', { code })}</p>
+        <form class="locked__form" method="post" action={orderPath} data-order-locked data-code={code} novalidate>
+          <label class="f__label mono" for="lk-email">{t(lang, 'account.email')}</label>
+          <input id="lk-email" class="f__input" type="email" name="email" value={typedEmail} autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off" required aria-describedby="lk-err" />
+          <p id="lk-err" class="f__err mono" role="alert" data-lookup-err hidden={!lockedError}>{lockedError}</p>
+          <button type="submit" class="pill pill--primary"><span class="pill__main">{t(lang, 'order.locked.submit')}</span></button>
+        </form>
+      </div>
+    </section>
+  ) : (
+    <>
+      <section class="wrap ord-head">
+        <SectionHead as="h1" index={t(lang, 'order.index')} kicker={t(lang, 'order.kicker', { code })} title={code} size="poster">
+          <span slot="aside" class="ord-head__stamps">
+            {isTest && <Stamp kind="test" lang={lang} />}
+            {cancelled && <Stamp>{t(lang, 'order.st.cancelled')}</Stamp>}
+          </span>
+        </SectionHead>
+        {pay === 'ok' && v.payment_status === 'paid' && <p class="banner banner--ok" role="status">{t(lang, isTest ? 'order.payOk.test' : 'order.payOk')}</p>}
+        {pay === 'failed' && v.payment_status !== 'paid' && <p class="banner banner--err" role="alert">{t(lang, 'order.payFailed')}</p>}
+        {pay === 'return' && v.payment_status !== 'paid' && <p class="banner" role="status">{t(lang, 'order.payReturn')}</p>}
+        <p class="ord-head__lead lede">{lead}</p>
+        {isTest && <p class="ord-head__test mono">{t(lang, 'order.test')}</p>}
+      </section>
+
+      <div class="ord wrap">
+        <div class="ord__main">
+          <section class="ord-block" aria-labelledby="ord-tl-h">
+            <h2 id="ord-tl-h" class="ord-block__h mono">{t(lang, 'order.timeline')}</h2>
+            <ol class="tl">
+              {steps.map((s) => (
+                <li class:list={['tl__step', `tl__step--${s.state}`]} aria-current={s.state === 'current' ? 'step' : undefined}>
+                  <span class="tl__mark" aria-hidden="true"></span>
+                  <span class="tl__label">{s.label}</span>
+                  <span class="tl__at mono">{s.at ? `${s.at.date} · ${s.at.time}` : s.state === 'current' ? t(lang, 'order.st.waiting') : ''}</span>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section class="ord-block" aria-labelledby="ord-lines-h">
+            <h2 id="ord-lines-h" class="ord-block__h mono">{t(lang, 'order.lines')}</h2>
+            <ul class="olines">
+              {v.lines.map((l) => (
+                <li class="oline">
+                  <span class="oline__name">{l.url ? <a href={l.url}>{l.name}</a> : l.name}</span>
+                  <span class="oline__sum mono">{money(l.line_total, lang)}</span>
+                  {lineMeta(l) && <span class="oline__meta mono">{lineMeta(l)}{l.kind !== 'room' && l.kind !== 'experience' && l.qty > 1 ? ` · ${t(lang, 'order.qty', { n: l.qty })}` : ''}</span>}
+                  {!lineMeta(l) && l.qty > 1 && <span class="oline__meta mono">{t(lang, 'order.qty', { n: l.qty })}</span>}
+                </li>
+              ))}
+            </ul>
+            <dl class="sums sums--big">
+              <div class="sums__row"><dt class="mono">{t(lang, 'order.subtotal')}</dt><dd class="mono">{money(v.subtotal, lang)}</dd></div>
+              {v.discount > 0 && <div class="sums__row"><dt class="mono">{v.promo_code ? t(lang, 'order.promo', { code: v.promo_code }) : t(lang, 'order.discount')}</dt><dd class="mono">−{money(v.discount, lang)}</dd></div>}
+              <div class="sums__row sums__row--total"><dt class="mono">{t(lang, 'order.total')}</dt><dd class="sums__total">{money(v.total, lang)}</dd></div>
+              {rate > 0 && <div class="sums__row sums__row--eur"><dt class="mono">EUR</dt><dd>{t(lang, 'order.eur', { amount: money(v.total, lang, { currency: 'EUR', rate }) })}</dd></div>}
+            </dl>
+          </section>
+
+          {plan.length > 0 && (
+            <section class="ord-block plan" aria-labelledby="ord-plan-h">
+              <h2 id="ord-plan-h" class="ord-block__h mono">{t(lang, 'order.plan')}</h2>
+              <p class="muted plan__lead">{t(lang, 'order.plan.lead')}</p>
+              <div class="plan__grid">
+                <ol class="plan__list">
+                  {plan.map((p, i) => (
+                    <li class="plan__item">
+                      <span class="plan__n mono">{String(i + 1).padStart(2, '0')}</span>
+                      <span class="plan__when mono">{formatDate(p.date, lang, 'weekday')}, {formatDate(p.date, lang, 'day-month')}{p.time && ` · ${p.time}`}</span>
+                      <span class="plan__title">{p.title}</span>
+                      {p.sub.map((s) => <span class="plan__sub">{s}</span>)}
+                    </li>
+                  ))}
+                </ol>
+                {pins.length > 0 && (
+                  <div class="plan__chart">
+                    <Chart lang={lang} mode="pin" pins={pins.map((id, i) => ({ id, n: String(i + 1).padStart(2, '0'), tag: 'name' as const }))} />
+                  </div>
+                )}
+              </div>
+              {events.length > 0 && (
+                <div class="plan__actions">
+                  <script type="application/json" data-ics set:html={eventsJson} />
+                  <button type="button" class="pill pill--outline" data-ics-all hidden><span class="pill__main">{t(lang, events.length === 1 ? 'order.ics.one' : 'order.ics')}</span></button>
+                </div>
+              )}
+            </section>
+          )}
+        </div>
+
+        <aside class="ord__side" aria-labelledby="ord-pay-h">
+          <PermitCard label={`${t(lang, 'order.code')} · ${code}`} floating class="ord-card">
+            <h2 id="ord-pay-h" class="ord-card__h">{t(lang, 'order.pay.title')}</h2>
+            <dl class="ord-card__dl mono">
+              <div><dt>{t(lang, 'order.status')}</dt><dd>{payState}</dd></div>
+              <div><dt>{t(lang, 'order.pay.title')}</dt><dd>{methodLabel}</dd></div>
+              <div><dt>{t(lang, 'order.placed')}</dt><dd>{when(v.created_at)?.date}, {when(v.created_at)?.time}</dd></div>
+            </dl>
+            {holdText && v.payment_status !== 'paid' && !cancelled && <p class="ord-card__hold">{holdText}</p>}
+            {v.payment.pay_url && (
+              <a class="pill pill--primary pill--block" href={v.payment.pay_url}><span class="pill__main">{t(lang, isTest ? 'order.payNow.test' : 'order.payNow')}</span></a>
+            )}
+            {method === 'hotel' && !cancelled && v.payment_status !== 'paid' && <p class="ord-card__note">{t(lang, 'order.hotel.note')}</p>}
+            {method === 'bank' && !cancelled && v.payment_status !== 'paid' && (
+              ins && ins.iban ? (
+                <div class="bank">
+                  <h3 class="bank__h mono">{t(lang, 'order.bank.title')}</h3>
+                  <dl class="bank__dl">
+                    {[
+                      ['beneficiary', ins.beneficiary], ['bank', ins.bank_name], ['iban', ins.iban], ['swift', ins.swift],
+                      ['reference', ins.reference], ['amount', money(ins.amount, lang)],
+                    ].filter(([, val]) => !!val).map(([k, val]) => (
+                      <div class="bank__row">
+                        <dt class="mono">{t(lang, `order.bank.${k}`)}</dt>
+                        <dd><span class="bank__val" translate="no">{val}</span>{(k === 'iban' || k === 'reference') && <button type="button" class="bank__copy mono" data-copy={val}>{t(lang, 'order.copy')}</button>}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <p class="ord-card__note">{t(lang, 'order.bank.note', { code })}</p>
+                </div>
+              ) : <p class="ord-card__note">{t(lang, 'order.bank.missing')}</p>
+            )}
+            <Fragment slot="stub">
+              <div class="ord-card__actions">
+                <button type="button" class="pill pill--outline pill--s" data-print hidden><span class="pill__main">{t(lang, 'order.print')}</span></button>
+              </div>
+              <p class="ord-card__help">{t(lang, 'order.help', { code })} <a href={path('contact', lang)}>{t(lang, 'order.help.link')}</a></p>
+              <p class="visually-hidden" role="status" aria-live="polite" data-order-say></p>
+            </Fragment>
+          </PermitCard>
+        </aside>
+      </div>
+
+      <RecommendRail lang={lang} id="porosia-rek" index="07.1" title={t(lang, 'order.rec')} lead={t(lang, 'order.rec.lead')} exclude={slugs} limit={4} prefs={false} class="ord-rec" />
+    </>
+  )}
+</Base>
+
+<script>
+  import { initOrder } from '../scripts/order';
+  initOrder();
+</script>
+
+<style>
+  .locked, .ord-head { padding-block-start: clamp(12px, 2vw, 24px); display: grid; gap: 16px; }
+  .locked :global(.section-head--poster), .ord-head :global(.section-head--poster) { --poster-max: clamp(6rem, 20vh, 12rem); }
+  .locked__body { display: grid; gap: 12px; max-inline-size: 36rem; margin-block-start: 12px; }
+  .locked__form { display: grid; gap: 8px; justify-items: start; margin-block-start: 8px; }
+  .f__label { font-size: var(--step--2); color: var(--muted); }
+  .f__input { inline-size: 100%; min-block-size: 48px; padding: 10px 12px; font-size: 16px; color: var(--ink); background: var(--salt-2); border: 0; border-block-end: 1px solid var(--ink); border-radius: 0; }
+  .f__input:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  .f__err { font-size: var(--step--1); color: var(--pouch-text); text-transform: none; letter-spacing: 0; }
+  .f__err[hidden] { display: none; }
+  .ord-head__stamps { display: inline-flex; gap: 8px; }
+  .ord-head__lead { max-inline-size: 40ch; }
+  .ord-head__test { font-size: var(--step--2); color: var(--pouch-text); max-inline-size: 60ch; text-transform: none; letter-spacing: .02em; }
+  .banner { padding: 12px 16px; border: 1px solid var(--ink); border-inline-start: 4px solid var(--ink); max-inline-size: 60ch; }
+  .banner--err { border-inline-start-color: var(--pouch); }
+  .ord { display: grid; gap: clamp(24px, 4vw, 56px); margin-block-start: clamp(24px, 3vw, 40px); align-items: start; }
+  @media (min-width: 1024px) {
+    .ord { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+    .ord__side { position: sticky; inset-block-start: calc(var(--header-h) + var(--ticker-h) + 16px); }
+  }
+  @media (max-width: 1023px) { .ord__side { order: -1; } }
+  .ord__main { display: grid; gap: clamp(32px, 4vw, 56px); min-inline-size: 0; }
+  .ord__side { min-inline-size: 0; }
+  .ord-block__h { font-size: var(--step--2); padding-block-end: 8px; border-block-end: 2px solid var(--ink); margin-block-end: 14px; }
+  .tl { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; }
+  .tl__step { position: relative; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 14px; align-items: baseline; padding-block: 12px; }
+  .tl__step:not(:last-child)::before { content: ""; position: absolute; inset-inline-start: 10px; inset-block: 30px -12px; inline-size: 1.5px; background: var(--rule); }
+  .tl__step--done:not(:last-child)::before { background: var(--ink); }
+  .tl__mark { inline-size: 14px; block-size: 14px; border-radius: 99px; border: 1.5px solid var(--ink); background: var(--salt); margin-inline-start: 4px; align-self: center; }
+  .tl__step--done .tl__mark { background: var(--ink); }
+  .tl__step--current .tl__mark { background: var(--pouch); border-color: var(--pouch); }
+  .tl__step--stop .tl__mark { background: var(--salt); border: 2px solid var(--pouch); }
+  .tl__step--todo { color: var(--muted); }
+  .tl__label { font-weight: 650; font-stretch: 88%; font-size: var(--step-1); }
+  .tl__at { font-size: var(--step--2); color: var(--muted); text-align: end; }
+  .olines { list-style: none; padding: 0; margin: 0 0 18px; }
+  .oline { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; padding-block: 14px; border-block-end: 1px solid var(--rule); }
+  .oline__name { font-weight: 700; font-stretch: 85%; font-size: var(--step-1); overflow-wrap: anywhere; }
+  .oline__name a { text-decoration: none; display: inline-block; padding-block: 10px; margin-block: -10px; }
+  .oline__name a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .oline__sum { font-size: var(--step--1); text-align: end; }
+  .oline__meta { grid-column: 1 / -1; font-size: var(--step--2); color: var(--muted); }
+  .plan__lead { margin-block-end: 18px; max-inline-size: 52ch; }
+  .plan__grid { display: grid; gap: 24px; }
+  @media (min-width: 760px) { .plan__grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+  .plan__list { list-style: none; padding: 0; margin: 0; }
+  .plan__item { display: grid; grid-template-columns: 2.6rem minmax(0, 1fr); gap: 2px 10px; padding-block: 14px; border-block-end: 1px solid var(--rule); }
+  .plan__item > :not(.plan__n) { grid-column: 2; }
+  .plan__n { grid-row: 1 / span 6; font-size: var(--step--2); color: var(--muted); padding-block-start: 2px; }
+  .plan__when { font-size: var(--step--2); }
+  .plan__title { font-weight: 700; font-stretch: 85%; font-size: var(--step-1); overflow-wrap: anywhere; }
+  .plan__sub { color: var(--muted); font-size: var(--step--1); }
+  .plan__chart { border: 1px solid var(--ink); background: var(--salt); padding: 6px; min-inline-size: 0; }
+  .plan__actions { margin-block-start: 18px; }
+  .ord-card :global(.permit__body) { display: grid; gap: 16px; }
+  .ord-card__h { font-size: var(--step-3); }
+  .ord-card__dl { display: grid; gap: 8px; margin: 0; font-size: var(--step--2); }
+  .ord-card__dl div { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 10px; }
+  .ord-card__dl dt { color: var(--muted); }
+  .ord-card__dl dd { margin: 0; }
+  .ord-card__hold { padding: 12px 14px; border-inline-start: 3px solid var(--pouch); background: var(--salt-2); font-size: var(--step--1); }
+  .ord-card__note { font-size: var(--step--1); color: var(--muted); }
+  .bank { display: grid; gap: 10px; }
+  .bank__h { font-size: var(--step--2); padding-block-end: 6px; border-block-end: 1px solid var(--ink); }
+  .bank__dl { display: grid; gap: 6px; margin: 0; }
+  .bank__row { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: 10px; align-items: baseline; }
+  .bank__row dt { font-size: var(--step--2); color: var(--muted); }
+  .bank__row dd { margin: 0; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+  .bank__val { font-family: var(--font-mono); font-size: var(--step--1); overflow-wrap: anywhere; min-inline-size: 0; }
+  .bank__copy { min-block-size: 32px; padding: 0 10px; border: 1px solid var(--ink); border-radius: 99px; background: none; color: inherit; font-size: var(--step--2); cursor: pointer; }
+  @media (pointer: coarse) { .bank__copy { min-block-size: 44px; } }
+  .ord-card__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ord-card__help { font-size: var(--step--1); color: var(--muted); margin-block-start: 10px; }
+
+  @media print {
+    :global(.ticker), :global(.site-header), :global(.site-footer), :global(.assistant-pill), :global(.skip-link), :global(.ord-rec), :global(#dv-toast), :global(.menu), :global(.drawer) { display: none !important; }
+    :global(body) { background: #fff; color: #000; }
+    .ord { grid-template-columns: 1fr !important; }
+    .ord__side { position: static; order: 0; }
+    .ord-card__actions, .plan__actions, .bank__copy, .ord-card__help a { display: none !important; }
+    .plan__chart { break-inside: avoid; }
+    .oline, .plan__item, .tl__step { break-inside: avoid; }
+  }
+</style>

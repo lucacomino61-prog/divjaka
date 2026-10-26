@@ -1,0 +1,26 @@
+---
+/**
+ * GuestStepper — a number with − / + (guests, rooms, participants). A real
+ * <input type="number"> so it can also be typed and stepped with the arrow keys; the buttons are
+ * 44 px, the value is clamped to [min, max] by src/scripts/booking.ts (max can change: seats left
+ * in a time slot, capacity × rooms). The hint line says why the limit is where it is.
+ *
+ * row = label and control on one line (the room permit, where height is scarce).
+ * Props: lang, id, name ('guests' | 'rooms' | 'people'), label, value, min, max, less, more, hint?, row?
+ */
+interface Props { id: string; name: string; label: string; value: number; min: number; max: number; less: string; more: string; hint?: string; row?: boolean }
+const { id, name, label, value, min, max, less, more, hint, row = false } = Astro.props;
+---
+<div class:list={['bk-step', row && 'bk-step--row']} data-stepper={name}>
+  <label class="bk-step__label label" for={id}>{label}</label>
+  <div class="bk-step__ctl">
+    <button type="button" class="bk-step__btn" data-step="-1" aria-label={less} aria-controls={id}>
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 8h10" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
+    </button>
+    <input class="bk-step__input" id={id} name={name} type="number" inputmode="numeric" min={min} max={max} step="1" value={value} data-stepper-input aria-describedby={hint ? `${id}-hint` : undefined} />
+    <button type="button" class="bk-step__btn" data-step="1" aria-label={more} aria-controls={id}>
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 8h10M8 3v10" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
+    </button>
+  </div>
+  {hint !== undefined && <p class="bk-step__hint mono" id={`${id}-hint`} data-stepper-hint>{hint}</p>}
+</div>

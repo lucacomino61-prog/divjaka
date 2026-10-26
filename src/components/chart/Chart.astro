@@ -1,0 +1,305 @@
+---
+/**
+ * Chart — the lagoon chart (DESIGN §1, §4): research/geo.json drawn as a survey sheet.
+ * Layers: survey graticule · park boundary (dashed) · forest (hatched) · other lagoons ·
+ * the lagoon (salt-2 water, islets even-odd) · WATERLINES (offset lines inside the water and
+ * along the sea coast, the cartographers' convention) · rivers · roads (hairline) · coast ·
+ * lagoon shore · route legs · closed zones. Lettering (water in Instrument Serif italic, places
+ * in mono caps) and pins are HTML on a layer over the SVG, so they keep their size at any
+ * zoom and stay real text. © OpenStreetMap contributors (ODbL) is always printed.
+ *
+ *   <Chart lang={lang} mode="pin" pins={['tower-360']} />
+ *   <Chart lang={lang} mode="route" route={['hotel-pelikan', 'visitor-centre', {lat, lon}]} />
+ *   <Chart lang={lang} mode="mini" highlight="hotel-pelikan" />
+ *   <Chart lang={lang} mode="signature" pins={[{ id, n: '01', key: 'hotel' }, …]} route={[…]} />
+ *
+ * Props (all optional except lang):
+ *   mode       'signature' | 'mini' | 'route' | 'pin' (default 'pin')
+ *   pins       (poi id | PinSpec)[] — PinSpec { id?, x?, y?, lat?, lon?, label?, n?, key?,
+ *              selected?, side?: 'left'|'right', zone? (approximate closed area: dashed ring),
+ *              tag?: 'name'|'number'|'both'|'none' }
+ *   route      (poi id | {x,y} | {lat,lon})[] — straight legs between consecutive points
+ *   routeTone  'signal' (pouch, default in route mode) | 'ink' (dashed ink)
+ *   highlight  poi id drawn as the selected pin (pouch core + one ripple)
+ *   hotel      add the hotel as a home pin (default true in pin/route modes)
+ *   crop       [x, y, w, h] in chart units (default: around the pins/route, or the sheet)
+ *   tags       default tag for pins without one ('name' in pin/route, 'number' in signature,
+ *              'none' in mini)
+ *   lettering  water/place names (default true, false in mini)
+ *   scale      scale bar + north mark + attribution row (default true)
+ *   title      accessible description (default: the pins' names)
+ *   class, id
+ * Slots: `overlay` (extra HTML inside the pin layer — position it with style="left:%;top:%"),
+ *        `caption` (extra figcaption content).
+ * Script hooks (no script ships with it): [data-chart] (data-crop, data-upk = units per km),
+ * [data-chart-cam] (the camera group), [data-pin=<key>] with data-x/data-y in chart units,
+ * [data-letter=<key>], [data-draw="coast|shore"], [data-waterline], [data-sealine],
+ * [data-leg=<i>] (x1..y2 = the leg), [data-zone=<key>], [data-scale] (CSS --km = 1 km in %).
+ */
+import { HOTEL_ID, SHEET_CROP, UNITS_PER_KM, cropAround, layers, poi, resolvePoint, type Crop, type PointLike, type Pt } from './geo';
+import { t } from '../../i18n/ui';
+import type { Lang } from '../../i18n/routes';
+
+export interface PinSpec {
+  id?: string; x?: number; y?: number; lat?: number; lon?: number;
+  label?: string; n?: string | number; key?: string; selected?: boolean;
+  side?: 'left' | 'right'; zone?: boolean; tag?: 'name' | 'number' | 'both' | 'none';
+}
+interface Props {
+  lang: Lang;
+  mode?: 'signature' | 'mini' | 'route' | 'pin';
+  pins?: (string | PinSpec)[];
+  route?: PointLike[];
+  routeTone?: 'signal' | 'ink';
+  highlight?: string;
+  hotel?: boolean;
+  crop?: Crop;
+  tags?: 'name' | 'number' | 'both' | 'none';
+  lettering?: boolean;
+  scale?: boolean;
+  title?: string;
+  class?: string;
+  id?: string;
+}
+const {
+  lang, mode = 'pin', pins = [], route = [], highlight, crop: cropProp, class: cls, id, title,
+} = Astro.props;
+const routeTone = Astro.props.routeTone ?? (mode === 'route' ? 'signal' : 'ink');
+const showHotel = Astro.props.hotel ?? (mode === 'pin' || mode === 'route');
+const defTag = Astro.props.tags ?? (mode === 'signature' ? 'number' : mode === 'mini' ? 'none' : 'name');
+const showLetters = Astro.props.lettering ?? mode !== 'mini';
+const showScale = Astro.props.scale ?? true;
+
+const L = layers();
+
+// pins → resolved points (unknown ids are dropped, never guessed)
+interface Placed { key: string; x: number; y: number; name: string; n: string; selected: boolean; side: 'left' | 'right'; fixedSide: boolean; down: boolean; zone: boolean; tag: string; home: boolean; approx: boolean }
+const specs: PinSpec[] = pins.map((p) => (typeof p === 'string' ? { id: p } : p));
+if (showHotel && !specs.some((s) => s.id === HOTEL_ID)) specs.unshift({ id: HOTEL_ID, key: 'hotel' });
+const placed: Placed[] = [];
+for (const s of specs) {
+  const q = s.id ? poi(s.id) : undefined;
+  const pt = q ? { x: q.x, y: q.y } : resolvePoint(s.x != null && s.y != null ? { x: s.x, y: s.y } : s.lat != null && s.lon != null ? { lat: s.lat, lon: s.lon } : null);
+  if (!pt) continue;
+  const home = s.id === HOTEL_ID;
+  placed.push({
+    key: s.key ?? s.id ?? `p${placed.length}`,
+    x: pt.x, y: pt.y,
+    name: s.label ?? (home ? t(lang, 'site.hotel') : q ? q.name[lang] : ''),
+    n: s.n != null ? String(s.n) : '',
+    selected: !!s.selected || (!!highlight && s.id === highlight),
+    side: s.side ?? 'right', fixedSide: !!s.side, down: false,
+    zone: !!s.zone,
+    tag: s.tag ?? (home && mode !== 'signature' ? 'name' : defTag),
+    home,
+    approx: q?.confidence === 'low',
+  });
+}
+const routePts = route.map((r) => resolvePoint(r)).filter(Boolean) as Pt[];
+
+const crop: Crop = cropProp ?? (mode === 'signature' || mode === 'mini'
+  ? SHEET_CROP
+  : cropAround([...placed, ...routePts], mode === 'route' ? { pad: 50, min: 260 } : { pad: 60, min: 300, minAspect: 1, maxAspect: 1.4 }));
+const [cx, cy, cw, ch] = crop;
+// labels: open towards the roomier side, and a label that would sit on a neighbour's line drops
+// below its pin (labels are px-sized; ~1.2 px per chart unit at the usual sizes)
+if (mode !== 'signature') {
+  for (const p of placed) if (!p.fixedSide) p.side = p.x > cx + cw * 0.55 ? 'left' : 'right';
+  const named = placed.filter((p) => p.tag !== 'none');
+  named.forEach((p, i) => {
+    const clash = named.slice(0, i).some((q) => !q.down && Math.abs(q.y - p.y) < 24 && Math.abs(q.x - p.x) < 170 && (q.side === p.side || (q.side === 'right' ? q.x < p.x : q.x > p.x)));
+    if (clash) p.down = true;
+  });
+}
+const pct = (v: number, o: number, s: number) => `${(((v - o) / s) * 100).toFixed(3)}%`;
+const upk = UNITS_PER_KM();
+// scale bar: 1 km, or 2 / 5 km when 1 km is under 12 % of the sheet
+const kmStep = [1, 2, 5].find((k) => (k * upk) / cw >= 0.12) ?? 5;
+const uid = `ch${Math.random().toString(36).slice(2, 7)}`;
+const label = title ?? `${t(lang, 'chart.title')}${placed.length ? `: ${placed.map((p) => p.name).filter(Boolean).join(', ')}` : ''}`;
+const fmtKm = (k: number) => `${k} km`;
+---
+<figure
+  class:list={['chart', `chart--${mode}`, cls]}
+  id={id}
+  data-chart
+  data-mode={mode}
+  data-crop={crop.join(' ')}
+  data-upk={upk.toFixed(4)}
+  aria-label={label}
+  role="group"
+>
+  <div class="chart__box" style={`aspect-ratio:${cw} / ${ch}`}>
+    {L ? (
+      <svg class="chart__svg" viewBox={crop.join(' ')} preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
+        <defs>
+          <pattern id={`${uid}-hatch`} width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <path d="M0 0V5" class="chart__hatch-line" />
+          </pattern>
+        </defs>
+        <g class="chart__cam" data-chart-cam>
+          <g class="chart__grid">
+            {L.graticule.lat.map((g) => <path d={`M-600 ${g.y.toFixed(1)}H1600`} />)}
+            {L.graticule.lon.map((g) => <path d={`M${g.x.toFixed(1)} -600V1960`} />)}
+          </g>
+          <g class="chart__sea" data-layer="sea">
+            {L.seaLines.map((d, i) => <path d={d} data-sealine={i} />)}
+          </g>
+          <path class="chart__park" d={L.park} data-layer="park" />
+          <g class="chart__forest" data-layer="forest">
+            <path d={L.forest} fill={`url(#${uid}-hatch)`} class="chart__forest-fill" />
+            <path d={L.forest} class="chart__forest-edge" />
+            {L.forestOther.map((d) => <path d={d} fill={`url(#${uid}-hatch)`} class="chart__forest-fill chart__forest-fill--other" />)}
+          </g>
+          <g class="chart__waters" data-layer="waters">
+            {L.lagoonsOther.map((o) => <path d={o.d} fill-rule="evenodd" />)}
+            {L.islands.map((d) => <path d={d} class="chart__island" />)}
+          </g>
+          <path class="chart__water" d={L.lagoon} fill-rule="evenodd" data-layer="water" />
+          <g class="chart__waterlines" data-layer="waterlines">
+            {L.waterlines.map((d, i) => <path d={d} data-waterline={i} />)}
+          </g>
+          <g class="chart__rivers" data-layer="rivers">{L.rivers.map((r) => <path d={r.d} />)}</g>
+          <g class="chart__roads" data-layer="roads">{L.roads.map((d) => <path d={d} />)}</g>
+          <path class="chart__coast" d={L.coast} data-draw="coast" />
+          <path class="chart__shore" d={L.shore} fill="none" data-draw="shore" />
+          <path class="chart__shore chart__islets" d={L.islets} fill="none" data-layer="islets" />
+          {routePts.length > 1 && (
+            <g class:list={['chart__route', `chart__route--${routeTone}`]} data-layer="route">
+              {routePts.slice(1).map((p, i) => (
+                <line x1={routePts[i].x.toFixed(1)} y1={routePts[i].y.toFixed(1)} x2={p.x.toFixed(1)} y2={p.y.toFixed(1)} data-leg={i} />
+              ))}
+            </g>
+          )}
+          <g class="chart__zones">
+            {placed.filter((p) => p.zone).map((p) => <circle cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r="16" data-zone={p.key} />)}
+          </g>
+        </g>
+      </svg>
+    ) : (
+      <div class="chart__nodata mono">{t(lang, 'chart.nodata')}</div>
+    )}
+    <div class="chart__layer" data-chart-layer aria-hidden="true">
+      {L && showLetters && L.lettering.map((l) => (
+        <span
+          class:list={['chart__letter', `chart__letter--${l.kind}`, l.size && `chart__letter--${l.size}`, l.kind === 'place' && l.x > cx + cw * 0.72 && 'chart__letter--end']}
+          data-letter={l.key}
+          data-x={l.x.toFixed(1)}
+          data-y={l.y.toFixed(1)}
+          style={`left:${pct(l.x, cx, cw)};top:${pct(l.y, cy, ch)}`}
+        ><span class="chart__letter-in" data-letter-text>{l.text[lang]}</span></span>
+      ))}
+      {placed.map((p) => (
+        <span
+          class:list={['cpin', p.home && 'cpin--home', p.selected && 'is-selected', p.zone && 'cpin--zone', p.approx && 'cpin--approx', `cpin--${p.side}`, p.down && 'cpin--down', `cpin--tag-${p.tag}`]}
+          data-pin={p.key}
+          data-x={p.x.toFixed(1)}
+          data-y={p.y.toFixed(1)}
+          style={`left:${pct(p.x, cx, cw)};top:${pct(p.y, cy, ch)}`}
+        >
+          <span class="cpin__mark">
+            <span class="cpin__ripple"></span>
+            <span class="cpin__dot"></span>
+          </span>
+          {p.tag !== 'none' && (p.name || p.n) && (
+            <span class="cpin__tag mono">
+              {(p.tag === 'number' || p.tag === 'both') && p.n && <span class="cpin__n">{p.n}</span>}
+              {(p.tag === 'name' || p.tag === 'both') && p.name && <span class="cpin__name">{p.name}</span>}
+            </span>
+          )}
+        </span>
+      ))}
+      <slot name="overlay" />
+    </div>
+  </div>
+  {showScale && (
+    <figcaption class="chart__foot mono">
+      <span class="chart__scale" data-scale style={`--kmf:${((kmStep * upk) / cw).toFixed(4)}`}>
+        <span class="chart__scale-bar" aria-hidden="true"></span>
+        <span class="chart__scale-label">0 — {fmtKm(kmStep)}</span>
+      </span>
+      <span class="chart__north" aria-label={t(lang, 'chart.north')}><span aria-hidden="true">↑</span> {lang === 'sq' ? 'V' : 'N'}</span>
+      <a class="chart__osm" href="https://www.openstreetmap.org/copyright" rel="noopener">© OpenStreetMap</a>
+      <slot name="caption" />
+    </figcaption>
+  )}
+</figure>
+
+<style>
+  .chart { --chart-ink: var(--ink); container-type: inline-size; margin: 0; display: grid; gap: 10px; color: var(--chart-ink); min-inline-size: 0; }
+  .chart__box { position: relative; inline-size: 100%; container-type: inline-size; overflow: clip; }
+  .chart.is-live .chart__box { overflow: visible; }
+  .chart__svg { display: block; inline-size: 100%; block-size: 100%; overflow: hidden; }
+  .chart__nodata { display: grid; place-items: center; block-size: 100%; border: 1px solid var(--rule); color: var(--muted); }
+
+  .chart__svg :global(path), .chart__svg :global(line), .chart__svg :global(circle) { vector-effect: non-scaling-stroke; }
+  .chart__grid path { fill: none; stroke: var(--ink-12); stroke-width: 1; }
+  .chart__sea path { fill: none; stroke: var(--ink-40); stroke-width: 0.75; }
+  .chart__park { fill: none; stroke: var(--ink-70); stroke-width: 1; stroke-dasharray: 5 4; }
+  .chart__hatch-line { stroke: var(--ink-40); stroke-width: 0.55; vector-effect: none !important; }
+  .chart__forest-edge { fill: none; stroke: var(--ink-40); stroke-width: 0.75; }
+  .chart__forest-fill--other { opacity: 0.55; }
+  .chart__waters path { fill: var(--salt-2); stroke: var(--ink-70); stroke-width: 0.75; }
+  .chart__waters .chart__island { fill: var(--salt); stroke: var(--ink); stroke-width: 1; }
+  .chart__water { fill: var(--salt-2); stroke: none; }
+  .chart__waterlines path { fill: none; stroke: var(--ink-40); stroke-width: 0.75; }
+  .chart__waterlines path:nth-child(n + 4) { stroke-width: 0.6; }
+  .chart__rivers path { fill: none; stroke: var(--ink-40); stroke-width: 1.25; stroke-linecap: round; }
+  .chart__roads path { fill: none; stroke: var(--ink-70); stroke-width: 0.75; stroke-dasharray: 1 0; }
+  .chart__coast { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+  .chart__shore { stroke: var(--ink); stroke-width: 1.25; stroke-linejoin: round; }
+  /* the signature script draws these with DrawSVG and sets their width per frame */
+  .chart.is-live [data-draw] { vector-effect: none; }
+  .chart__route line { stroke-width: 1.5; stroke-dasharray: 6 5; stroke-linecap: butt; }
+  .chart__route--ink line { stroke: var(--ink); }
+  .chart__route--signal line { stroke: var(--pouch); stroke-width: 2; }
+  .chart__zones circle { fill: none; stroke: var(--pouch); stroke-width: 1.25; stroke-dasharray: 3 3; }
+
+  /* the HTML layer: same box as the SVG viewBox */
+  .chart__layer { position: absolute; inset: 0; pointer-events: none; }
+  .chart__letter { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; line-height: 1; }
+  .chart__letter-in { display: inline-block; }
+  .chart__letter--water { font-family: var(--font-serif); font-style: italic; font-size: clamp(1rem, 0.7rem + 1.2vw, 1.6rem); color: var(--ink); }
+  .chart__letter--water.chart__letter--l { font-size: clamp(1.05rem, 0.75rem + 1.3vw, 1.75rem); }
+  .chart__letter--place, .chart__letter--river { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.6875rem; color: var(--ink-70); }
+  .chart__letter--place::before { content: ""; display: inline-block; inline-size: 7px; block-size: 7px; border: 1.5px solid var(--ink-70); border-radius: 99px; margin-inline-end: 6px; vertical-align: 0; }
+  .chart__letter--place { transform: translate(-6px, -50%); }
+  /* near the right edge a place name reads leftwards from its dot */
+  .chart__letter--end { display: flex; flex-direction: row-reverse; align-items: center; transform: translate(calc(-100% + 6px), -50%); }
+  .chart__letter--end::before { margin-inline: 6px 0; }
+
+  /* pins (DESIGN §3): 14 px ink ring, salt core; selected = pouch core + one ripple */
+  .cpin { position: absolute; inline-size: 0; block-size: 0; }
+  .cpin__mark { position: absolute; inset-inline-start: -7px; inset-block-start: -7px; inline-size: 14px; block-size: 14px; display: block; }
+  .cpin__dot { position: absolute; inset: 0; border-radius: 99px; background: var(--salt); border: 2px solid var(--ink); box-sizing: border-box; }
+  .cpin__dot::after { content: ""; position: absolute; inset: 2px; border-radius: 99px; background: var(--ink); transform: scale(0.45); }
+  .cpin__ripple { position: absolute; inset: 0; border-radius: 99px; border: 1.5px solid var(--pouch); opacity: 0; }
+  .cpin.is-selected .cpin__dot::after { background: var(--pouch); transform: scale(0.8); }
+  .cpin.is-selected .cpin__ripple { animation: none; opacity: 0; }
+  .cpin--home .cpin__dot { background: var(--ink); }
+  .cpin--home .cpin__dot::after { background: var(--salt); transform: scale(0.42); }
+  .cpin--zone .cpin__dot { background: transparent; border-style: dashed; border-color: var(--pouch); }
+  .cpin--zone .cpin__dot::after { background: var(--pouch); transform: scale(0.35); }
+  .cpin__tag {
+    position: absolute; inset-block-start: -11px; inset-inline-start: 14px;
+    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+    padding: 3px 7px; background: var(--salt); border: 1px solid var(--ink); font-size: 0.6875rem; line-height: 1.2;
+  }
+  .cpin--left .cpin__tag { inset-inline-start: auto; inset-inline-end: 14px; }
+  .cpin--down .cpin__tag { inset-block-start: 12px; }
+  .cpin__n { font-weight: 600; }
+  .cpin__n + .cpin__name { padding-inline-start: 6px; border-inline-start: 1px solid var(--ink-40); }
+  .cpin--approx .cpin__name::after { content: " ≈"; }
+
+  .chart__foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; font-size: var(--step--2); color: var(--muted); }
+  .chart__scale { display: inline-flex; align-items: center; gap: 8px; }
+  .chart__scale-bar { display: block; inline-size: calc(var(--kmf, 0.1) * 100cqi); min-inline-size: 18px; block-size: 6px; border: 1px solid var(--ink); border-block-start: 0; flex: none; transform-origin: 0 50%; }
+  .chart__osm { margin-inline-start: auto; color: inherit; min-block-size: 24px; display: inline-flex; align-items: center; }
+  @media (pointer: coarse) { .chart__osm { min-block-size: 44px; } }
+  .chart__north { color: var(--fg); }
+
+  .chart--mini .chart__foot { font-size: 0.625rem; }
+  @container (max-width: 360px) {
+    .chart__letter--water { font-size: 1rem; }
+  }
+</style>

@@ -1,13 +1,170 @@
 ---
 /**
- * Itinerary view — PLACEHOLDER from T2 (route shell). The owning feature task (PLAN §9)
- * replaces this file. Props contract: { lang, params?, data? } — data comes from
- * the view itself.
+ * Itinerary planner (/itinerari/, /en/itinerary/) — T7. First screen (DESIGN §6): the question
+ * sheet on the left, the chart on the right waiting for the route. The form is a GET form: the
+ * server reads the query (components/itinerary/engine.ts) and renders the whole plan in the HTML —
+ * day-by-day timeline, the route on T3's <Chart mode="route"> (pouch line), real sessions with
+ * places left, sources. State lives in the URL (?dite=2&interesa=zogj,kulture&ritmi=qete…), so a
+ * plan is shared or saved by its link; print gives a clean sheet.
  */
-import PlaceholderView from '../components/site/PlaceholderView.astro';
-import type { Lang } from '../i18n/routes';
+import Base from '../layouts/Base.astro';
+import Breadcrumbs from '../components/site/Breadcrumbs.astro';
+import SectionHead from '../components/site/SectionHead.astro';
+import SourceList from '../components/site/SourceList.astro';
+import Chart from '../components/chart/Chart.astro';
+import PlannerForm from '../components/itinerary/PlannerForm.astro';
+import PlanDay from '../components/itinerary/PlanDay.astro';
+import { buildPlan, parseInput, toQuery } from '../components/itinerary/engine';
+import { SHEET_CROP } from '../components/chart/geo';
+import { siteOriginOf } from '../components/site/site-data';
+import { t } from '../i18n/ui';
+import { path, type Lang } from '../i18n/routes';
 
 interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
-const { lang, params = {} } = Astro.props;
+const { lang } = Astro.props;
+const { input, submitted, problems } = parseInput(Astro.url.searchParams);
+const plan = submitted ? buildPlan(input) : null;
+const self = path('itinerary', lang);
+const shareUrl = plan ? `${self}?${toQuery(input)}` : self;
+const origin = await siteOriginOf(Astro.url, Astro.site);
+const interestsLabel = input.interests.length ? input.interests.map((i) => t(lang, `itinerary.i.${i}`).toLowerCase()).join(', ') : t(lang, 'itinerary.plan.any');
+const daysLabel = t(lang, 'itinerary.days.n', { n: String(input.days) });
+const legDays = plan ? plan.legDays.join(',') : '';
+const addable = plan ? plan.days.flatMap((d) => d.stops.filter((s) => s.session && s.product)) : [];
+const jsonld = {
+  '@context': 'https://schema.org', '@type': 'WebPage',
+  name: t(lang, 'page.itinerary.title'), description: t(lang, 'page.itinerary.description'),
+  url: new URL(self, origin).href, inLanguage: lang === 'sq' ? 'sq-AL' : 'en',
+};
 ---
-<PlaceholderView lang={lang} routeKey="itinerary" index="05" params={params} />
+<Base lang={lang} title={t(lang, 'page.itinerary.title')} description={t(lang, 'page.itinerary.description')} routeKey="itinerary" jsonld={jsonld} clientKeys={['itinerary.']} noindex={submitted}>
+  <div class="it" data-itinerary data-plan={plan ? JSON.stringify({ days: input.days, interests: input.interests, items: plan.days.reduce((n, d) => n + d.stops.length, 0) }) : undefined}>
+    <section class="wrap it__head" aria-labelledby="it-h">
+      <Breadcrumbs lang={lang} items={[{ label: t(lang, 'page.itinerary.title') }]} />
+    </section>
+
+    <div class="wrap it__grid">
+      <div class="it__main">
+        <SectionHead as="h1" id="it-h" index={t(lang, 'itinerary.index')} kicker={t(lang, 'itinerary.kicker')} title={t(lang, 'itinerary.title')} size="poster" class="it__title" />
+        <p class="it__lead">{t(lang, 'itinerary.lead')}</p>
+        {problems.length > 0 && (
+          <ul class="it__problems mono" role="alert">{problems.map((p) => <li>{t(lang, `itinerary.problem.${p}`)}</li>)}</ul>
+        )}
+        <PlannerForm lang={lang} input={input} submitted={submitted} />
+
+        {plan && (
+          <section class="plan" aria-labelledby="plan-h" id="plani" tabindex="-1">
+            <div class="plan__head">
+              <h2 id="plan-h" class="plan__title">{t(lang, 'itinerary.plan.title')}</h2>
+              <p class="plan__sum mono">{t(lang, 'itinerary.plan.summary', { days: daysLabel, interests: interestsLabel, pace: t(lang, `itinerary.pace.${input.pace}`).toLowerCase() })}</p>
+            </div>
+            {plan.empty ? (
+              <p class="plan__empty">{t(lang, 'itinerary.plan.empty')}</p>
+            ) : (
+              <>
+                <nav class="plan__days mono" aria-label={t(lang, 'itinerary.plan.title')}>
+                  {plan.days.map((d) => <a href={`#dita-${d.n}`} data-day-link={d.n}>{t(lang, 'itinerary.day', { n: String(d.n) })}</a>)}
+                </nav>
+                {plan.days.map((d) => <PlanDay lang={lang} day={d} input={input} />)}
+                <p class="plan__est mono">{t(lang, 'itinerary.estimates')}</p>
+                {plan.notes.length > 0 && (
+                  <section class="plan__notes" aria-labelledby="plan-notes-h">
+                    <h3 id="plan-notes-h" class="plan__h mono">{t(lang, 'itinerary.notes.title')}</h3>
+                    <ul>{plan.notes.map((n) => <li>{n[lang]}{n.refs.length > 0 && <sup class="mono"> <a href="#plan-burimet">[{n.refs.join(', ')}]</a></sup>}</li>)}</ul>
+                  </section>
+                )}
+                <div class="plan__actions" data-plan-actions>
+                  <p class="plan__h mono">{t(lang, 'itinerary.actions')}</p>
+                  <p class="muted plan__saved">{t(lang, 'itinerary.saved.note')}</p>
+                  <div class="cluster plan__btns">
+                    {addable.length > 1 && (
+                      <button type="button" class="pill pill--primary" data-add-all><span class="pill__main">{t(lang, 'itinerary.book.all', { n: String(addable.length) })}</span></button>
+                    )}
+                    <button type="button" class="pill pill--outline" data-share={shareUrl}><span class="pill__main" data-share-label>{t(lang, 'itinerary.share')}</span></button>
+                    <button type="button" class="pill pill--outline" data-print><span class="pill__main">{t(lang, 'itinerary.print')}</span></button>
+                  </div>
+                  <p class="plan__link mono"><a href={shareUrl}>{new URL(shareUrl, origin).href}</a></p>
+                </div>
+                <SourceList lang={lang} items={plan.sources} title={t(lang, 'itinerary.sources')} id="plan-burimet" />
+              </>
+            )}
+          </section>
+        )}
+      </div>
+
+      <aside class="it__side" aria-label={plan ? t(lang, 'itinerary.chart.title') : t(lang, 'itinerary.chart.empty')}>
+        <div class="it__sticky" data-route-chart data-legdays={legDays}>
+          {plan && !plan.empty && plan.route.length > 1 ? (
+            <Chart lang={lang} mode="route" route={plan.route} pins={plan.pins.map((p) => ({ id: p.id, n: p.n, tag: 'number' as const, key: `p-${p.id}` }))} title={t(lang, 'itinerary.chart.title')}>
+              <span slot="caption" class="it__legend">{t(lang, 'itinerary.chart.legend')}</span>
+            </Chart>
+          ) : (
+            <Chart lang={lang} mode="pin" pins={[]} crop={SHEET_CROP} title={t(lang, 'itinerary.chart.empty')}>
+              <span slot="overlay" class="it__wait"><span class="it__wait-t">{t(lang, 'itinerary.chart.empty')}</span><span class="it__wait-s mono">{t(lang, 'itinerary.chart.empty.sub')}</span></span>
+            </Chart>
+          )}
+        </div>
+      </aside>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .it__head { padding-block-start: clamp(16px, 2vw, 28px); }
+  .it__grid { display: grid; gap: clamp(28px, 4vw, 56px); margin-block-start: clamp(8px, 1vw, 16px); padding-block-end: var(--section-gap); }
+  @media (min-width: 1000px) { .it__grid { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); align-items: start; } }
+  .it__main { min-inline-size: 0; display: grid; gap: 24px; align-content: start; }
+  .it__lead { font-size: var(--step-1); line-height: 1.4; max-inline-size: 44ch; }
+  .it__problems { list-style: none; padding: 10px 0; margin: 0; font-size: var(--step--1); color: var(--pouch-text); border-block-end: 1px solid var(--pouch); }
+  .it__side { min-inline-size: 0; }
+  @media (min-width: 1000px) {
+    .it__side { position: sticky; inset-block-start: calc(var(--header-h) + 16px); }
+    .it__grid { align-items: start; }
+  }
+  @media (max-width: 999px) { .it__main { display: contents; } .it__side { order: 1; } .plan { order: 2; } }
+  @media (min-width: 1000px) { .it__side { margin-block-start: 40px; } }
+  .it__sticky :global(.chart__box) { max-block-size: calc(100svh - var(--header-h) - 120px); }
+  .it__wait { position: absolute; inset-inline: 0; inset-block-end: 12%; display: grid; justify-items: center; gap: 6px; text-align: center; }
+  .it__wait-t { font-family: var(--font-serif); font-style: italic; font-size: var(--step-2); background: var(--salt); padding: 4px 12px; }
+  .it__wait-s { font-size: var(--step--2); color: var(--muted); background: var(--salt); padding: 2px 8px; }
+  .it__legend { color: var(--muted); }
+  /* the legs of the day being read are drawn bold; the others fade */
+  [data-route-chart][data-active-day] :global([data-leg]) { opacity: 0.25; transition: opacity var(--dur-ui) var(--ease-out); }
+  [data-route-chart][data-active-day] :global([data-leg].is-day) { opacity: 1; stroke-width: 3; }
+
+  .plan { display: grid; gap: 18px; margin-block-start: clamp(24px, 4vw, 48px); scroll-margin-top: calc(var(--header-h) + 16px); }
+  .plan:focus { outline: none; }
+  .plan__head { display: grid; gap: 8px; padding-block-start: 12px; border-block-start: 3px double var(--ink); }
+  .plan__title { font-size: var(--step-4); font-weight: 700; font-stretch: 85%; line-height: 1; }
+  .plan__sum { font-size: var(--step--1); color: var(--muted); }
+  .plan__days { position: sticky; inset-block-start: var(--header-h); z-index: 2; display: flex; gap: 4px; padding-block: 8px; background: var(--salt); border-block-end: 1px solid var(--rule); overflow-x: auto; }
+  .plan__days a { display: inline-flex; align-items: center; min-block-size: 44px; padding-inline: 14px; border: 1px solid var(--ink); border-radius: var(--radius-pill); text-decoration: none; font-size: var(--step--2); white-space: nowrap; }
+  .plan__days a.is-day { background: var(--ink); color: var(--salt); }
+  .plan__empty { font-size: var(--step-1); padding-block: 16px; border-block: 1px solid var(--ink); }
+  .plan__est { font-size: var(--step--2); color: var(--muted); }
+  .plan__h { font-size: var(--step--2); color: var(--muted); padding-block-end: 8px; border-block-end: 1px solid var(--rule); }
+  .plan__notes ul { margin: 0; padding: 0 0 0 1.1em; display: grid; gap: 8px; margin-block-start: 10px; max-inline-size: 62ch; }
+  .plan__notes sup a { color: var(--muted); font-size: 0.6875rem; display: inline-block; min-inline-size: 24px; min-block-size: 24px; line-height: 24px; text-align: center; }
+  .plan__link a { display: inline-flex; align-items: center; min-block-size: 44px; }
+  /* SourceList links: full-size targets (24 px, 44 px on touch) */
+  .plan :global(.sources__body a) { display: inline-flex; align-items: center; min-block-size: 24px; }
+  @media (pointer: coarse) { .plan :global(.sources__body a) { min-block-size: 44px; } }
+  .plan__actions { display: grid; gap: 10px; padding: 18px; border: 1px solid var(--ink); }
+  .plan__btns { display: flex; flex-wrap: wrap; gap: 10px; }
+  .plan__link { font-size: var(--step--2); overflow-wrap: anywhere; color: var(--muted); }
+  .plan__link a { color: inherit; }
+
+  @media print {
+    :global(.chrome-top), :global(.site-footer), :global(.assistant-pill), :global(.skip-link), :global(footer), .pf, .it__lead, .plan__actions, .plan__days, :global(.breadcrumbs) { display: none !important; }
+    .it__grid { display: block; }
+    .it__side { position: static; break-inside: avoid; margin-block: 16px; }
+    .it__sticky :global(.chart__box) { max-block-size: none; }
+    :global(.pday) { break-inside: avoid-page; }
+    :global(body) { background: #fff; }
+  }
+</style>
+
+<script>
+  import { initItinerary } from '../scripts/itinerary';
+  initItinerary();
+</script>

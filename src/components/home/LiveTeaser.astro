@@ -1,0 +1,94 @@
+---
+/**
+ * LiveTeaser — "06 · Ditari i sotëm": the logbook's latest entry on an ink sheet. The weather
+ * readings come from GET /api/live in the browser (scripts/home.ts; shown only when fresh, with
+ * the provider's attribution from the payload); their slots are reserved so nothing moves.
+ * Server-rendered and real: this month's season items (research/seasons.json via lib/live, each
+ * with its source) and today's sessions with free places (sessions table).
+ */
+import Pill from '../site/Pill.astro';
+import { sessionsToday } from '../../lib/availability';
+import { tirane } from '../../lib/time';
+import { productUrl } from '../../lib/urls';
+import { seasonMonths, seasonYearRound } from '../heritage/facts';
+import { t } from '../../i18n/ui';
+import { path, type Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+// this month's sourced items (no low-confidence ones, no dated events: their dates are for one
+// year only); a month without any shows two all-year facts instead
+const monthItems = (seasonMonths().find((m) => m.month === tirane().month)?.items ?? []).filter((i) => i.confidence !== 'low' && i.type !== 'event');
+const season = (monthItems.length ? monthItems : seasonYearRound().filter((i) => i.confidence === 'high' && i.type !== 'practical')).slice(0, 2);
+let today: { slug: string; name_sq: string; name_en: string; starts_at: string; left: number }[] = [];
+try { today = sessionsToday().slice(0, 4); } catch { today = []; }
+---
+<section class="log on-ink" aria-labelledby="log-h" data-home-live data-state="loading">
+  <div class="wrap log__inner">
+    <p class="log__rule mono"><span>{t(lang, 'home.live.index')}</span><span>{t(lang, 'home.live.kicker')}</span><time class="log__clock" data-clock></time></p>
+    <div class="log__grid">
+      <div class="log__now">
+        <h2 id="log-h" class="log__title">{t(lang, 'home.live.title')}</h2>
+        <p class="log__temp" aria-live="polite"><span data-live-big></span><span class="log__unit">°C</span></p>
+        <p class="log__label mono" data-live-label>{t(lang, 'home.live.loading')}</p>
+      </div>
+      <dl class="log__readings">
+        <div><dt class="mono">{t(lang, 'home.live.wind')}</dt><dd data-live-wind>—</dd></div>
+        <div><dt class="mono">{t(lang, 'home.live.sea')}</dt><dd data-live-sea>—</dd></div>
+        <div><dt class="mono">{t(lang, 'home.live.sunrise')}</dt><dd data-live-sunrise>—</dd></div>
+        <div><dt class="mono">{t(lang, 'home.live.sunset')}</dt><dd data-live-sunset>—</dd></div>
+      </dl>
+      <div class="log__side">
+        {season.length > 0 && (
+          <div class="log__block">
+            <h3 class="log__h mono">{t(lang, 'home.live.season')}</h3>
+            <ul class="log__season">
+              {season.map((s) => <li>{s.text[lang]} <a class="mono log__src" href={s.source.url} rel="noopener">{s.source.publisher}</a></li>)}
+            </ul>
+          </div>
+        )}
+        {today.length > 0 && (
+          <div class="log__block">
+            <h3 class="log__h mono">{t(lang, 'home.live.today')}</h3>
+            <ul class="log__today mono">
+              {today.map((s) => <li><a href={productUrl('experience', s.slug, lang)}><span>{s.starts_at.slice(11, 16)}</span><span>{lang === 'en' ? s.name_en : s.name_sq}</span><span>{s.left === 1 ? t(lang, 'home.exp.seats.one') : t(lang, 'home.exp.seats', { n: String(s.left) })}</span></a></li>)}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+    <div class="log__foot">
+      <p class="log__stamp mono" data-live-stamp></p>
+      <Pill href={path('now', lang)} variant="outline" arrow>{t(lang, 'home.live.cta')}</Pill>
+    </div>
+  </div>
+</section>
+
+<style>
+  .log { padding-block: var(--section-gap); margin-block: var(--section-gap) 0; }
+  .log__rule { display: flex; gap: 14px; font-size: var(--step--2); padding-block-start: 10px; border-block-start: 2px solid var(--salt); }
+  .log__clock { margin-inline-start: auto; }
+  .log__grid { display: grid; gap: clamp(24px, 4vw, 56px); margin-block-start: clamp(20px, 3vw, 40px); }
+  .log__title { font-size: var(--step-3); }
+  .log__temp { font-family: var(--font-poster); font-weight: 800; font-stretch: 75%; letter-spacing: -0.04em; line-height: 0.8; font-size: clamp(7rem, 4rem + 14vw, 17rem); font-variant-numeric: tabular-nums; margin-block: 18px 10px; min-block-size: 0.8em; }
+  .log:not([data-state="ready"]) .log__unit { visibility: hidden; }
+  .log__unit { font-size: 0.32em; letter-spacing: 0; vertical-align: top; margin-inline-start: 0.06em; }
+  .log__label { font-size: var(--step--1); color: var(--muted); min-block-size: 1.4em; }
+  .log__readings { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; }
+  .log__readings > div { padding-block: 14px; border-block-start: 1px solid var(--rule); }
+  .log__readings dt { font-size: var(--step--2); color: var(--muted); }
+  .log__readings dd { margin: 4px 0 0; font-size: var(--step-3); font-weight: 650; font-stretch: 85%; font-variant-numeric: tabular-nums; min-block-size: 1.1em; }
+  .log__h { font-size: var(--step--2); color: var(--muted); padding-block-end: 8px; border-block-end: 1px solid var(--rule); }
+  .log__block + .log__block { margin-block-start: 28px; }
+  .log__season { list-style: none; margin: 0; padding: 0; }
+  .log__season li { padding-block: 10px; border-block-end: 1px solid var(--rule); max-inline-size: 52ch; }
+  .log__src { font-size: var(--step--2); color: var(--muted); white-space: nowrap; }
+  .log__today { list-style: none; margin: 0; padding: 0; font-size: var(--step--1); }
+  .log__today a { display: grid; grid-template-columns: 4em minmax(0, 1fr) auto; gap: 10px; padding-block: 12px; border-block-end: 1px solid var(--rule); text-decoration: none; min-block-size: 44px; align-items: baseline; }
+  .log[data-state="off"] .log__temp, .log[data-state="off"] .log__readings { display: none; }
+  .log[data-state="off"] .log__label { font-size: var(--step-1); color: var(--fg); margin-block-start: 18px; text-transform: none; letter-spacing: 0; font-family: var(--font-sans); }
+  .log__foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-block-start: 36px; }
+  .log__stamp { font-size: var(--step--2); color: var(--muted); min-block-size: 1.4em; }
+  .log__stamp :global(a) { color: inherit; }
+  @media (min-width: 900px) { .log__grid { grid-template-columns: minmax(0, 5fr) minmax(0, 3fr) minmax(0, 4fr); align-items: start; } .log__readings { grid-template-columns: 1fr; } }
+</style>

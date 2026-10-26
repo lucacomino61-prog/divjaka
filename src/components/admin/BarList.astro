@@ -1,0 +1,23 @@
+---
+/**
+ * Ranked horizontal bars (dataviz: magnitude of one measure across categories → bars from one
+ * baseline, value at the tip, single ink hue; `flag` rows get the pouch, e.g. zero-result
+ * searches). Every value is printed, so no tooltip is needed; it is a real list for screen readers.
+ *   <BarList rows={[{ label, value, display?, href?, flag?, note? }]} />
+ */
+interface Row { label: string; value: number; display?: string; href?: string; flag?: boolean; note?: string; mono?: boolean }
+interface Props { rows: Row[]; empty: string; max?: number; label?: string }
+const { rows, empty, max, label } = Astro.props;
+const top = max ?? Math.max(1, ...rows.map((r) => r.value));
+---
+{rows.length ? (
+  <ol class="barlist" aria-label={label}>
+    {rows.map((r) => (
+      <li class:list={['barlist__row', r.flag && 'is-flag']}>
+        <span class:list={['barlist__label', r.mono && 'mono mono-lc']}>{r.href ? <a href={r.href}>{r.label}</a> : r.label}{r.note && <span class="barlist__note mono">{r.note}</span>}</span>
+        <span class="barlist__value mono">{r.display ?? r.value}</span>
+        <span class="barlist__track" aria-hidden="true"><span class="barlist__bar" style={`--w:${Math.max(0.5, (r.value / top) * 100).toFixed(2)}%`}></span></span>
+      </li>
+    ))}
+  </ol>
+) : <p class="adm-empty mono">{empty}</p>}

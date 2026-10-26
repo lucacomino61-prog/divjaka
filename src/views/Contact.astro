@@ -1,13 +1,186 @@
 ---
 /**
- * Contact view — PLACEHOLDER from T2 (route shell). The owning feature task (PLAN §9)
- * replaces this file. Props contract: { lang, params?, data? } — data comes from
- * the view itself.
+ * Contact (/kontakt/, /en/contact/) — T7. Poster KONTAKT · the channels the hotel has CONFIRMED
+ * in settings (placeholders are never shown) · the assistant · the hotel pin on the lagoon chart ·
+ * the form (POST here without JavaScript, /api/contact with it) · how to get here from
+ * research/heritage.json (verified facts, sourced) · reception hours only when confirmed.
+ * The POST branch: same-origin is enforced by the middleware; honeypot + time trap + the same
+ * 5-per-10-minutes limit as the API; errors keep what was typed.
  */
-import PlaceholderView from '../components/site/PlaceholderView.astro';
-import type { Lang } from '../i18n/routes';
+import Base from '../layouts/Base.astro';
+import Breadcrumbs from '../components/site/Breadcrumbs.astro';
+import SectionHead from '../components/site/SectionHead.astro';
+import SourceList from '../components/site/SourceList.astro';
+import Chart from '../components/chart/Chart.astro';
+import ContactForm, { type ContactValues } from '../components/contact/ContactForm.astro';
+import { business, confirmed, social, hotelSpot, siteOriginOf } from '../components/site/site-data';
+import { fact, sourcesFor } from '../components/heritage/facts';
+import { createMessage } from '../lib/db/repo/misc';
+import { clientIp, rateLimit } from '../lib/security';
+import { t } from '../i18n/ui';
+import { coords } from '../i18n/format';
+import { path, type Lang } from '../i18n/routes';
 
 interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
-const { lang, params = {} } = Astro.props;
+const { lang } = Astro.props;
+
+/* ---------- the form without JavaScript ---------- */
+let values: Partial<ContactValues> = {};
+let errors: Record<string, string> = {};
+let formError: string | undefined;
+let sentName: string | null = null;
+if (Astro.request.method === 'POST') {
+  try {
+    const fd = await Astro.request.formData();
+    const s = (k: string, max: number) => String(fd.get(k) ?? '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim().slice(0, max);
+    values = { name: s('name', 120), email: s('email', 200), phone: s('phone', 40), subject: s('subject', 20), message: s('message', 5000) };
+    const ts = Number(fd.get('ts'));
+    const elapsed = Number.isFinite(ts) ? Date.now() - ts : 0;
+    const bot = !!s('website', 200) || elapsed < 2500 || elapsed > 86_400_000;
+    if (!values.name) errors.name = t(lang, 'contact.form.err.name');
+    if (!values.email && !values.phone) errors.email = t(lang, 'contact.form.err.contact');
+    else if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(values.email)) errors.email = t(lang, 'contact.form.err.email');
+    if ((values.message ?? '').length < 2) errors.message = t(lang, 'contact.form.err.message');
+    if (!Object.keys(errors).length) {
+      if (!bot) {
+        rateLimit('contact', clientIp(Astro), 5, 10 * 60_000);
+        const subjects = ['booking', 'group', 'order', 'park', 'privacy', 'other'];
+        createMessage({
+          kind: 'contact', name: values.name!, email: values.email || null, phone: values.phone || null, lang,
+          subject: subjects.includes(values.subject ?? '') ? t(lang, `contact.form.subject.${values.subject}`) : null, body: values.message!,
+        });
+      }
+      sentName = values.name!;
+      values = {};
+    }
+  } catch (e) {
+    const status = (e as { status?: number })?.status;
+    formError = t(lang, status === 429 ? 'contact.form.err.rate' : 'contact.form.err.server');
+  }
+}
+
+/* ---------- channels: confirmed settings only ---------- */
+const b = await business();
+const soc = await social();
+const spot = await hotelSpot();
+const address = (lang === 'sq' ? confirmed(b, 'address_sq') : confirmed(b, 'address_en')) || confirmed(b, 'address');
+const phone = confirmed(b, 'phone');
+const email = confirmed(b, 'email');
+const whatsapp = confirmed(b, 'whatsapp');
+const viber = confirmed(b, 'viber');
+const bAny = b as unknown as Record<string, unknown>;
+const placeholders = b.placeholders ?? [];
+const okField = (k: string) => typeof bAny[k] === 'string' && (bAny[k] as string).trim() && !placeholders.includes(k) ? String(bAny[k]) : '';
+const reception = okField('reception_hours');
+const checkin = okField('checkin');
+const checkout = okField('checkout');
+const digits = (s: string) => s.replace(/[^\d+]/g, '');
+const mapUrl = `https://www.openstreetmap.org/?mlat=${spot.lat.toFixed(5)}&mlon=${spot.lon.toFixed(5)}#map=16/${spot.lat.toFixed(5)}/${spot.lon.toFixed(5)}`;
+
+/* ---------- getting here (verified facts) ---------- */
+const drive = (id: string) => {
+  const f = fact(id);
+  if (!f) return null;
+  const km = /(\d+)\s*km/.exec(f.claim.en)?.[1];
+  const time = lang === 'sq'
+    ? /(rreth [^,;.]*?(?:orë|minuta)[^,;.)]*)/.exec(f.claim.sq)?.[1]
+    : /(about [^,;.]*?(?:h|hour|minutes)[^,;.)]*)/.exec(f.claim.en)?.[1];
+  const short = time?.replace(/^(rreth|about) /, '').replace(/ (pa trafik|without traffic|in free-flowing traffic)$/, '').replace(/minuta|minutes/, 'min').replace(/ hour /, ' h ').trim();
+  return km && short ? t(lang, 'contact.getting.drive', { km, time: short }) : null;
+};
+const routes = [
+  { k: 'tirana', v: drive('prac-01') }, { k: 'airport', v: drive('prac-02') }, { k: 'durres', v: drive('prac-03') }, { k: 'fier', v: drive('prac-04') },
+  { k: 'bus', v: fact('prac-08') ? t(lang, 'contact.getting.bus.value') : null },
+].filter((r) => r.v);
+const sources = sourcesFor(['prac-01', 'prac-02', 'prac-03', 'prac-04', 'prac-08']);
+const origin = await siteOriginOf(Astro.url, Astro.site);
+const jsonld = {
+  '@context': 'https://schema.org', '@type': 'ContactPage',
+  name: t(lang, 'page.contact.title'), url: new URL(path('contact', lang), origin).href, inLanguage: lang === 'sq' ? 'sq-AL' : 'en',
+  about: { '@id': `${origin}/#hotel` },
+};
 ---
-<PlaceholderView lang={lang} routeKey="contact" index="09" params={params} />
+<Base lang={lang} title={t(lang, 'page.contact.title')} description={t(lang, 'page.contact.description')} routeKey="contact" jsonld={jsonld} clientKeys={['contact.']}>
+  <section class="wrap ct__head" aria-labelledby="ct-h">
+    <Breadcrumbs lang={lang} items={[{ label: t(lang, 'page.contact.title') }]} />
+  </section>
+
+  <div class="wrap ct__grid">
+    <div class="ct__main">
+      <SectionHead as="h1" id="ct-h" index={t(lang, 'contact.index')} kicker={t(lang, 'contact.kicker')} title={t(lang, 'contact.poster')} size="poster" />
+      <p class="ct__lead">{t(lang, 'contact.lead')}</p>
+
+      <section class="ct__channels" aria-labelledby="ct-ch-h">
+        <h2 id="ct-ch-h" class="ct__rule mono">{t(lang, 'contact.channels')}</h2>
+        <dl class="chan">
+          {address && <div><dt class="mono">{t(lang, 'contact.address')}</dt><dd><span translate="no">Hotel Pelikan</span>, {address}<br /><a class="mono chan__small" href={mapUrl} rel="noopener">{t(lang, 'contact.map')} · {coords(spot.lat, spot.lon)}</a></dd></div>}
+          {phone && <div><dt class="mono">{t(lang, 'contact.phone')}</dt><dd><a href={`tel:${digits(phone)}`}>{phone}</a></dd></div>}
+          {email && <div><dt class="mono">{t(lang, 'contact.email')}</dt><dd><a href={`mailto:${email}`}>{email}</a></dd></div>}
+          {whatsapp && <div><dt class="mono">{t(lang, 'contact.whatsapp')}</dt><dd><a href={`https://wa.me/${digits(whatsapp).replace(/^\+/, '')}`} rel="noopener">{whatsapp}</a></dd></div>}
+          {viber && <div><dt class="mono">{t(lang, 'contact.viber')}</dt><dd><a href={`viber://chat?number=${encodeURIComponent(digits(viber))}`}>{viber}</a></dd></div>}
+          {reception && <div><dt class="mono">{t(lang, 'contact.hours')}</dt><dd>{reception}</dd></div>}
+          {checkin && <div><dt class="mono">{t(lang, 'contact.checkin')}</dt><dd>{checkin}</dd></div>}
+          {checkout && <div><dt class="mono">{t(lang, 'contact.checkout')}</dt><dd>{checkout}</dd></div>}
+          {Object.keys(soc).length > 0 && <div><dt class="mono">{t(lang, 'contact.social')}</dt><dd class="chan__social">{Object.entries(soc).map(([k, u]) => <a href={u} rel="noopener me">{k}</a>)}</dd></div>}
+          <div class="chan__asst">
+            <dt class="mono">{t(lang, 'contact.assistant')}</dt>
+            <dd><span>{t(lang, 'contact.assistant.body')}</span> <a href="#shkruani" class="pill pill--outline pill--s" data-assistant-open="contact">{t(lang, 'contact.assistant.open')}</a></dd>
+          </div>
+        </dl>
+        {(!phone || !email) && <p class="ct__pending">{t(lang, 'contact.pending')}</p>}
+      </section>
+    </div>
+    <aside class="ct__side" aria-label={t(lang, 'contact.chart.title')}>
+      <Chart lang={lang} mode="pin" pins={[{ id: 'visitor-centre', label: lang === 'sq' ? 'Qendra e Vizitorëve' : 'Visitor Centre' }]} highlight="hotel-pelikan" title={t(lang, 'contact.chart.title')} />
+    </aside>
+  </div>
+
+  <div class="wrap ct__lower sheet">
+    <section class="ct__form" id="shkruani" aria-label={t(lang, 'contact.form.title')}>
+      <ContactForm lang={lang} values={values} errors={errors} formError={formError} sentName={sentName} />
+    </section>
+    {routes.length > 0 && (
+      <section class="ct__get" aria-labelledby="ct-get-h">
+        <h2 id="ct-get-h" class="ct__h">{t(lang, 'contact.getting.title')}</h2>
+        <p class="muted">{t(lang, 'contact.getting.lead')}</p>
+        <dl class="get">
+          {routes.map((r) => <div><dt class="mono">{t(lang, `contact.getting.${r.k}`)}</dt><dd>{r.v}</dd></div>)}
+        </dl>
+        <a class="mono ct__more" href={path('article', lang, { slug: 'si-te-vini' })}>{t(lang, 'contact.getting.more')} →</a>
+        <SourceList lang={lang} items={sources} id="burimet-rruga" />
+      </section>
+    )}
+  </div>
+</Base>
+
+<style>
+  .ct__head { padding-block-start: clamp(16px, 2vw, 28px); }
+  .ct__grid { display: grid; gap: clamp(28px, 4vw, 56px); margin-block-start: clamp(8px, 1vw, 16px); }
+  @media (min-width: 1000px) { .ct__grid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: start; } .ct__side { margin-block-start: 40px; position: sticky; inset-block-start: calc(var(--header-h) + 16px); } }
+  .ct__main { min-inline-size: 0; display: grid; gap: 24px; align-content: start; }
+  .ct__lead { font-size: var(--step-1); line-height: 1.4; max-inline-size: 46ch; }
+  .ct__rule { font-size: var(--step--2); padding-block: 10px; border-block-start: 2px solid var(--ink); color: var(--muted); }
+  .chan { margin: 0; }
+  .chan > div { display: grid; grid-template-columns: 9em minmax(0, 1fr); gap: 4px 16px; padding-block: 14px; border-block-end: 1px solid var(--rule); align-items: baseline; }
+  .chan dt { font-size: var(--step--2); color: var(--muted); }
+  .chan dd { margin: 0; font-size: var(--step-1); line-height: 1.35; overflow-wrap: anywhere; }
+  .chan__small { font-size: var(--step--2); color: var(--muted); display: inline-flex; min-block-size: 32px; align-items: center; }
+  @media (pointer: coarse) { .chan__small { min-block-size: 44px; } }
+  .chan__social { display: flex; flex-wrap: wrap; gap: 6px 16px; text-transform: capitalize; }
+  .chan__asst dd { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; font-size: var(--step-0); }
+  .ct__pending { font-size: var(--step--1); color: var(--muted); max-inline-size: 56ch; }
+  @media (max-width: 480px) { .chan > div { grid-template-columns: minmax(0, 1fr); } }
+  .ct__lower { display: grid; gap: clamp(40px, 5vw, 80px); }
+  @media (min-width: 1000px) { .ct__lower { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: start; } }
+  .ct__form { scroll-margin-top: calc(var(--header-h) + 16px); padding-block-start: 14px; border-block-start: 3px double var(--ink); }
+  .ct__get { display: grid; gap: 12px; padding-block-start: 14px; border-block-start: 3px double var(--ink); }
+  .ct__h { font-size: var(--step-3); font-weight: 700; font-stretch: 85%; line-height: 1; }
+  .get { margin: 0; }
+  .get > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding-block: 12px; border-block-end: 1px solid var(--rule); align-items: baseline; }
+  .get dt { font-size: var(--step--2); color: var(--muted); }
+  .get dd { margin: 0; text-align: end; font-variant-numeric: tabular-nums; }
+  .ct__more { font-size: var(--step--2); justify-self: start; min-block-size: 44px; display: inline-flex; align-items: center; }
+  /* SourceList links: full-size targets (24 px, 44 px on touch) */
+  .ct__get :global(.sources__body a) { display: inline-flex; align-items: center; min-block-size: 24px; }
+  @media (pointer: coarse) { .ct__get :global(.sources__body a) { min-block-size: 44px; } }
+</style>

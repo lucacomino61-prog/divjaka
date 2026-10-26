@@ -5,6 +5,8 @@ import { load } from '../../../views/product.load';
 
 const params = { slug: Astro.params.slug ?? '' };
 const data = await load(params, 'en');
+// T5: a room or experience slug under the shop answers 301 to its own page
+if (data && 'redirect' in data) return Astro.redirect(data.redirect, 301);
 if (!data) Astro.response.status = 404;
 ---
-{data ? <Product lang="en" params={params} data={data} /> : <NotFound lang="en" />}
+{data && 'product' in data ? <Product lang="en" params={params} data={data} /> : <NotFound lang="en" />}

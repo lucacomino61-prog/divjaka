@@ -1,0 +1,286 @@
+---
+/**
+ * /admin/produktet/:id/ and /admin/produktet/i-ri/?lloji=<kind> — the bilingual product editor
+ * (T6): SQ/EN tabs, markdown-lite body with preview, includes/excludes lists, price and
+ * kind-specific quantities, poi from research/geo.json, interests + months chips, images from
+ * research/photos.json or uploaded (resized in the browser to WebP 480/960/1600), bundle
+ * contents, status/featured/sort/slug. Saving clears the DEMO flag (the API does it).
+ * Unknown `options` keys (sources, meeting point, beds …) are kept exactly as they were.
+ */
+import Admin from '../../../layouts/Admin.astro';
+import Stamp from '../../../components/site/Stamp.astro';
+import Badge from '../../../components/admin/Badge.astro';
+import { adminLang, tr, wall, pois, photoLibrary, imageThumb, TAGS, KINDS, callApi } from '../../../components/admin/admin-data';
+import { GET as productGET } from '../../api/admin/products/[id]';
+import { listCategories, listProducts, type Kind, type Product } from '../../../lib/db/repo/products';
+import { MONTHS_SHORT } from '../../../i18n/format';
+import { path } from '../../../i18n/routes';
+
+const lang = adminLang(Astro);
+const T = tr(lang);
+const raw = String(Astro.params.id ?? '');
+const isNew = raw === 'i-ri';
+const user = Astro.locals.admin as { role: 'owner' | 'staff' };
+const owner = user?.role === 'owner';
+
+type Loaded = { item: Product; bundle: { product_id: number; qty: number }[]; rates: unknown[]; sessions: { id: number; starts_at: string; left: number; capacity: number; status: string }[]; orders: number };
+let data: Loaded | null = null;
+if (!isNew) {
+  if (!/^\d+$/.test(raw)) return Astro.redirect('/admin/produktet/', 303);
+  data = await callApi<Loaded>(productGET as never, Astro, undefined, { id: raw });
+  if (!data) return Astro.redirect('/admin/produktet/', 303);
+}
+const qKind = Astro.url.searchParams.get('lloji') ?? 'goods';
+const kind: Kind = data?.item.kind ?? ((KINDS as readonly string[]).includes(qKind) ? (qKind as Kind) : 'goods');
+const defaultCategory: Record<Kind, string> = { room: 'stays', experience: 'experiences', bundle: 'bundles', gift: 'gifts', goods: 'trip' };
+const p: Partial<Product> & { kind: Kind } = data?.item ?? {
+  kind, slug: '', name_sq: '', name_en: '', summary_sq: '', summary_en: '', body_sq: '', body_en: '', includes_sq: [], includes_en: [],
+  price: 0, compare_at: null, stock: kind === 'bundle' ? 0 : null, units: kind === 'room' ? 1 : null, capacity: kind === 'room' ? 2 : kind === 'experience' ? 10 : null,
+  duration_min: kind === 'experience' ? 120 : null, poi: null, tags: [], seasons: [], images: [], options: kind === 'gift' ? { amount_min: 2000, amount_max: 50000, amount_step: 500 } : {},
+  status: 'draft', featured: false, sort: 0, demo: false, category: defaultCategory[kind],
+};
+const opt = (p.options ?? {}) as Record<string, unknown>;
+const excludes = { sq: (opt.excludes_sq as string[] | undefined) ?? [], en: (opt.excludes_en as string[] | undefined) ?? [] };
+const categories = listCategories();
+const places = pois();
+const library = photoLibrary(lang);
+const others = listProducts({ status: 'any' }).filter((x) => x.kind !== 'bundle' && x.status !== 'archived' && x.id !== p.id);
+const bundle = data?.bundle ?? [];
+const title = isNew ? T('admin.product.new.title', { kind: T(`admin.kind.${kind}`) }) : (lang === 'en' ? p.name_en : p.name_sq) || p.slug!;
+const routeKey = kind === 'room' ? 'room' : kind === 'experience' ? 'experience' : 'product';
+const publicUrl = !isNew && p.status === 'published' ? path(routeKey, lang, { slug: p.slug! }) : null;
+const priceLabel = kind === 'room' ? T('admin.product.price.room') : kind === 'experience' ? T('admin.product.price.experience') : T('admin.product.price');
+const seed = { id: p.id ?? null, kind, options: opt, images: (p.images ?? []).map((i) => ({ ...i, thumb: imageThumb(i) })), owner };
+const json = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c');
+const ownerDis = !owner;
+const statusLocked = !owner && p.status === 'published';
+---
+<Admin lang={lang} title={title} titleSize="s" section="products" kicker={isNew ? T('admin.products.new') : `NR. ${String(p.id).padStart(3, '0')} · ${T(`admin.kind.${kind}`)}`}>
+  <Fragment slot="actions">
+    <a class="pill pill--outline pill--s" href="/admin/produktet/">← {T('admin.product.back')}</a>
+    {publicUrl && <a class="pill pill--outline pill--s" href={publicUrl} target="_blank" rel="noopener">{T('admin.product.view')} ↗</a>}
+  </Fragment>
+
+  {p.demo && <p class="note-box row" style="margin-block-end:24px"><Stamp kind="demo" lang={lang} />{T('admin.product.demo')}</p>}
+  {!owner && <p class="note-box note-box--ink" style="margin-block-end:24px">{T('admin.product.owner.fields')}</p>}
+
+  <form class="editor" id="product-form" data-product-form novalidate data-endpoint={isNew ? '/api/admin/products' : `/api/admin/products/${p.id}`} data-method={isNew ? 'POST' : 'PATCH'}>
+    <div class="editor__main">
+      <section class="blk" aria-labelledby="tx-t">
+        <div class="blk__head"><h2 class="blk__title" id="tx-t">{T('admin.product.texts')}</h2></div>
+        <div class="tabs" role="tablist" aria-label={T('admin.product.texts')}>
+          {(['sq', 'en'] as const).map((l, i) => <button type="button" class="tab" role="tab" id={`tab-${l}`} aria-controls={`panel-${l}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1} data-tab={l}>{T(`admin.product.lang.${l}`)}<span class="tab__warn" data-tab-warn hidden aria-label={T(`admin.product.missing.${l}`)}>●</span></button>)}
+        </div>
+        {(['sq', 'en'] as const).map((l, i) => (
+          <div class="vstack" role="tabpanel" id={`panel-${l}`} aria-labelledby={`tab-${l}`} hidden={i !== 0} data-panel={l} style="gap:22px;padding-block-start:8px" lang={l}>
+            <div class="fld">
+              <label class="fld__label mono" for={`name_${l}`}>{T('admin.product.name')} <span class="muted">{T('admin.required')}</span></label>
+              <input id={`name_${l}`} class="fld__input" name={`name_${l}`} value={p[`name_${l}` as 'name_sq'] ?? ''} required maxlength="200" data-required />
+            </div>
+            <div class="fld">
+              <label class="fld__label mono" for={`summary_${l}`}>{T('admin.product.summary')}</label>
+              <textarea id={`summary_${l}`} class="fld__input" name={`summary_${l}`} data-nullable rows="3" maxlength="1000">{p[`summary_${l}` as 'summary_sq'] ?? ''}</textarea>
+              <p class="fld__help">{T('admin.product.summary.help')}</p>
+            </div>
+            <div class="fld">
+              <div class="row" style="justify-content:space-between">
+                <label class="fld__label mono" for={`body_${l}`}>{T('admin.product.body')}</label>
+                <button type="button" class="btn-text" data-preview={l} aria-pressed="false" data-label-write={T('admin.product.write')} data-label-preview={T('admin.product.preview')}>{T('admin.product.preview')}</button>
+              </div>
+              <textarea id={`body_${l}`} class="fld__input fld__input--tall" name={`body_${l}`} data-nullable maxlength="20000">{p[`body_${l}` as 'body_sq'] ?? ''}</textarea>
+              <div class="preview" data-preview-out={l} hidden aria-live="polite"></div>
+              <p class="fld__help">{T('admin.product.body.help')}</p>
+            </div>
+            <fieldset class="group" data-path={`includes_${l}`}>
+              <legend>{T('admin.product.includes')}</legend>
+              <ol class="listed" data-list={`includes_${l}`}>
+                {(p[`includes_${l}` as 'includes_sq'] ?? []).map((s) => <li class="listed__row"><input class="fld__input fld__input--s" value={s} maxlength="200" aria-label={T('admin.product.includes')} /><span class="listed__tools"><button type="button" class="btn-icon" data-up aria-label={T('admin.product.up')}>↑</button><button type="button" class="btn-icon" data-remove aria-label={T('admin.remove')}>×</button></span></li>)}
+              </ol>
+              <div><button type="button" class="btn-text" data-add={`includes_${l}`}>+ {T('admin.product.includes.add')}</button></div>
+            </fieldset>
+            {(kind === 'experience' || kind === 'bundle' || excludes[l].length > 0) && (
+              <fieldset class="group">
+                <legend>{T('admin.product.excludes')}</legend>
+                <ol class="listed" data-list={`excludes_${l}`}>
+                  {excludes[l].map((s) => <li class="listed__row"><input class="fld__input fld__input--s" value={s} maxlength="200" aria-label={T('admin.product.excludes')} /><span class="listed__tools"><button type="button" class="btn-icon" data-up aria-label={T('admin.product.up')}>↑</button><button type="button" class="btn-icon" data-remove aria-label={T('admin.remove')}>×</button></span></li>)}
+                </ol>
+                <div><button type="button" class="btn-text" data-add={`excludes_${l}`}>+ {T('admin.product.includes.add')}</button></div>
+              </fieldset>
+            )}
+          </div>
+        ))}
+      </section>
+
+      <section class="blk" aria-labelledby="im-t">
+        <div class="blk__head"><h2 class="blk__title" id="im-t">{T('admin.product.images')}</h2></div>
+        <p class="blk__lede">{T('admin.product.images.help')}</p>
+        <ol class="imgs" data-images data-path="images"></ol>
+        <p class="adm-empty mono" data-images-empty hidden>{T('admin.product.images.none')}</p>
+        <div class="row">
+          <button type="button" class="pill pill--outline pill--s" data-open-lib>{T('admin.product.images.library')}</button>
+          <label class="pill pill--outline pill--s upload-pill">{T('admin.product.images.upload')}<input type="file" accept="image/*" data-upload /></label>
+          <span class="form-status" data-upload-status role="status"></span>
+        </div>
+      </section>
+
+      {kind === 'bundle' && (
+        <section class="blk" aria-labelledby="bu-t">
+          <div class="blk__head"><h2 class="blk__title" id="bu-t">{T('admin.product.bundle')}</h2></div>
+          <ol class="listed" data-bundle data-path="bundle_items">
+            {bundle.map((b) => (
+              <li class="listed__row listed__row--bundle">
+                <select class="fld__input fld__input--s" data-bundle-product aria-label={T('admin.products.name')}>
+                  {others.map((o) => <option value={o.id} selected={o.id === b.product_id}>{o.name_sq} · {T(`admin.kind.${o.kind}`)}</option>)}
+                </select>
+                <span class="listed__tools"><input class="fld__input fld__input--s" type="number" min="1" max="99" value={b.qty} data-bundle-qty aria-label={T('admin.product.bundle.qty')} style="inline-size:76px" /><button type="button" class="btn-icon" data-remove aria-label={T('admin.remove')}>×</button></span>
+              </li>
+            ))}
+          </ol>
+          <div><button type="button" class="btn-text" data-add-bundle>+ {T('admin.product.bundle.add')}</button></div>
+          <template data-bundle-template>
+            <li class="listed__row listed__row--bundle">
+              <select class="fld__input fld__input--s" data-bundle-product aria-label={T('admin.products.name')}>
+                {others.map((o) => <option value={o.id}>{o.name_sq} · {T(`admin.kind.${o.kind}`)}</option>)}
+              </select>
+              <span class="listed__tools"><input class="fld__input fld__input--s" type="number" min="1" max="99" value="1" data-bundle-qty aria-label={T('admin.product.bundle.qty')} style="inline-size:76px" /><button type="button" class="btn-icon" data-remove aria-label={T('admin.remove')}>×</button></span>
+            </li>
+          </template>
+        </section>
+      )}
+
+      <section class="blk" aria-labelledby="pl-t">
+        <div class="blk__head"><h2 class="blk__title" id="pl-t">{T('admin.product.place')}</h2></div>
+        <div class="fields fields--wide">
+          <div class="fld">
+            <label class="fld__label mono" for="poi">{T('admin.product.poi')}</label>
+            <select id="poi" class="fld__input" name="poi" data-nullable>
+              <option value="">{T('admin.product.poi.none')}</option>
+              {places.map((x) => <option value={x.id} selected={p.poi === x.id} disabled={x.flag === 'destroyed' && p.poi !== x.id}>{lang === 'en' ? x.name_en : x.name_sq}{x.flag ? ` — ${T(`admin.product.poi.${x.flag}`)}` : ''}</option>)}
+            </select>
+          </div>
+          <div class="fld">
+            <label class="fld__label mono" for="category">{T('admin.product.category')}</label>
+            <select id="category" class="fld__input" name="category" data-nullable>
+              <option value="">{T('admin.product.category.none')}</option>
+              {categories.map((c) => <option value={c.id} selected={p.category === c.id}>{lang === 'en' ? c.name_en : c.name_sq}</option>)}
+            </select>
+          </div>
+        </div>
+        <fieldset class="group">
+          <legend>{T('admin.product.tags')}</legend>
+          <div class="chips">
+            {TAGS.map((tg) => <label class="chip"><input type="checkbox" name="tags" value={tg} data-type="list" checked={(p.tags ?? []).includes(tg)} />{T(`admin.tag.${tg}`)}</label>)}
+          </div>
+        </fieldset>
+        <fieldset class="group">
+          <legend>{T('admin.product.seasons')}</legend>
+          <div class="chips">
+            {MONTHS_SHORT[lang].map((m, i) => <label class="chip"><input type="checkbox" name="seasons" value={i + 1} data-type="intlist" checked={(p.seasons ?? []).includes(i + 1)} />{m}</label>)}
+          </div>
+          <p class="fld__help">{T('admin.product.seasons.help')}</p>
+        </fieldset>
+      </section>
+    </div>
+
+    <aside class="editor__side">
+      <section class="blk" aria-labelledby="pr-t">
+        <div class="blk__head"><h2 class="blk__title" id="pr-t">{T('admin.product.price.group')}</h2></div>
+        <div class="vstack" style="gap:18px">
+          <div class="fld">
+            <label class="fld__label mono" for="price">{priceLabel}</label>
+            <input id="price" class="fld__input" name="price" type="number" min="0" step="1" inputmode="numeric" data-type="int" value={p.price ?? 0} disabled={ownerDis} />
+          </div>
+          <div class="fld">
+            <label class="fld__label mono" for="compare_at">{T('admin.product.compare')}</label>
+            <input id="compare_at" class="fld__input" name="compare_at" type="number" min="0" step="1" inputmode="numeric" data-type="int" data-nullable value={p.compare_at ?? ''} disabled={ownerDis} />
+            <p class="fld__help">{T('admin.product.compare.help')}</p>
+          </div>
+          {kind === 'room' && <>
+            <div class="fld"><label class="fld__label mono" for="units">{T('admin.product.units')}</label><input id="units" class="fld__input" name="units" type="number" min="0" max="500" data-type="int" data-nullable value={p.units ?? ''} /></div>
+            <div class="fld"><label class="fld__label mono" for="capacity">{T('admin.product.capacity.room')}</label><input id="capacity" class="fld__input" name="capacity" type="number" min="1" max="20" data-type="int" data-nullable value={p.capacity ?? ''} /></div>
+            <div class="fld"><label class="fld__label mono" for="min_nights">{T('admin.product.min_nights')}</label><input id="min_nights" class="fld__input" name="options.min_nights" type="number" min="1" max="60" data-type="int" data-nullable value={(opt.min_nights as number | undefined) ?? ''} disabled={ownerDis} /></div>
+          </>}
+          {kind === 'experience' && <>
+            <div class="fld"><label class="fld__label mono" for="capacity">{T('admin.product.capacity.experience')}</label><input id="capacity" class="fld__input" name="capacity" type="number" min="1" max="1000" data-type="int" data-nullable value={p.capacity ?? ''} /></div>
+            <div class="fld"><label class="fld__label mono" for="duration_min">{T('admin.product.duration')}</label><input id="duration_min" class="fld__input" name="duration_min" type="number" min="0" data-type="int" data-nullable value={p.duration_min ?? ''} /></div>
+          </>}
+          {(kind === 'goods' || kind === 'gift' || kind === 'bundle') && (
+            <div class="fld"><label class="fld__label mono" for="stock">{kind === 'bundle' ? T('admin.product.stock.bundle') : T('admin.product.stock')}</label><input id="stock" class="fld__input" name="stock" type="number" min="0" data-type="int" data-nullable={kind === 'bundle' ? undefined : ''} value={p.stock ?? ''} />{kind !== 'bundle' && <p class="fld__help">{T('admin.product.stock.help')}</p>}</div>
+          )}
+          {kind === 'gift' && <>
+            <div class="fld"><label class="fld__label mono" for="amin">{T('admin.product.gift.min')}</label><input id="amin" class="fld__input" name="options.amount_min" type="number" min="0" data-type="int" value={(opt.amount_min as number | undefined) ?? ''} disabled={ownerDis} /></div>
+            <div class="fld"><label class="fld__label mono" for="amax">{T('admin.product.gift.max')}</label><input id="amax" class="fld__input" name="options.amount_max" type="number" min="0" data-type="int" value={(opt.amount_max as number | undefined) ?? ''} disabled={ownerDis} /></div>
+            <div class="fld"><label class="fld__label mono" for="astep">{T('admin.product.gift.step')}</label><input id="astep" class="fld__input" name="options.amount_step" type="number" min="1" data-type="int" value={(opt.amount_step as number | undefined) ?? ''} disabled={ownerDis} /></div>
+          </>}
+        </div>
+      </section>
+
+      <section class="blk" aria-labelledby="pu-t">
+        <div class="blk__head"><h2 class="blk__title" id="pu-t">{T('admin.product.publish')}</h2></div>
+        <div class="vstack" style="gap:18px">
+          <div class="fld">
+            <label class="fld__label mono" for="status">{T('admin.product.status')}</label>
+            <select id="status" class="fld__input" name="status" disabled={statusLocked}>
+              {['draft', 'published', 'archived'].map((s) => <option value={s} selected={p.status === s} disabled={!owner && s === 'published'}>{T(`admin.pstatus.${s}`)}</option>)}
+            </select>
+          </div>
+          <label class="fld fld--check"><input class="check" type="checkbox" name="featured" data-type="bool" checked={!!p.featured} /><span class="fld__label">{T('admin.product.featured')}</span></label>
+          <div class="fld">
+            <label class="fld__label mono" for="sort">{T('admin.product.sort')}</label>
+            <input id="sort" class="fld__input" name="sort" type="number" step="1" data-type="int" value={p.sort ?? 0} />
+            <p class="fld__help">{T('admin.product.sort.help')}</p>
+          </div>
+          <div class="fld">
+            <label class="fld__label mono" for="slug">{T('admin.product.slug')}</label>
+            <input id="slug" class="fld__input mono-lc" name="slug" value={p.slug ?? ''} required pattern="[a-z0-9]+(-[a-z0-9]+)*" spellcheck="false" autocapitalize="off" data-slug />
+            <p class="fld__help">{T('admin.product.slug.help')}</p>
+          </div>
+        </div>
+      </section>
+
+      {!isNew && data && (
+        <section class="blk" aria-labelledby="st-t">
+          <div class="blk__head"><h2 class="blk__title" id="st-t">{T('admin.product.stats', { n: data.orders })}</h2></div>
+          {kind === 'experience' && <>
+            <h3 class="mono" style="font-size:11px">{T('admin.product.sessions.next')}</h3>
+            <ul class="ledger">{data.sessions.slice(0, 6).map((s) => <li class="ledger__row"><span class="ledger__main mono">{wall(s.starts_at, lang)}</span><span class="ledger__side mono">{s.capacity - s.left}/{s.capacity}</span></li>)}</ul>
+            <a class="mono" style="font-size:11.5px" href={`/admin/oraret/?p=${p.id}`}>{T('admin.product.sessions.manage')}</a>
+          </>}
+          {kind === 'room' && <a class="mono" style="font-size:11.5px" href={`/admin/dhomat/#room-${p.id}`}>{T('admin.product.rates.manage')}</a>}
+          {p.status !== 'archived' && (!statusLocked) && <button type="button" class="btn-text btn-text--danger" data-action={`/api/admin/products/${p.id}`} data-method="DELETE" data-confirm="admin.product.c.archive" data-danger data-after="go:/admin/produktet/">{T('admin.product.archive')}</button>}
+        </section>
+      )}
+    </aside>
+
+    <div class="savebar" style="grid-column:1 / -1">
+      <button class="pill pill--primary" type="submit">{isNew ? T('admin.product.create') : T('admin.save')}</button>
+      {p.demo && <Badge tone="signal">DEMO</Badge>}
+      <p class="form-status" data-form-status role="status"></p>
+    </div>
+  </form>
+
+  <dialog id="lib-dlg" class="adm-dialog adm-dialog--wide" aria-labelledby="lib-t">
+    <div class="adm-dialog__head">
+      <div><h2 class="adm-dialog__title" id="lib-t">{T('admin.product.images.library.title')}</h2><p class="muted small">{T('admin.product.images.library.lede')}</p></div>
+      <button type="button" class="pill pill--outline pill--s" data-close="lib-dlg">{T('admin.close')}</button>
+    </div>
+    <ul class="lib">
+      {library.map((ph) => (
+        <li class="lib__item">
+          <img src={ph.thumb} alt="" loading="lazy" width="320" height="240" />
+          <p class="lib__cap">{lang === 'en' ? ph.alt_en : ph.alt_sq}</p>
+          <p class="lib__meta mono">{ph.verified ? `${T('admin.product.images.library.place')}: ${ph.place}` : T('admin.product.images.library.unverified')} · © {ph.credit}</p>
+          <button type="button" class="pill pill--outline pill--s" data-lib-add={ph.slug} data-alt-sq={ph.alt_sq} data-alt-en={ph.alt_en} data-thumb={ph.thumb} data-w={ph.w} data-h={ph.h} data-label-added={T('admin.product.images.library.added')}>{T('admin.product.images.library.add')}</button>
+        </li>
+      ))}
+    </ul>
+  </dialog>
+
+  <template data-list-template>
+    <li class="listed__row"><input class="fld__input fld__input--s" maxlength="200" /><span class="listed__tools"><button type="button" class="btn-icon" data-up aria-label={T('admin.product.up')}>↑</button><button type="button" class="btn-icon" data-remove aria-label={T('admin.remove')}>×</button></span></li>
+  </template>
+  <script type="application/json" id="product-seed" set:html={json(seed)} />
+  <script>
+    import '../../../scripts/admin/product';
+  </script>
+</Admin>

@@ -1,0 +1,71 @@
+---
+/**
+ * RoomPermit — the floating permit card of a room page (DESIGN §3, iyO split §5): RangePicker
+ * with per-night prices, rooms and guests (≤ capacity × rooms), then the stub: total from the
+ * server (GET /api/availability/room/:slug?from&to&qty&guests → pricing.ts, seasonal rates and
+ * automatic offers included), Add to cart / Book now after a live re-check (POST /api/quote).
+ * On phones the card lives in a full-screen sheet opened by the sticky pill (BookingSheet).
+ */
+import PermitCard from '../site/PermitCard.astro';
+import Pill from '../site/Pill.astro';
+import Price from '../site/Price.astro';
+import RangePicker from './RangePicker.astro';
+import GuestStepper from './GuestStepper.astro';
+import { t } from '../../i18n/ui';
+import { path, type Lang } from '../../i18n/routes';
+import type { Product } from '../../lib/db/repo/products';
+import type { DayCell } from './server';
+
+interface Props {
+  lang: Lang; product: Product; n: string; ym: string; days: DayCell[]; min: string; max: string;
+  hrefFor: (ym: string) => string; from?: string | null; to?: string | null; guests: number; rooms: number;
+  fromPrice: number; bestRate: boolean;
+}
+const { lang, product: p, n, ym, days, min, max, hrefFor, from = null, to = null, guests, rooms, fromPrice, bestRate } = Astro.props;
+const name = lang === 'en' ? p.name_en : p.name_sq;
+const cap = Math.max(1, p.capacity ?? 2);
+const minNights = Math.max(1, Number(p.options.min_nights ?? 1));
+const idp = `bk-${p.slug}`;
+---
+<section class="bk"
+  data-booking="room" data-slug={p.slug} data-name={name} data-capacity={cap} data-min-nights={minNights}
+  data-checkout={path('checkout', lang)} data-cart={path('cart', lang)} aria-labelledby={`${idp}-t`}
+>
+<PermitCard floating label={t(lang, 'booking.permit.room', { n })}>
+  <div class="bk__head bk__head--quiet">
+    <h2 class="bk__title bk__title--s" id={`${idp}-t`}>{name}</h2>
+    <Price lek={fromPrice} lang={lang} per="night" from />
+  </div>
+  <div class="bk__steppers">
+    <GuestStepper id={`${idp}-rooms`} name="rooms" label={t(lang, 'booking.rooms')} value={rooms} min={1} max={5} less={t(lang, 'booking.rooms.less')} more={t(lang, 'booking.rooms.more')} row />
+    <GuestStepper id={`${idp}-guests`} name="guests" label={t(lang, 'booking.guests')} value={guests} min={1} max={cap * rooms} less={t(lang, 'booking.guests.less')} more={t(lang, 'booking.guests.more')} hint={t(lang, 'booking.guests.cap', { n: cap })} row />
+  </div>
+  <RangePicker lang={lang} id={idp} mode="night" ym={ym} days={days} min={min} max={max} hrefFor={hrefFor} from={from} to={to} minNights={minNights} />
+  <details class="bk__nights" data-bk-nights hidden>
+    <summary>{t(lang, 'booking.total.breakdown')}</summary>
+    <ol data-bk-nights-list></ol>
+  </details>
+  <Fragment slot="stub">
+    <div class="bk__total" data-bk-total aria-live="polite" aria-atomic="true">
+      <p class="label muted">{t(lang, 'booking.total')}</p>
+      <p class="bk__sum" data-bk-sum><span class="bk__wait">{t(lang, 'booking.total.waitDates')}</span></p>
+      <p class="bk__calc mono" data-bk-calc></p>
+      <p class="bk__offer mono" data-bk-offer hidden></p>
+    </div>
+    <p class="bk-msg" data-bk-msg role="alert" hidden></p>
+    <div class="bk__actions">
+      <Pill variant="outline" data-bk-add>{t(lang, 'booking.add')}</Pill>
+      <Pill data-bk-book arrow>{t(lang, 'booking.book')}</Pill>
+    </div>
+    <p class="bk__done mono" data-bk-done hidden>
+      <span data-bk-done-text></span>
+      <a href={path('cart', lang)} data-cart-open>{t(lang, 'booking.viewCart')}</a>
+    </p>
+  </Fragment>
+</PermitCard>
+<div class="bk__after">
+  <p class="bk__note mono">{t(lang, 'booking.note.hold')}</p>
+  <p class="bk__note mono">{t(lang, bestRate ? 'booking.note.directBest' : 'booking.note.direct')}</p>
+  <p class="bk__nojs">{t(lang, 'booking.nojs')} <a href={path('contact', lang)}>{t(lang, 'booking.nojs.contact')}</a></p>
+</div>
+</section>

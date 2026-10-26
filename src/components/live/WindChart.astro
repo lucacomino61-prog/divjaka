@@ -1,0 +1,75 @@
+---
+/**
+ * WindChart — T3's <Chart mode="pin"> cropped around Hotel Pelikan with the wind drawn over it
+ * (DESIGN §6 Now: "wind arrow on the chart"): a set of faint parallel wind lines across the
+ * sheet and one ink arrow at the hotel pin, pointing where the wind blows TO (MET gives the
+ * direction it comes FROM), its length growing with the speed. Static SVG; no script.
+ *   <WindChart lang={lang} dir={329} kmh={16} />
+ */
+import Chart from '../chart/Chart.astro';
+import { HOTEL_ID, cropAround, poi, type Crop } from '../chart/geo';
+import { t } from '../../i18n/ui';
+import type { Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang; dir: number | null; kmh: number | null; compassName?: string; class?: string }
+const { lang, dir, kmh, compassName = '', class: cls } = Astro.props;
+const hotel = poi(HOTEL_ID);
+const near = ['divjaka-beach', 'visitor-centre', 'pine-forest'].map((id) => poi(id)).filter(Boolean) as { x: number; y: number }[];
+const crop: Crop = hotel ? cropAround([hotel, ...near], { pad: 90, min: 360, minAspect: 1, maxAspect: 1.25 }) : [372, 262, 396, 694];
+const [cx, cy, cw, ch] = crop;
+const hx = hotel ? ((hotel.x - cx) / cw) * 100 : 50;
+const hy = hotel ? ((hotel.y - cy) / ch) * 100 : 50;
+const has = dir != null && kmh != null;
+const to = has ? ((dir! + 180) % 360) : 0;
+// arrow length in px (40 → 120) and the spacing of the wind lines
+const len = has ? Math.round(44 + Math.min(kmh!, 50) * 1.6) : 0;
+const calm = has && kmh! < 3;
+// the reading tag sits on the side away from the arrow (the hotel's own name tag is up-right)
+const tagX = has && Math.sin((to * Math.PI) / 180) > 0.2 ? 'l' : 'r';
+const tagY = has && -Math.cos((to * Math.PI) / 180) > 0.2 ? 'u' : 'd';
+// wind lines: parallel dashed strokes across the box, rotated to the wind
+const lines = Array.from({ length: 9 }, (_, i) => -56 + i * 14);
+---
+<div class:list={['windchart', cls]} data-windchart>
+  <Chart lang={lang} mode="pin" pins={[]} crop={crop} title={t(lang, 'now.chart.title')} tags="name">
+    {has && !calm && (
+      <svg slot="overlay" class="windchart__field" viewBox="-50 -50 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <g transform={`rotate(${to})`}>
+          {lines.map((x, i) => <path d={`M${x} -80V80`} style={`stroke-dashoffset:${(i * 13) % 38}`} />)}
+        </g>
+      </svg>
+    )}
+    {has && (
+      <span slot="overlay" class="windchart__arrow" style={`left:${hx.toFixed(2)}%;top:${hy.toFixed(2)}%;--rot:${to}deg;--len:${len}px`}>
+        {!calm && (
+          <svg viewBox={`-10 ${-len} 20 ${len}`} width="20" height={len} aria-hidden="true">
+            <path d={`M0 -12V${-len + 3}`} class="windchart__shaft" />
+            <path d={`M-6.5 ${-len + 15}L0 ${-len + 2}L6.5 ${-len + 15}`} class="windchart__head" />
+          </svg>
+        )}
+      </span>
+    )}
+    {has && (
+      <span slot="overlay" class:list={['windchart__tag mono', `windchart__tag--${tagX}${tagY}`]} style={`left:${hx.toFixed(2)}%;top:${hy.toFixed(2)}%`}>
+        {calm ? t(lang, 'now.wind.calm') : `${t(lang, 'now.wind')} ${compassName ? t(lang, 'now.wind.from', { dir: compassName }) : ''} · ${Math.round(kmh!)} km/h`}
+      </span>
+    )}
+  </Chart>
+</div>
+
+<style>
+  .windchart { position: relative; }
+  .windchart__field { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; overflow: hidden; }
+  .windchart__field path { fill: none; stroke: var(--ink-40); stroke-width: 1; stroke-dasharray: 16 22; vector-effect: non-scaling-stroke; }
+  .windchart__arrow { position: absolute; inline-size: 0; block-size: 0; }
+  .windchart__arrow svg { position: absolute; inset-inline-start: -10px; inset-block-end: 0; inline-size: 20px; max-inline-size: none; transform-origin: 50% 100%; transform: rotate(var(--rot)); overflow: visible; }
+  .windchart__shaft { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+  .windchart__head { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: miter; vector-effect: non-scaling-stroke; }
+  .windchart__tag {
+    position: absolute; transform: translate(14px, 14px); white-space: nowrap;
+    padding: 3px 7px; background: var(--ink); color: var(--salt); font-size: 0.6875rem; line-height: 1.2;
+  }
+  .windchart__tag--ld { transform: translate(calc(-100% - 14px), 14px); }
+  .windchart__tag--lu { transform: translate(calc(-100% - 14px), calc(-100% - 14px)); }
+  .windchart__tag--ru { transform: translate(14px, calc(-100% - 30px)); }
+</style>

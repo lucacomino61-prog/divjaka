@@ -1,0 +1,75 @@
+---
+/** /admin/mesazhet/ — Mesazhet (T6): inbox for the contact form, assistant hand-offs and call-backs; read/done, reply by mailto. */
+import Admin from '../../layouts/Admin.astro';
+import Badge from '../../components/admin/Badge.astro';
+import { adminLang, tr, when, pageOf, withParam } from '../../components/admin/admin-data';
+import { listMessages } from '../../lib/db/repo/misc';
+
+const lang = adminLang(Astro);
+const T = tr(lang);
+const sp = Astro.url.searchParams;
+const status = ['new', 'read', 'done'].includes(sp.get('status') ?? '') ? (sp.get('status') as 'new') : undefined;
+const kind = ['contact', 'assistant', 'callback'].includes(sp.get('kind') ?? '') ? (sp.get('kind') as 'contact') : undefined;
+const limit = 50;
+const offset = Math.max(0, Number(sp.get('offset')) || 0);
+const data = listMessages({ status, kind, limit, offset });
+const pg = pageOf(data.total, offset, limit);
+const mailto = (email: string, subject: string | null) => `mailto:${email}?subject=${encodeURIComponent(subject ? T('admin.messages.reply.subject', { subject }) : T('admin.messages.reply.default'))}`;
+---
+<Admin lang={lang} title={T('admin.messages.title')} section="messages" kicker={T('admin.messages.kicker')}>
+  <div class="range">
+    <ul class="range__presets" aria-label={T('admin.status')}>
+      <li><a class="chip" href={withParam(Astro.url, { status: null, offset: null })} aria-current={!status ? 'true' : undefined}>{T('admin.all')}</a></li>
+      {['new', 'read', 'done'].map((s) => <li><a class="chip" href={withParam(Astro.url, { status: s, offset: null })} aria-current={status === s ? 'true' : undefined}>{T(`admin.messages.status.${s}`)}{s === 'new' && data.unread ? ` · ${data.unread}` : ''}</a></li>)}
+    </ul>
+    <ul class="range__presets" aria-label={T('admin.messages.kind')}>
+      <li><a class="chip" href={withParam(Astro.url, { kind: null, offset: null })} aria-current={!kind ? 'true' : undefined}>{T('admin.all')}</a></li>
+      {['contact', 'assistant', 'callback'].map((k) => <li><a class="chip" href={withParam(Astro.url, { kind: k, offset: null })} aria-current={kind === k ? 'true' : undefined}>{T(`admin.messages.kind.${k}`)}</a></li>)}
+    </ul>
+    <p class="range__now mono muted">{T('admin.showing', { from: pg.from, to: pg.to, total: pg.total })}</p>
+  </div>
+  {data.items.length ? (
+    <div>
+      {data.items.map((m) => (
+        <details class:list={['msg', m.status === 'new' && 'is-new']} data-msg={m.id} data-status={m.status}>
+          <summary>
+            <span class="msg__dot" aria-hidden="true"></span>
+            <span class="msg__from">{m.name || m.email || T('admin.messages.anon')} <span class="mono muted" style="font-size:10.5px">· {T(`admin.messages.kind.${m.kind}`)}</span></span>
+            <span class="msg__when mono">{when(m.created_at, lang)}</span>
+            <span class="msg__subj">{m.status === 'new' && <span class="visually-hidden">{T('admin.messages.status.new')} · </span>}{m.subject || m.body.slice(0, 120)}</span>
+          </summary>
+          <div class="msg__body" data-action-scope>
+            <p class="msg__text">{m.body}</p>
+            <dl class="kv">
+              {m.email && <><dt>{T('admin.customer.email')}</dt><dd><a href={mailto(m.email, m.subject)}>{m.email}</a></dd></>}
+              {m.phone && <><dt>{T('admin.customer.phone')}</dt><dd><a href={`tel:${m.phone.replace(/[^\d+]/g, '')}`}>{m.phone}</a></dd></>}
+              <dt>{T('admin.order.lang')}</dt><dd class="mono">{(m.lang ?? 'sq').toUpperCase()}</dd>
+              <dt>{T('admin.status')}</dt><dd><Badge tone={m.status === 'new' ? 'signal' : m.status === 'done' ? 'ink' : 'muted'}>{T(`admin.messages.status.${m.status}`)}</Badge></dd>
+            </dl>
+            <div class="row">
+              {m.email && <a class="pill pill--primary pill--s" href={mailto(m.email, m.subject)}>{T('admin.messages.reply')}</a>}
+              {m.phone && <a class="pill pill--outline pill--s" href={`tel:${m.phone.replace(/[^\d+]/g, '')}`}>{T('admin.messages.call')}</a>}
+              {m.status !== 'done' && <button type="button" class="pill pill--outline pill--s" data-action={`/api/admin/messages/${m.id}`} data-method="PATCH" data-body='{"status":"done"}'>{T('admin.messages.mark.done')}</button>}
+              {m.status !== 'new' && <button type="button" class="btn-text" data-action={`/api/admin/messages/${m.id}`} data-method="PATCH" data-body='{"status":"new"}'>{T('admin.messages.mark.new')}</button>}
+            </div>
+          </div>
+        </details>
+      ))}
+    </div>
+  ) : <p class="adm-empty mono">{T('admin.messages.none')}</p>}
+  <nav class="pager" aria-label={T('admin.page')}>
+    {pg.prev !== null && <a class="pill pill--outline pill--s" href={withParam(Astro.url, { offset: pg.prev || null })}>← {T('admin.prev')}</a>}
+    {pg.next !== null && <a class="pill pill--outline pill--s" href={withParam(Astro.url, { offset: pg.next })}>{T('admin.next')} →</a>}
+  </nav>
+  <script>
+    import { api } from '../../scripts/admin/api';
+    // Opening a new message marks it read (quietly, no reload).
+    for (const d of document.querySelectorAll<HTMLDetailsElement>('details[data-msg]')) {
+      d.addEventListener('toggle', async () => {
+        if (!d.open || d.dataset.status !== 'new') return;
+        d.dataset.status = 'read';
+        try { await api(`/api/admin/messages/${d.dataset.msg}`, 'PATCH', { status: 'read' }); d.classList.remove('is-new'); } catch { d.dataset.status = 'new'; }
+      });
+    }
+  </script>
+</Admin>

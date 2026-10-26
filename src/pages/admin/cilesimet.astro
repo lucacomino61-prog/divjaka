@@ -1,0 +1,265 @@
+---
+/**
+ * /admin/cilesimet/ — Cilësimet (T6): hotel details (placeholders flagged), verified ratings,
+ * payments (password re-entry), EUR rate (BoA link), social links, SEO site address, inventory,
+ * privacy, assistant, UTM link builder, own password, server state. Owner edits; staff reads.
+ * Business form sends only fields that changed or that the owner ticks as confirmed, so saving
+ * one field never publishes another placeholder by accident.
+ */
+import Admin from '../../layouts/Admin.astro';
+import Badge from '../../components/admin/Badge.astro';
+import { adminLang, tr, when, callApi, type MeEnv } from '../../components/admin/admin-data';
+import { getAllSettings } from '../../lib/db/repo/settings';
+import { GET as meGET } from '../api/admin/me';
+import { ROUTES } from '../../i18n/routes';
+
+const lang = adminLang(Astro);
+const T = tr(lang);
+const owner = (Astro.locals.admin as { role: string } | null)?.role === 'owner';
+const s = getAllSettings();
+const env = (await callApi<{ env: MeEnv }>(meGET as never, Astro))?.env;
+const b = s.business;
+const ph = new Set(b.placeholders ?? []);
+const BFIELDS: [keyof typeof b, string?][] = [['name'], ['legal_name'], ['nipt'], ['address_sq'], ['address_en'], ['address'], ['phone', 'tel'], ['email', 'email'], ['whatsapp', 'tel'], ['viber', 'tel'], ['checkin'], ['checkout'], ['reception_hours']];
+const SOCIAL = ['facebook', 'instagram', 'tiktok', 'youtube', 'tripadvisor', 'google'];
+const socialKeys = [...new Set([...SOCIAL, ...Object.keys(s.social ?? {})])];
+const inv = s.inventory as unknown as Record<string, number>;
+const MAIN_INV = ['low_stock', 'booking_cutoff_hours', 'booking_horizon_days', 'max_room_nights_per_order', 'max_open_orders_per_email', 'pending_alert_per_hour', 'unconfirmed_share', 'short_hold_hours', 'far_stay_nights', 'far_stay_days'];
+const ADV_INV = Object.keys(inv).filter((k) => !MAIN_INV.includes(k));
+const PRIV = ['events_days', 'messages_days', 'orders_days', 'inventory_log_days', 'events_per_day'];
+const pages = Object.entries(ROUTES).filter(([, v]) => !v.sq.includes('['));
+const origin = env?.site_url || Astro.url.origin;
+const dis = !owner;
+const toc = [['hoteli', 'business'], ['vleresimet', 'proof'], ['pagesat', 'payments'], ['kursi', 'currency'], ['rrjetet', 'social'], ['seo', 'seo'], ['inventari', 'inventory'], ['privatesia', 'privacy'], ['asistenti', 'assistant'], ['utm', 'utm'], ['fjalekalimi', 'password'], ['serveri', 'env']];
+const humanKey = (k: string) => k.replace(/_/g, ' ');
+---
+<Admin lang={lang} title={T('admin.settings.title')} section="settings" kicker={T('admin.settings.kicker')}>
+  {!owner && <p class="note-box note-box--ink" style="margin-block-end:24px">{T('admin.settings.staff')}</p>}
+  <nav class="chips" aria-label={T('admin.settings.toc')} style="margin-block-end:32px">
+    {toc.map(([id, k]) => <a class="chip" href={`#${id}`}>{T(`admin.settings.${k}`)}</a>)}
+  </nav>
+
+  <div class="cols cols--2">
+    <section class="blk" id="hoteli" aria-labelledby="h-t">
+      <div class="blk__head"><h2 class="blk__title" id="h-t">{T('admin.settings.business')}</h2></div>
+      <p class="blk__lede small">{T('admin.settings.business.help')}</p>
+      <form data-api="/api/admin/settings" data-method="PUT" data-field-prefix="business." data-changed-only>
+        <fieldset class="group" disabled={dis} style="gap:16px">
+          {BFIELDS.map(([f, type]) => (
+            <div class="fld">
+              <label class="fld__label mono" for={`b-${f}`}>{T(`admin.settings.b.${f}`)}{ph.has(f) && <span class="unconf mono">{T('admin.settings.unconfirmed')}</span>}</label>
+              <input id={`b-${f}`} class="fld__input" type={(type ?? 'text') as 'text'} name={`business.${f}`} value={String(b[f] ?? '')} />
+              {ph.has(f) && b[f] && <label class="fld--check fld" style="min-block-size:36px"><input class="check" type="checkbox" data-confirm-field={`business.${f}`} /><span class="fld__label">{T('admin.settings.confirm.field')}</span></label>}
+            </div>
+          ))}
+          <div class="fields">
+            {(['lat', 'lon'] as const).map((f) => (
+              <div class="fld">
+                <label class="fld__label mono" for={`b-${f}`}>{T(`admin.settings.b.${f}`)}{ph.has(f) && <span class="unconf mono">{T('admin.settings.unconfirmed')}</span>}</label>
+                <input id={`b-${f}`} class="fld__input" type="number" step="0.000001" name={`business.${f}`} data-type="num" data-nullable value={b[f] ?? ''} />
+              </div>
+            ))}
+          </div>
+          {owner && <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.save')}</button></div>}
+        </fieldset>
+      </form>
+    </section>
+
+    <div class="vstack" style="gap:clamp(36px,4vw,56px)">
+      <section class="blk" id="pagesat" aria-labelledby="p-t">
+        <div class="blk__head"><h2 class="blk__title" id="p-t">{T('admin.settings.payments')}</h2></div>
+        <p class="blk__lede small">{T('admin.settings.payments.help')}</p>
+        <form data-api="/api/admin/settings" data-method="PUT" data-field-prefix="payments." data-reauth="payments.iban,payments.beneficiary,payments.bank_name,payments.swift,payments.mode,payments.methods">
+          <fieldset class="group" disabled={dis} style="gap:16px">
+            <fieldset class="group">
+              <legend>{T('admin.settings.p.methods')}</legend>
+              {(['hotel', 'bank', 'card'] as const).map((m) => <label class="fld fld--check"><input class="check" type="checkbox" name={`payments.methods.${m}`} data-type="bool" checked={s.payments.methods[m]} /><span class="fld__label">{T(`admin.pay.method.${m}`)}</span></label>)}
+            </fieldset>
+            <fieldset class="group">
+              <legend>{T('admin.settings.p.mode')}</legend>
+              {(['test', 'live'] as const).map((m) => <label class="fld fld--check"><input class="check" type="radio" name="payments.mode" value={m} checked={s.payments.mode === m} /><span class="fld__label">{T(`admin.settings.p.mode.${m}`)}</span></label>)}
+            </fieldset>
+            <div class="fields">
+              <div class="fld span-all"><label class="fld__label mono" for="p-iban">{T('admin.settings.p.iban')}</label><input id="p-iban" class="fld__input mono-lc" name="payments.iban" value={s.payments.iban} autocapitalize="characters" spellcheck="false" placeholder="AL47 2121 1009 0000 0002 3569 8741" /></div>
+              <div class="fld"><label class="fld__label mono" for="p-ben">{T('admin.settings.p.beneficiary')}</label><input id="p-ben" class="fld__input" name="payments.beneficiary" value={s.payments.beneficiary} /></div>
+              <div class="fld"><label class="fld__label mono" for="p-bank">{T('admin.settings.p.bank_name')}</label><input id="p-bank" class="fld__input" name="payments.bank_name" value={s.payments.bank_name} /></div>
+              <div class="fld"><label class="fld__label mono" for="p-swift">{T('admin.settings.p.swift')}</label><input id="p-swift" class="fld__input mono-lc" name="payments.swift" value={s.payments.swift} autocapitalize="characters" /></div>
+            </div>
+            <fieldset class="group">
+              <legend>{T('admin.settings.p.holds')}</legend>
+              <div class="fields">
+                {(['card_hold_minutes', 'bank_hold_hours', 'hotel_hold_hours'] as const).map((f) => <div class="fld"><label class="fld__label mono" for={`p-${f}`}>{T(`admin.settings.p.${f}`)}</label><input id={`p-${f}`} class="fld__input" type="number" min="0" name={`payments.${f}`} data-type="int" value={s.payments[f]} /></div>)}
+              </div>
+            </fieldset>
+            {owner && <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.save')}</button></div>}
+          </fieldset>
+        </form>
+      </section>
+
+      <section class="blk" id="kursi" aria-labelledby="c-t">
+        <div class="blk__head"><h2 class="blk__title" id="c-t">{T('admin.settings.currency')}</h2></div>
+        <p class="blk__lede small">{T('admin.settings.c.help')} <a href="https://www.bankofalbania.org/Tregjet/Kursi_zyrtar_i_kembimit/" target="_blank" rel="noopener">{T('admin.settings.c.boa')} ↗</a></p>
+        <form data-api="/api/admin/settings" data-method="PUT" data-field-prefix="currency.">
+          <fieldset class="group" disabled={dis} style="gap:16px">
+            <div class="fields">
+              <div class="fld"><label class="fld__label mono" for="c-rate">{T('admin.settings.c.rate')}</label><input id="c-rate" class="fld__input" type="number" step="0.01" min="0" name="currency.eur_rate" data-type="num" value={s.currency.eur_rate} /></div>
+              <div class="fld"><label class="fld__label mono" for="c-date">{T('admin.settings.c.date')}</label><input id="c-date" class="fld__input" type="date" name="currency.eur_rate_date" value={s.currency.eur_rate_date} /></div>
+            </div>
+            <div class="fld"><label class="fld__label mono" for="c-src">{T('admin.settings.c.source')}</label><input id="c-src" class="fld__input" type="url" name="currency.eur_rate_source" value={s.currency.eur_rate_source} /></div>
+            {owner && <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.save')}</button></div>}
+          </fieldset>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <section class="blk" id="vleresimet" aria-labelledby="v-t">
+    <div class="blk__head"><h2 class="blk__title" id="v-t">{T('admin.settings.proof')}</h2></div>
+    <p class="blk__lede small">{T('admin.settings.proof.help')}</p>
+    <form data-api="/api/admin/settings" data-method="PUT" data-proof-form data-field-prefix="proof.">
+      <fieldset class="group" disabled={dis} style="gap:16px">
+        <label class="fld fld--check"><input class="check" type="checkbox" name="proof.show" data-type="bool" checked={s.proof.show} /><span class="fld__label">{T('admin.settings.proof.show')}</span></label>
+        <ol class="vstack" style="list-style:none;padding:0;gap:16px" data-proof-items data-path="proof.items">
+          {s.proof.items.map((it) => (
+            <li class="fields proofrow" data-proof-row data-extra={JSON.stringify({ score: it.score, scale: it.scale })}>
+              <div class="fld"><label class="fld__label mono">{T('admin.settings.proof.label_sq')}<input class="fld__input" data-k="label_sq" value={it.label_sq} /></label></div>
+              <div class="fld"><label class="fld__label mono">{T('admin.settings.proof.label_en')}<input class="fld__input" data-k="label_en" value={it.label_en} /></label></div>
+              <div class="fld"><label class="fld__label mono">{T('admin.settings.proof.value')}<input class="fld__input" data-k="value" value={it.value} /></label></div>
+              <div class="fld"><label class="fld__label mono">{T('admin.settings.proof.count')}<input class="fld__input" type="number" min="0" data-k="count" value={it.count ?? ''} /></label></div>
+              <div class="fld span-2"><label class="fld__label mono">{T('admin.settings.proof.url')}<input class="fld__input" type="url" data-k="source_url" value={it.source_url} /></label></div>
+              <div class="fld"><label class="fld__label mono">{T('admin.settings.proof.date')}<input class="fld__input" type="date" data-k="date" value={it.date} /></label></div>
+              <div class="fld" style="align-self:end"><button type="button" class="btn-text btn-text--danger" data-proof-remove>{T('admin.remove')}</button></div>
+            </li>
+          ))}
+        </ol>
+        {owner && <div class="form-actions"><button type="button" class="btn-text" data-proof-add>+ {T('admin.settings.proof.add')}</button><button class="pill pill--primary pill--s" type="submit">{T('admin.save')}</button></div>}
+      </fieldset>
+    </form>
+  </section>
+
+  <div class="cols cols--2" style="margin-block-start:clamp(36px,4vw,56px)">
+    <section class="blk" id="rrjetet" aria-labelledby="so-t">
+      <div class="blk__head"><h2 class="blk__title" id="so-t">{T('admin.settings.social')}</h2></div>
+      <p class="blk__lede small">{T('admin.settings.social.help')}</p>
+      <form data-api="/api/admin/settings" data-method="PUT" data-field-prefix="social." data-social-form>
+        <fieldset class="group" disabled={dis} style="gap:14px">
+          {socialKeys.map((k) => <div class="fld"><label class="fld__label mono" for={`so-${k}`}>{humanKey(k)}</label><input id={`so-${k}`} class="fld__input" type="url" name={`social.${k}`} value={s.social[k] ?? ''} placeholder="https://" inputmode="url" /></div>)}
+          <div class="fields" data-social-new>
+            <div class="fld"><label class="fld__label mono" for="so-new-k">{T('admin.settings.social.other')} · {T('admin.settings.social.key')}</label><input id="so-new-k" class="fld__input" data-social-key pattern="[a-z0-9_-]{1,30}" /></div>
+            <div class="fld"><label class="fld__label mono" for="so-new-v">{T('admin.settings.social.url')}</label><input id="so-new-v" class="fld__input" type="url" data-social-url placeholder="https://" /></div>
+          </div>
+          {owner && <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.save')}</button></div>}
+        </fieldset>
+      </form>
+    </section>
+
+    <div class="vstack" style="gap:clamp(36px,4vw,56px)">
+      <section class="blk" id="seo" aria-labelledby="se-t">
+        <div class="blk__head"><h2 class="blk__title" id="se-t">{T('admin.settings.seo')}</h2></div>
+        <form data-api="/api/admin/settings" data-method="PUT" data-field-prefix="seo.">
+          <fieldset class="group" disabled={dis} style="gap:16px">
+            <div class="fld"><label class="fld__label mono" for="se-url">{T('admin.settings.seo.site_url')}{!s.seo.site_url && <span class="unconf mono">{T('admin.settings.unconfirmed')}</span>}</label><input id="se-url" class="fld__input" type="url" name="seo.site_url" value={s.seo.site_url} placeholder="https://" /><p class="fld__help">{T('admin.settings.seo.site_url.help')}</p></div>
+            <div class="fld"><label class="fld__label mono" for="se-img">{T('admin.settings.seo.default_image')}</label><input id="se-img" class="fld__input" name="seo.default_image" value={s.seo.default_image} placeholder="/og-default.png" /></div>
+            {owner && <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.save')}</button></div>}
+          </fieldset>
+        </form>
+      </section>
+
+      <section class="blk" id="asistenti" aria-labelledby="as-t">
+        <div class="blk__head"><h2 class="blk__title" id="as-t">{T('admin.settings.assistant')}</h2></div>
+        <form data-api="/api/admin/settings" data-method="PUT" data-field-prefix="assistant.">
+          <fieldset class="group" disabled={dis} style="gap:12px">
+            <label class="fld fld--check"><input class="check" type="checkbox" name="assistant.enabled" data-type="bool" checked={s.assistant.enabled} /><span class="fld__label">{T('admin.settings.a.enabled')}</span></label>
+            <label class="fld fld--check"><input class="check" type="checkbox" name="assistant.use_claude" data-type="bool" checked={s.assistant.use_claude} /><span class="fld__label">{T('admin.settings.a.use_claude')}</span></label>
+            <div class="fields">
+              <div class="fld"><label class="fld__label mono" for="as-cap">{T('admin.settings.a.daily_cap')}</label><input id="as-cap" class="fld__input" type="number" min="0" name="assistant.daily_cap" data-type="int" value={s.assistant.daily_cap} /></div>
+              <div class="fld"><label class="fld__label mono" for="as-mail">{T('admin.settings.a.handoff_email')}</label><input id="as-mail" class="fld__input" type="email" name="assistant.handoff_email" value={s.assistant.handoff_email} /></div>
+            </div>
+            {owner && <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.save')}</button></div>}
+          </fieldset>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <div class="cols cols--2" style="margin-block-start:clamp(36px,4vw,56px)">
+    <section class="blk" id="inventari" aria-labelledby="in-t">
+      <div class="blk__head"><h2 class="blk__title" id="in-t">{T('admin.settings.inventory')}</h2></div>
+      <form data-api="/api/admin/settings" data-method="PUT" data-field-prefix="inventory.">
+        <fieldset class="group" disabled={dis} style="gap:16px">
+          <div class="fields">
+            {MAIN_INV.map((k) => <div class="fld"><label class="fld__label mono" for={`in-${k}`}>{T(`admin.settings.i.${k}`)}</label><input id={`in-${k}`} class="fld__input" type="number" min="0" step={k === 'unconfirmed_share' ? '0.05' : '1'} name={`inventory.${k}`} data-type={k === 'unconfirmed_share' ? 'num' : 'int'} value={inv[k]} /></div>)}
+          </div>
+          <details>
+            <summary class="mono" style="font-size:11px;min-block-size:44px;display:inline-flex;align-items:center;cursor:pointer">{T('admin.settings.i.advanced')}</summary>
+            <div class="fields" style="padding-block:10px">
+              {ADV_INV.map((k) => <div class="fld"><label class="fld__label mono" for={`in-${k}`}>{humanKey(k)}</label><input id={`in-${k}`} class="fld__input" type="number" min="1" name={`inventory.${k}`} data-type="int" value={inv[k]} /></div>)}
+            </div>
+          </details>
+          {owner && <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.save')}</button></div>}
+        </fieldset>
+      </form>
+    </section>
+
+    <section class="blk" id="privatesia" aria-labelledby="pr-t">
+      <div class="blk__head"><h2 class="blk__title" id="pr-t">{T('admin.settings.privacy')}</h2></div>
+      <form data-api="/api/admin/settings" data-method="PUT" data-field-prefix="privacy.">
+        <fieldset class="group" disabled={dis} style="gap:16px">
+          <div class="fields">
+            {PRIV.map((k) => <div class="fld"><label class="fld__label mono" for={`pr-${k}`}>{T(`admin.settings.pr.${k}`)}</label><input id={`pr-${k}`} class="fld__input" type="number" min="0" name={`privacy.${k}`} data-type="int" value={(s.privacy as unknown as Record<string, number>)[k]} /></div>)}
+          </div>
+          {owner && <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.save')}</button></div>}
+        </fieldset>
+      </form>
+    </section>
+  </div>
+
+  <div class="cols cols--2" style="margin-block-start:clamp(36px,4vw,56px)">
+    <section class="blk" id="utm" aria-labelledby="ut-t">
+      <div class="blk__head"><h2 class="blk__title" id="ut-t">{T('admin.settings.utm')}</h2></div>
+      <p class="blk__lede small">{T('admin.settings.utm.help')}</p>
+      {!env?.site_url && <p class="fld__help signal-text">{T('admin.settings.utm.nosite')}</p>}
+      <form class="vstack" style="gap:14px" data-utm data-origin={origin}>
+        <div class="fld"><label class="fld__label mono" for="u-page">{T('admin.settings.utm.page')}</label>
+          <select id="u-page" class="fld__input" data-u="page">
+            {pages.map(([k, v]) => <option value={v.sq}>{T(`nav.${k}`)} · {v.sq}</option>)}
+            {pages.map(([k, v]) => <option value={v.en}>{T(`nav.${k}`)} · {v.en}</option>)}
+          </select>
+        </div>
+        <div class="fields">
+          <div class="fld"><label class="fld__label mono" for="u-src">{T('admin.settings.utm.source')}</label><input id="u-src" class="fld__input" data-u="utm_source" placeholder="facebook" list="u-src-list" /><datalist id="u-src-list"><option value="facebook" /><option value="instagram" /><option value="google" /><option value="newsletter" /><option value="whatsapp" /><option value="booking" /></datalist></div>
+          <div class="fld"><label class="fld__label mono" for="u-med">{T('admin.settings.utm.medium')}</label><input id="u-med" class="fld__input" data-u="utm_medium" placeholder="social" list="u-med-list" /><datalist id="u-med-list"><option value="social" /><option value="cpc" /><option value="email" /><option value="qr" /><option value="referral" /></datalist></div>
+          <div class="fld"><label class="fld__label mono" for="u-camp">{T('admin.settings.utm.campaign')}</label><input id="u-camp" class="fld__input" data-u="utm_campaign" placeholder="pelikanet-pranvere" /></div>
+          <div class="fld"><label class="fld__label mono" for="u-cont">{T('admin.settings.utm.content')}</label><input id="u-cont" class="fld__input" data-u="utm_content" /></div>
+        </div>
+        <div class="fld"><label class="fld__label mono" for="u-out">{T('admin.settings.utm.result')}</label><div class="row" style="flex-wrap:nowrap"><input id="u-out" class="fld__input mono-lc" readonly /><button type="button" class="pill pill--primary pill--s" data-copy="#u-out">{T('admin.copy')}</button></div></div>
+      </form>
+    </section>
+
+    <div class="vstack" style="gap:clamp(36px,4vw,56px)">
+      <section class="blk" id="fjalekalimi" aria-labelledby="pw-t">
+        <div class="blk__head"><h2 class="blk__title" id="pw-t">{T('admin.settings.password')}</h2></div>
+        <form class="vstack" style="gap:16px" data-api="/api/admin/password" data-method="POST" data-success="admin.settings.password.done">
+          <input type="text" autocomplete="username" value={(Astro.locals.admin as { email: string } | null)?.email ?? ''} hidden readonly aria-hidden="true" tabindex="-1" />
+          <div class="fld"><label class="fld__label mono" for="pw-cur">{T('admin.settings.password.current')}</label><input id="pw-cur" class="fld__input" type="password" name="current" autocomplete="current-password" required /></div>
+          <div class="fld"><label class="fld__label mono" for="pw-new">{T('admin.settings.password.next')}</label><input id="pw-new" class="fld__input" type="password" name="next" autocomplete="new-password" minlength="12" required /></div>
+          <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.settings.password.save')}</button></div>
+        </form>
+      </section>
+
+      <section class="blk" id="serveri" aria-labelledby="sv-t">
+        <div class="blk__head"><h2 class="blk__title" id="sv-t">{T('admin.settings.env')}</h2></div>
+        {env && (
+          <ul class="ledger">
+            <li class="ledger__row"><span class="ledger__main">{T('admin.settings.env.card', { mode: env.card_mode.toUpperCase(), pok: env.pok_configured ? T('admin.settings.env.configured') : T('admin.settings.env.missing') })}</span><span class="ledger__side">{env.test_payments && <Badge tone="signal">TEST</Badge>}</span></li>
+            <li class="ledger__row"><span class="ledger__main">{T('admin.settings.env.claude', { state: env.claude ? T('admin.settings.env.on') : T('admin.settings.env.off') })}</span></li>
+            {env.warnings.map((w) => <li class="ledger__row"><span class="ledger__main signal-text small">{T(`admin.warn.${w}`, { n: env.held_last_hour.orders, r: env.held_last_hour.roomNights, s: env.held_last_hour.seats, date: when(env.payment_details_changed_at, lang, 'medium') })}</span></li>)}
+          </ul>
+        )}
+      </section>
+    </div>
+  </div>
+  <script>
+    import '../../scripts/admin/settings';
+  </script>
+</Admin>

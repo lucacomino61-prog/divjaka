@@ -1,0 +1,156 @@
+---
+/**
+ * Admin shell (T6, DESIGN §9): salt page, ink sidebar with the numbered legend, poster page
+ * title, denser rules-not-panels content. No GSAP, no Lenis, no loader: motion is limited to
+ * ≤ 150 ms CSS state changes. Albanian by default; the EN toggle stores localStorage
+ * `dv-admin-lang` and the `dv_admin_lang` cookie (read on the server, so pages render in the
+ * chosen language with no flash).
+ *
+ * Props: lang, title (document + h1), section (Nav key), kicker?, index?, bare? (login / print:
+ * no sidebar), h1? (false = the page prints its own heading).
+ * Slots: default, `actions` (beside the title), `head`.
+ */
+import '../styles/base.css';
+import '../styles/tokens.css';
+import '../styles/type.css';
+import '../styles/chrome.css';
+import '../styles/admin.css';
+import Nav, { SECTIONS } from '../components/admin/Nav.astro';
+import Wordmark from '../components/site/Wordmark.astro';
+import { t, pick } from '../i18n/ui';
+import type { Lang } from '../i18n/routes';
+import { formatDate, tirane } from '../i18n/format';
+import { get } from '../lib/db/index';
+
+interface Props { lang: Lang; title: string; section?: string; kicker?: string; bare?: boolean; h1?: boolean; bodyClass?: string; titleSize?: 'l' | 's' }
+const { lang, title, section = '', kicker, bare = false, h1 = true, bodyClass, titleSize = 'l' } = Astro.props;
+const user = Astro.locals.admin as { email: string; name: string | null; role: 'owner' | 'staff' } | null;
+
+let pending = 0, unread = 0;
+if (user && !bare) {
+  try {
+    pending = Number(get<{ n: number }>("SELECT COUNT(*) AS n FROM orders WHERE status = 'pending' AND test = 0")?.n ?? 0);
+    unread = Number(get<{ n: number }>("SELECT COUNT(*) AS n FROM messages WHERE status = 'new'")?.n ?? 0);
+  } catch { /* counts are a convenience */ }
+}
+const idx = SECTIONS.findIndex((s) => s.key === section);
+const index = idx >= 0 ? String(idx + 1).padStart(2, '0') : '';
+const now = tirane();
+const strings = pick(lang, ['admin.', 'stamp.']);
+const docTitle = `${title} · ${t(lang, 'admin.title')} · Hotel Pelikan`;
+---
+<!doctype html>
+<html lang={lang} dir="ltr" class="adm-html" data-admin-lang={lang}>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>{docTitle}</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#0E2B29" />
+  <meta name="color-scheme" content="light" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preload" href="/fonts/bricolage-grotesque-var-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fonts/geist-mono-var-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <script is:inline>
+    (function () {
+      var h = document.documentElement;
+      h.classList.add('js');
+      try {
+        var want = localStorage.getItem('dv-admin-lang');
+        var has = h.getAttribute('data-admin-lang');
+        if ((want === 'sq' || want === 'en') && want !== has && !sessionStorage.getItem('dv-admin-lang-sync')) {
+          sessionStorage.setItem('dv-admin-lang-sync', '1');
+          document.cookie = 'dv_admin_lang=' + want + '; path=/admin; max-age=31536000; samesite=strict' + (location.protocol === 'https:' ? '; secure' : '');
+          location.reload();
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <slot name="head" />
+</head>
+<body class:list={['adm-body', bare && 'adm-body--bare', bodyClass]}>
+  <a class="skip-link" href="#main">{t(lang, 'admin.skip')}</a>
+  {bare ? (
+    <main id="main" tabindex="-1" class="adm-bare"><slot /></main>
+  ) : (
+    <div class="adm">
+      <aside class="adm-side on-ink">
+        <a class="adm-brand" href="/admin/">
+          <Wordmark variant="solid" class="adm-brand__mark" />
+          <span class="adm-brand__sub mono">{t(lang, 'admin.brand.sub')}</span>
+        </a>
+        <Nav lang={lang} current={section} pending={pending} unread={unread} />
+        <div class="adm-side__foot">
+          <p class="mono adm-side__date">{formatDate(now.iso, lang, 'long')}</p>
+          {user && <p class="adm-side__user"><span class="adm-side__email">{user.email}</span> <span class="mono muted">{t(lang, `admin.user.role.${user.role}`)}</span></p>}
+          <div class="adm-side__tools">
+            <button type="button" class="adm-link mono" data-admin-lang-toggle={lang === 'sq' ? 'en' : 'sq'} lang={lang === 'sq' ? 'en' : 'sq'} aria-label={t(lang, 'admin.lang.toggle.aria')}>{t(lang, 'admin.lang.toggle')}</button>
+            <a class="adm-link mono" href="/">{t(lang, 'admin.nav.site')}</a>
+            <button type="button" class="adm-link mono" data-admin-logout>{t(lang, 'admin.logout')}</button>
+          </div>
+        </div>
+      </aside>
+
+      <header class="adm-phonebar">
+        <a class="adm-brand adm-brand--bar" href="/admin/" aria-label={t(lang, 'admin.nav.dashboard')}>
+          <Wordmark variant="solid" class="adm-brand__mark" />
+        </a>
+        {(pending > 0 || unread > 0) && <span class="adm-phonebar__count mono" aria-hidden="true"><span class="adm-nav__dot"></span>{pending + unread}</span>}
+        <button type="button" class="pill pill--outline pill--s adm-phonebar__menu" data-open="adm-menu" aria-controls="adm-menu" aria-expanded="false">{t(lang, 'admin.nav.menu')}</button>
+      </header>
+
+      <dialog id="adm-menu" class="adm-menu on-ink" aria-label={t(lang, 'admin.nav.label')}>
+        <div class="adm-menu__bar">
+          <span class="mono">{t(lang, 'admin.brand.sub')}</span>
+          <button type="button" class="pill pill--outline pill--s" data-close="adm-menu">{t(lang, 'admin.close')}</button>
+        </div>
+        <Nav lang={lang} current={section} pending={pending} unread={unread} />
+        <div class="adm-side__tools adm-menu__tools">
+          <button type="button" class="adm-link mono" data-admin-lang-toggle={lang === 'sq' ? 'en' : 'sq'} lang={lang === 'sq' ? 'en' : 'sq'} aria-label={t(lang, 'admin.lang.toggle.aria')}>{t(lang, 'admin.lang.toggle')}</button>
+          <a class="adm-link mono" href="/">{t(lang, 'admin.nav.site')}</a>
+          <button type="button" class="adm-link mono" data-admin-logout>{t(lang, 'admin.logout')}</button>
+        </div>
+      </dialog>
+
+      <main id="main" tabindex="-1" class="adm-main">
+        {h1 && (
+          <header class="adm-head">
+            <p class="adm-head__rule mono">
+              {index && <span class="adm-head__index">{index}</span>}
+              <span class="muted">{kicker ?? t(lang, 'admin.title')}</span>
+            </p>
+            <div class="adm-head__row">
+              <h1 class:list={['adm-title', titleSize === 's' && 'adm-title--s']}>{title}</h1>
+              <div class="adm-head__actions"><slot name="actions" /></div>
+            </div>
+          </header>
+        )}
+        <slot />
+      </main>
+    </div>
+  )}
+
+  <dialog id="adm-confirm" class="adm-dialog" aria-labelledby="adm-confirm-title">
+    <form method="dialog" class="adm-dialog__form">
+      <h2 class="adm-dialog__title" id="adm-confirm-title">{t(lang, 'admin.confirm.title')}</h2>
+      <p class="adm-dialog__body" data-confirm-body></p>
+      <ul class="adm-dialog__list mono" data-confirm-list hidden></ul>
+      <div class="fld" data-confirm-password hidden>
+        <label class="fld__label mono" for="adm-confirm-pw">{t(lang, 'admin.confirm.password')}</label>
+        <input id="adm-confirm-pw" class="fld__input" type="password" autocomplete="current-password" />
+        <p class="fld__help">{t(lang, 'admin.confirm.password.why')}</p>
+      </div>
+      <div class="adm-dialog__actions">
+        <button class="pill pill--outline" value="cancel" formnovalidate>{t(lang, 'admin.cancel')}</button>
+        <button class="pill pill--primary" value="ok" data-confirm-ok>{t(lang, 'admin.confirm')}</button>
+      </div>
+    </form>
+  </dialog>
+
+  <p id="adm-flash" class="adm-flash mono" role="status" aria-live="polite" hidden></p>
+  <script type="application/json" data-dv-i18n set:html={JSON.stringify(strings).replace(/</g, '\\u003c')} />
+  <script>
+    import '../scripts/admin/shell';
+  </script>
+</body>
+</html>

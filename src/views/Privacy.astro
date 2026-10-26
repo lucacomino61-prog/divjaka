@@ -1,13 +1,9 @@
 ---
-/**
- * Privacy view — PLACEHOLDER from T2 (route shell). The owning feature task (PLAN §9)
- * replaces this file. Props contract: { lang, params?, data? } — data comes from
- * the view itself.
- */
-import PlaceholderView from '../components/site/PlaceholderView.astro';
+/** Privacy notice (/privatesia/, /en/privacy/) — T7. DRAFT: content in components/legal/content.ts. */
+import LegalPage from '../components/legal/LegalPage.astro';
 import type { Lang } from '../i18n/routes';
 
 interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
-const { lang, params = {} } = Astro.props;
+const { lang } = Astro.props;
 ---
-<PlaceholderView lang={lang} routeKey="privacy" index="—" params={params} />
+<LegalPage lang={lang} kind="privacy" />

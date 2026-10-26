@@ -1,13 +1,190 @@
 ---
 /**
- * Article view — PLACEHOLDER from T2 (route shell). The owning feature task (PLAN §9)
- * replaces this file. Props contract: { lang, params?, data? } — data comes from
- * src/views/article.load.ts.
+ * Article — one heritage sheet (/trashegimia/[slug]/). Poster title, lead, meta row (sheet
+ * number, reading time, number of sources, date), the hero plate (LCP), the body (prose with
+ * numbered source marks, plates, mini charts, the month table or the distance table) beside a
+ * sticky rail with the sheet's places on the chart and related experiences; then the sources and
+ * the previous / next sheet. JSON-LD: Article, plus TouristAttraction (with geo only where the
+ * position is known) for sheets about one place.
  */
-import PlaceholderView from '../components/site/PlaceholderView.astro';
-import type { Lang } from '../i18n/routes';
+import Base from '../layouts/Base.astro';
+import SectionHead from '../components/site/SectionHead.astro';
+import Breadcrumbs from '../components/site/Breadcrumbs.astro';
+import Photo from '../components/site/Photo.astro';
+import SourceList from '../components/site/SourceList.astro';
+import Chart from '../components/chart/Chart.astro';
+import SeasonsTable from '../components/heritage/SeasonsTable.astro';
+import DistancesTable from '../components/heritage/DistancesTable.astro';
+import RelatedCards from '../components/heritage/RelatedCards.astro';
+import { fromHotelKm, kmLabel, layers, poi, unproject } from '../components/chart/geo';
+import { getPhoto, siteOriginOf } from '../components/site/site-data';
+import { photoSrc } from '../components/site/photo-url';
+import { t } from '../i18n/ui';
+import { formatDate } from '../i18n/format';
+import { path, type Lang } from '../i18n/routes';
+import type { ArticleData } from './article.load';
 
-interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
-const { lang, params = {} } = Astro.props;
+interface Props { lang: Lang; params?: Record<string, string>; data?: ArticleData }
+const { lang, params = {}, data } = Astro.props;
+const d = data!;
+const s = d.sheet;
+const origin = await siteOriginOf(Astro.url, Astro.site);
+const url = new URL(path('article', lang, { slug: s.slug }), origin).href;
+const hero = getPhoto(s.hero);
+const firstPin = d.pins.find((p) => !p.zone)?.id ?? d.pins[0]?.id;
+const km = firstPin && firstPin !== 'hotel-pelikan' ? fromHotelKm(firstPin) : null;
+
+// the place this sheet is about (JSON-LD)
+const L = layers();
+const PLACES: Record<string, () => Record<string, unknown> | null> = {
+  lagoon: () => {
+    const c = L ? unproject(L.lagoonCentre.x, L.lagoonCentre.y) : null;
+    return { '@type': ['TouristAttraction', 'BodyOfWater'], name: t(lang, 'water.lagoon'), sameAs: 'https://en.wikipedia.org/wiki/Karavasta_Lagoon', ...(c ? { geo: { '@type': 'GeoCoordinates', latitude: Number(c.lat.toFixed(4)), longitude: Number(c.lon.toFixed(4)) } } : {}) };
+  },
+  'pelican-island': () => ({ '@type': 'TouristAttraction', name: lang === 'sq' ? 'Ishulli i Pelikanit' : 'Pelican Island', sameAs: 'https://en.wikipedia.org/wiki/Pelican_Island_(Albania)', publicAccess: false }),
+  'pine-forest': () => {
+    const p = poi('pine-forest');
+    return { '@type': ['TouristAttraction', 'Landform'], name: lang === 'sq' ? 'Pylli me pisha i Divjakës' : 'Divjaka coastal pine forest', ...(p ? { geo: { '@type': 'GeoCoordinates', latitude: p.lat, longitude: p.lon } } : {}) };
+  },
+  'visitor-centre': () => {
+    const p = poi('visitor-centre');
+    return { '@type': ['TouristAttraction', 'Park'], name: lang === 'sq' ? 'Parku Kombëtar Divjakë-Karavasta' : 'Divjakë-Karavasta National Park', sameAs: 'https://en.wikipedia.org/wiki/Divjak%C3%AB-Karavasta_National_Park', ...(p ? { geo: { '@type': 'GeoCoordinates', latitude: p.lat, longitude: p.lon } } : {}) };
+  },
+};
+const place = s.place && PLACES[s.place] ? PLACES[s.place]() : null;
+const jsonld = [
+  {
+    '@context': 'https://schema.org', '@type': 'Article', '@id': `${url}#article`,
+    headline: s.title, description: s.description, inLanguage: lang === 'sq' ? 'sq-AL' : 'en',
+    mainEntityOfPage: url, ...(s.updated ? { dateModified: s.updated, datePublished: s.updated } : {}),
+    ...(hero ? { image: new URL(photoSrc(hero.slug, 1280, 'webp'), origin).href } : {}),
+    author: { '@id': `${origin}/#hotel` }, publisher: { '@id': `${origin}/#hotel` },
+    isPartOf: { '@type': 'CollectionPage', name: t(lang, 'page.heritage.title'), url: new URL(path('heritage', lang), origin).href },
+    citation: d.sources.slice(0, 30).map((x) => x.url),
+    ...(place ? { about: { '@context': 'https://schema.org', ...place } } : {}),
+  },
+];
+const nums = (n: number) => String(n).padStart(2, '0');
 ---
-<PlaceholderView lang={lang} routeKey="article" index="06" params={params} />
+<Base lang={lang} title={`${s.title} · ${t(lang, 'article.crumb')}`} description={s.description} routeKey="article" params={params} jsonld={jsonld} image={hero ? photoSrc(hero.slug, 1280, 'webp') : undefined}>
+  <article class="art">
+    <header class="wrap art__head">
+      <Breadcrumbs lang={lang} items={[{ label: t(lang, 'article.crumb'), href: path('heritage', lang) }, { label: s.title }]} />
+      <SectionHead as="h1" index={`${t(lang, 'heritage.sheet', { n: nums(d.index) })}`} kicker={s.kicker} title={s.title} size="poster" />
+      <div class="art__lead-row">
+        <p class="lede art__lead">{s.description}</p>
+        <p class="art__meta mono">
+          <span>{t(lang, 'heritage.minutes', { n: String(s.minutes) })}</span>
+          <span>{t(lang, 'heritage.sourcesCount', { n: String(d.sources.length) })}</span>
+          {s.updated && <span>{t(lang, 'heritage.updated', { date: formatDate(s.updated, lang, 'medium') })}</span>}
+          {km != null && <span>{t(lang, 'article.fromHotel', { km: kmLabel(km, lang) })}</span>}
+        </p>
+      </div>
+    </header>
+
+    {hero && (
+      <div class="art__hero wrap">
+        <Photo slug={hero.slug} lang={lang} sizes="(min-width: 1440px) 1360px, 100vw" priority caption parallax ratio="16 / 9" />
+      </div>
+    )}
+
+    <div class="wrap art__grid">
+      <div class="art__body">
+        {d.blocks.map((b) => {
+          if (b.type === 'p') return <p class="art__p" set:html={b.html} />;
+          if (b.type === 'h2') return <h2 id={b.id} class="art__h2" set:html={b.html} />;
+          if (b.type === 'ul') return <ul class="art__ul">{b.items.map((i) => <li set:html={i} />)}</ul>;
+          if (b.type === 'photo') return (
+            <div class="art__plate">
+              <Photo slug={b.slug} lang={lang} caption sizes="(min-width: 900px) 60vw, 100vw" reveal />
+              {b.note && <p class="art__note mono"><span>{t(lang, 'article.photoNote')}:</span> {b.note}</p>}
+            </div>
+          );
+          if (b.type === 'chart') return (
+            <div class="art__chart">
+              <Chart lang={lang} mode="pin" pins={b.pins.map((p) => ({ id: p.id, zone: p.zone, tag: 'name' as const }))} />
+            </div>
+          );
+          if (b.type === 'seasons') return <SeasonsTable lang={lang} />;
+          if (b.type === 'distances') return <DistancesTable lang={lang} />;
+          return null;
+        })}
+      </div>
+
+      <aside class="art__rail" aria-label={t(lang, 'article.related')}>
+        {d.pins.length > 0 && (
+          <section class="art__rail-block">
+            <h2 class="art__rail-h mono">{t(lang, 'article.onChart')}</h2>
+            <Chart lang={lang} mode="pin" pins={d.pins.map((p) => ({ id: p.id, zone: p.zone, tag: 'name' as const }))} />
+          </section>
+        )}
+        {d.related.length > 0 && (
+          <section class="art__rail-block">
+            <h2 class="art__rail-h mono">{t(lang, 'article.related')}</h2>
+            <p class="art__rail-lead">{t(lang, 'article.related.lead')}</p>
+            <RelatedCards lang={lang} items={d.related} />
+          </section>
+        )}
+      </aside>
+    </div>
+
+    <div class="wrap art__sources">
+      <p class="art__sources-note">{t(lang, 'article.sourcesNote')}</p>
+      <SourceList lang={lang} items={d.sources} id="burimet" />
+    </div>
+
+    <nav class="wrap art__pager" aria-label={t(lang, 'heritage.list.title')}>
+      {d.prev ? (
+        <a href={path('article', lang, { slug: d.prev.slug })} class="art__pg art__pg--prev">
+          <span class="mono">← {t(lang, 'article.prev')}</span><span class="art__pg-t">{d.prev.title}</span>
+        </a>
+      ) : <span></span>}
+      <a href={path('heritage', lang)} class="art__all mono">{t(lang, 'article.all')} · {nums(d.total)}</a>
+      {d.next ? (
+        <a href={path('article', lang, { slug: d.next.slug })} class="art__pg art__pg--next">
+          <span class="mono">{t(lang, 'article.next')} →</span><span class="art__pg-t">{d.next.title}</span>
+        </a>
+      ) : <span></span>}
+    </nav>
+  </article>
+</Base>
+
+<style>
+  .art__head { padding-block-start: clamp(16px, 2vw, 28px); display: grid; gap: 18px; }
+  .art__lead-row { display: grid; gap: 18px; align-items: end; padding-block-end: clamp(20px, 3vw, 40px); }
+  .art__lead { max-inline-size: 36ch; }
+  .art__meta { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: var(--step--2); color: var(--muted); }
+  @media (min-width: 900px) { .art__lead-row { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); } .art__meta { justify-content: flex-end; } }
+  .art__hero { margin-block-end: clamp(32px, 5vw, 72px); }
+  .art__hero :global(.plate__frame) { max-block-size: 72svh; }
+  .art__grid { display: grid; gap: clamp(40px, 6vw, 96px); }
+  @media (min-width: 1000px) { .art__grid { grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); align-items: start; } }
+  .art__body { min-inline-size: 0; }
+  .art__body > :global(* + *) { margin-block-start: 1.1em; }
+  .art__p { max-inline-size: 66ch; font-size: var(--step-0); line-height: 1.6; }
+  .art__p:first-child { font-size: var(--step-1); line-height: 1.45; max-inline-size: 52ch; }
+  .art__h2 { font-size: var(--step-3); margin-block-start: 1.8em !important; padding-block-start: 12px; border-block-start: 2px solid var(--ink); max-inline-size: 26ch; scroll-margin-block-start: calc(var(--header-h) + 24px); }
+  .art__ul { padding-inline-start: 0; list-style: none; max-inline-size: 66ch; display: grid; gap: 10px; }
+  .art__ul li { padding-inline-start: 22px; position: relative; line-height: 1.55; }
+  .art__ul li::before { content: ""; position: absolute; inset-inline-start: 2px; inset-block-start: 0.7em; inline-size: 9px; block-size: 1px; background: var(--ink); }
+  .art__body :global(sup.ref) { font-family: var(--font-mono); font-size: 0.66em; line-height: 0; margin-inline-start: 2px; }
+  .art__body :global(sup.ref a) { text-decoration: none; padding: 0 2px; border-block-end: 1px solid currentColor; display: inline-block; min-inline-size: 24px; min-block-size: 24px; line-height: 24px; text-align: center; }
+  .art__body :global(em) { font-family: var(--font-serif); font-style: italic; font-size: 1.08em; }
+  .art__plate { margin-block: 2em !important; }
+  .art__note { font-size: var(--step--2); margin-block-start: 6px; text-transform: none; letter-spacing: 0; color: var(--muted); }
+  .art__chart { max-inline-size: 560px; margin-block: 2em !important; }
+  .art__rail { display: grid; gap: 40px; }
+  @media (min-width: 1000px) { .art__rail { position: sticky; inset-block-start: calc(var(--header-h) + 24px); max-block-size: calc(100svh - var(--header-h) - 48px); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; } }
+  .art__rail-block { display: grid; gap: 12px; }
+  .art__rail-h { font-size: var(--step--2); padding-block: 10px 0; border-block-start: 2px solid var(--ink); }
+  .art__rail-lead { color: var(--muted); font-size: var(--step--1); }
+  .art__sources { padding-block: clamp(48px, 7vw, 96px) 0; display: grid; gap: 16px; }
+  .art__sources-note { color: var(--muted); max-inline-size: 66ch; font-size: var(--step--1); }
+  .art__pager { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: end; padding-block: clamp(40px, 6vw, 80px); border-block-end: 1px solid var(--rule); }
+  .art__pg { display: grid; gap: 6px; text-decoration: none; min-block-size: 44px; }
+  .art__pg .mono { font-size: var(--step--2); color: var(--muted); }
+  .art__pg-t { font-size: var(--step-2); font-weight: 700; font-stretch: 85%; line-height: 1.05; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+  .art__pg--next { text-align: end; }
+  .art__all { font-size: var(--step--2); align-self: center; min-block-size: 44px; display: inline-flex; align-items: center; }
+  @media (max-width: 699px) { .art__pager { grid-template-columns: 1fr; } .art__pg--next { text-align: start; } .art__all { order: 3; } }
+</style>

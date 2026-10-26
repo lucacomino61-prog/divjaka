@@ -1,0 +1,133 @@
+---
+/** /admin/porosite/:code/ — one order (T6): items, totals, guest, notes, timeline, status/payment actions with confirms. */
+import Admin from '../../../../layouts/Admin.astro';
+import OrderBadges from '../../../../components/admin/OrderBadges.astro';
+import { adminLang, tr, lek, when, callApi } from '../../../../components/admin/admin-data';
+import { GET as orderGET } from '../../../api/admin/orders/[id]';
+import type { Order, OrderItem } from '../../../../lib/db/repo/orders';
+import type { Customer } from '../../../../lib/db/repo/customers';
+import { formatDate, formatRange, nights as nightsWord, number } from '../../../../i18n/format';
+import { daysBetween } from '../../../../lib/time';
+
+const lang = adminLang(Astro);
+const T = tr(lang);
+const code = String(Astro.params.code ?? '');
+const data = await callApi<{ order: Order & { consent_pending: boolean }; items: OrderItem[]; customer: Customer | null; log: { reason: string; delta: number; ts: string; night: string | null; name_sq: string | null }[] }>(orderGET as never, Astro, undefined, { id: code });
+if (!data) return Astro.redirect('/admin/porosite/', 303);
+const { order: o, items, customer, log } = data;
+const api = `/api/admin/orders/${o.id}`;
+const reviewText = o.review ? o.review.split(',').map((x) => T(`admin.review.${x}`)).join(', ') : '';
+const itemMeta = (it: OrderItem) => {
+  const m = (it.meta ?? {}) as { starts_at?: string; amount?: number };
+  if (it.kind === 'room' && it.date_from && it.date_to) {
+    const n = daysBetween(it.date_from, it.date_to);
+    return [formatRange(it.date_from, it.date_to, lang), nightsWord(n, lang), T('admin.order.rooms', { n: it.qty }), it.guests ? T('admin.order.guests', { n: it.guests }) : ''].filter(Boolean).join(' · ');
+  }
+  if (it.kind === 'experience' && m.starts_at) return [T('admin.order.session', { date: formatDate(m.starts_at.slice(0, 10), lang, 'long'), time: m.starts_at.slice(11, 16) }), T('admin.order.guests', { n: it.guests ?? it.qty })].join(' · ');
+  if (it.kind === 'gift' && m.amount) return `${T('admin.order.amount', { amount: lek(m.amount, lang) })} · × ${it.qty}`;
+  return `× ${it.qty}`;
+};
+const active = o.status !== 'cancelled';
+const holding = o.hold_until && o.status === 'pending' && Date.parse(o.hold_until) > Date.now();
+const actions: { label: string; body: Record<string, unknown>; confirm?: string; danger?: boolean; primary?: boolean }[] = [];
+if (o.status === 'pending') actions.push({ label: T('admin.order.act.confirm'), body: { status: 'confirmed' }, confirm: 'admin.order.c.confirm', primary: true });
+if (o.status === 'confirmed') actions.push({ label: T('admin.order.act.complete'), body: { status: 'completed' }, primary: true });
+if (active && o.payment_status !== 'paid') actions.push({ label: T('admin.order.act.paid'), body: { payment_status: 'paid' }, confirm: 'admin.order.c.paid' });
+if (o.payment_status === 'paid') actions.push({ label: T('admin.order.act.refunded'), body: { payment_status: 'refunded' }, confirm: 'admin.order.c.refunded' });
+if (o.payment_status === 'refunded' || o.payment_status === 'failed') actions.push({ label: T('admin.order.act.unpaid'), body: { payment_status: 'unpaid' } });
+if (o.consent_pending) actions.push({ label: T('admin.order.act.consent'), body: { confirm_consent: true }, confirm: 'admin.order.c.consent' });
+if (active) actions.push({ label: T('admin.order.act.cancel'), body: { status: 'cancelled' }, confirm: 'admin.order.c.cancel', danger: true });
+else actions.push({ label: T('admin.order.act.reopen'), body: { status: 'pending' }, confirm: 'admin.order.c.reopen' });
+const timeline = [
+  { label: T('admin.order.tl.created'), at: o.created_at },
+  o.paid_at && { label: T('admin.order.tl.paid'), at: o.paid_at },
+  o.cancelled_at && { label: T('admin.order.tl.cancelled'), at: o.cancelled_at, signal: true },
+  o.updated_at !== o.created_at && { label: T('admin.order.tl.updated'), at: o.updated_at },
+  holding && { label: T('admin.order.tl.hold'), at: o.hold_until!, signal: true },
+].filter(Boolean) as { label: string; at: string; signal?: boolean }[];
+timeline.sort((a, b) => a.at.localeCompare(b.at));
+const reasonLabel = (r: string) => { const k = `admin.inv.${r}`; const s = T(k); return s === k ? r : s; };
+---
+<Admin lang={lang} title={o.code} section="orders" kicker={T('admin.order.title', { code: o.code })}>
+  <Fragment slot="actions">
+    <a class="pill pill--outline pill--s" href="/admin/porosite/">← {T('admin.order.back')}</a>
+    <a class="pill pill--outline pill--s" href={`/admin/porosite/${o.code}/printo/`}>{T('admin.print')}</a>
+  </Fragment>
+
+  <p class="row" style="margin-block-end:20px"><OrderBadges lang={lang} status={o.status} payment_status={o.payment_status} test={o.test} demo={o.demo} /><span class="mono muted" style="font-size:11px">{T(`admin.pay.method.${o.payment_method}`)} · {when(o.created_at, lang, 'medium')}</span></p>
+  {!!o.test && <p class="note-box" style="margin-block-end:20px">{T('admin.order.test')}</p>}
+  {holding && <p class="note-box note-box--ink" style="margin-block-end:20px">{T('admin.orders.hold', { time: when(o.hold_until, lang, 'medium') })}{reviewText && <> — {T('admin.orders.hold.short', { why: reviewText })}</>}</p>}
+
+  <div class="cols cols--main">
+    <div class="vstack od-col" style="gap:clamp(36px,4vw,52px)">
+      <section class="blk od-1" aria-labelledby="it-t">
+        <div class="blk__head"><h2 class="blk__title" id="it-t">{T('admin.order.items')}</h2></div>
+        <ul class="lines">
+          {items.map((it) => (
+            <li class="lines__row">
+              <span class="lines__name">{it.product_id ? <a href={`/admin/produktet/${it.product_id}/`}>{it.name}</a> : it.name} <span class="mono muted" style="font-size:10.5px">{T(`admin.kind.${it.kind}`)}</span></span>
+              <span class="mono">{lek(it.line_total, lang)}</span>
+              <span class="lines__meta mono">{itemMeta(it)} · {lek(it.unit_price, lang)}</span>
+            </li>
+          ))}
+        </ul>
+        <dl class="sums">
+          <dt>{T('admin.order.subtotal')}</dt><dd>{lek(o.subtotal, lang)}</dd>
+          {o.discount > 0 && <><dt>{o.promo_code ? T('admin.order.promo', { code: o.promo_code }) : T('admin.order.discount')}</dt><dd>− {lek(o.discount, lang)}</dd></>}
+          <dt class="sums__total">{T('admin.total')}</dt><dd class="sums__total">{lek(o.total, lang)}</dd>
+        </dl>
+      </section>
+
+      <section class="blk od-4" aria-labelledby="nt-t">
+        <div class="blk__head"><h2 class="blk__title" id="nt-t">{T('admin.order.notes')}</h2></div>
+        <form class="vstack" data-api={api} data-method="PATCH">
+          <div class="fld">
+            <label class="fld__label mono" for="o-notes">{T('admin.order.notes')}</label>
+            <textarea id="o-notes" class="fld__input" name="notes" data-nullable rows="4">{o.notes ?? ''}</textarea>
+            <p class="fld__help">{T('admin.order.notes.help')}</p>
+          </div>
+          <div class="fld">
+            <label class="fld__label mono" for="o-ref">{T('admin.order.payref')}</label>
+            <input id="o-ref" class="fld__input" name="payment_ref" data-nullable value={o.payment_ref ?? ''} />
+            <p class="fld__help">{T('admin.order.payref.help')}</p>
+          </div>
+          <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.order.save.notes')}</button></div>
+        </form>
+      </section>
+    </div>
+
+    <div class="vstack od-col" style="gap:clamp(36px,4vw,52px)">
+      <section class="blk od-2" aria-labelledby="ac-t" data-action-scope>
+        <div class="blk__head"><h2 class="blk__title" id="ac-t">{T('admin.order.actions')}</h2></div>
+        {o.consent_pending && <p class="note-box">{T('admin.order.consent.pending')}</p>}
+        <div class="vstack">
+          {actions.map((a) => (
+            <button type="button" class:list={['pill', 'pill--block', a.danger ? 'pill--danger' : a.primary ? 'pill--primary' : 'pill--outline']} data-action={api} data-method="PATCH" data-body={JSON.stringify(a.body)} data-confirm={a.confirm} data-danger={a.danger ? '' : undefined}>{a.label}</button>
+          ))}
+        </div>
+        <p class="form-status" data-form-status role="status"></p>
+      </section>
+
+      <section class="blk od-3" aria-labelledby="cu-t">
+        <div class="blk__head"><h2 class="blk__title" id="cu-t">{T('admin.order.customer')}</h2>{customer && <a class="mono blk__meta" href={`/admin/klientet/${customer.id}/`}>{T('admin.order.customer.open')}</a>}</div>
+        <dl class="kv">
+          <dt>{T('admin.customer.name')}</dt><dd>{o.name || '—'}</dd>
+          <dt>{T('admin.customer.email')}</dt><dd>{o.email ? <a href={`mailto:${o.email}?subject=${encodeURIComponent(o.code)}`}>{o.email}</a> : '—'}</dd>
+          <dt>{T('admin.customer.phone')}</dt><dd>{o.phone ? <a href={`tel:${o.phone.replace(/[^\d+]/g, '')}`}>{o.phone}</a> : '—'}</dd>
+          <dt>{T('admin.order.country')}</dt><dd>{o.country || '—'}</dd>
+          <dt>{T('admin.order.lang')}</dt><dd class="mono">{(o.lang || 'sq').toUpperCase()}</dd>
+          <dt>{T('admin.order.source')}</dt><dd class="mono mono-lc">{o.source || T('admin.analytics.direct')}</dd>
+          <dt>{T('admin.customers.marketing')}</dt><dd>{customer?.marketing_consent ? T('admin.order.consent.yes') : T('admin.order.consent.no')}</dd>
+        </dl>
+      </section>
+
+      <section class="blk od-5" aria-labelledby="tl-t">
+        <div class="blk__head"><h2 class="blk__title" id="tl-t">{T('admin.order.timeline')}</h2></div>
+        <ol class="timeline">
+          {timeline.map((e) => <li class:list={[e.signal && 'is-signal']}><span>{e.label}</span><span class="mono">{when(e.at, lang, 'medium')}</span></li>)}
+          {log.map((l) => <li><span>{reasonLabel(l.reason)} <span class="mono">({l.delta > 0 ? '+' : ''}{number(l.delta, lang)}{l.night ? ` · ${formatDate(l.night, lang, 'short')}` : ''})</span></span><span class="mono">{when(l.ts, lang, 'medium')}</span></li>)}
+        </ol>
+      </section>
+    </div>
+  </div>
+</Admin>

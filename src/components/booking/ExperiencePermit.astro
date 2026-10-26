@@ -1,0 +1,67 @@
+---
+/**
+ * ExperiencePermit — the permit card of an experience page: a Calendar with the free places per
+ * day, the SessionPicker for that day, participants (≤ places left in the slot and ≤ the
+ * per-slot group limit), the server total (POST /api/quote) and Add to cart / Book now after a
+ * live re-check. On phones it lives in the full-screen sheet (BookingSheet).
+ */
+import PermitCard from '../site/PermitCard.astro';
+import Pill from '../site/Pill.astro';
+import Price from '../site/Price.astro';
+import Calendar from './Calendar.astro';
+import SessionPicker from './SessionPicker.astro';
+import GuestStepper from './GuestStepper.astro';
+import { t } from '../../i18n/ui';
+import { path, type Lang } from '../../i18n/routes';
+import type { Product } from '../../lib/db/repo/products';
+import type { DayCell, SessionCell } from './server';
+
+interface Props {
+  lang: Lang; product: Product; n: string; ym: string; days: DayCell[]; sessions: SessionCell[]; min: string; max: string;
+  hrefFor: (ym: string) => string; date?: string | null; session?: number | null; people: number; maxGroup: number; bestRate: boolean;
+}
+const { lang, product: p, n, ym, days, sessions, min, max, hrefFor, date = null, session = null, people, maxGroup, bestRate } = Astro.props;
+const name = lang === 'en' ? p.name_en : p.name_sq;
+const idp = `bk-${p.slug}`;
+const daySessions = date ? sessions.filter((s) => s.date === date) : [];
+const openOfDay = daySessions.filter((s) => s.status === 'open');
+const chosen = openOfDay.find((s) => s.id === session) ?? (openOfDay.length === 1 ? openOfDay[0] : null);
+const cap = Math.max(1, Math.min(maxGroup, chosen ? chosen.left : maxGroup));
+---
+<section class="bk"
+  data-booking="experience" data-slug={p.slug} data-name={name} data-max-group={maxGroup}
+  data-checkout={path('checkout', lang)} data-cart={path('cart', lang)} aria-labelledby={`${idp}-t`}
+>
+<PermitCard floating label={t(lang, 'booking.permit.exp', { n })}>
+  <div class="bk__head bk__head--quiet">
+    <h2 class="bk__title bk__title--s" id={`${idp}-t`}>{name}</h2>
+    <Price lek={p.price} lang={lang} per="person" />
+  </div>
+  <Calendar lang={lang} id={`${idp}-grid`} mode="seats" ym={ym} days={days} min={min} max={max} hrefFor={hrefFor} selected={{ date }} />
+  <script type="application/json" data-bk-sessions set:html={JSON.stringify({ ym, sessions }).replace(/</g, '\\u003c')} />
+  <SessionPicker lang={lang} id={`${idp}-slot`} date={date} sessions={daySessions} selected={chosen?.id ?? null} />
+  <GuestStepper id={`${idp}-people`} name="people" label={t(lang, 'booking.people')} value={Math.min(people, cap)} min={1} max={cap} less={t(lang, 'booking.people.less')} more={t(lang, 'booking.people.more')} hint={t(lang, 'booking.people.group', { n: maxGroup })} />
+  <Fragment slot="stub">
+    <div class="bk__total" data-bk-total aria-live="polite" aria-atomic="true">
+      <p class="label muted">{t(lang, 'booking.total')}</p>
+      <p class="bk__sum" data-bk-sum><span class="bk__wait">{t(lang, 'booking.total.waitSession')}</span></p>
+      <p class="bk__calc mono" data-bk-calc></p>
+      <p class="bk__offer mono" data-bk-offer hidden></p>
+    </div>
+    <p class="bk-msg" data-bk-msg role="alert" hidden></p>
+    <div class="bk__actions">
+      <Pill variant="outline" data-bk-add>{t(lang, 'booking.add')}</Pill>
+      <Pill data-bk-book arrow>{t(lang, 'booking.book')}</Pill>
+    </div>
+    <p class="bk__done mono" data-bk-done hidden>
+      <span data-bk-done-text></span>
+      <a href={path('cart', lang)} data-cart-open>{t(lang, 'booking.viewCart')}</a>
+    </p>
+  </Fragment>
+</PermitCard>
+<div class="bk__after">
+  <p class="bk__note mono">{t(lang, 'booking.note.holdExp')}</p>
+  <p class="bk__note mono">{t(lang, bestRate ? 'booking.note.directBest' : 'booking.note.direct')}</p>
+  <p class="bk__nojs">{t(lang, 'booking.nojs')} <a href={path('contact', lang)}>{t(lang, 'booking.nojs.contact')}</a></p>
+</div>
+</section>

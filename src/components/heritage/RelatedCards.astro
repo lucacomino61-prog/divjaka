@@ -1,0 +1,41 @@
+---
+/** RelatedCards — small specimen tags for products tied to a heritage sheet (stretched title link). */
+import Photo from '../site/Photo.astro';
+import Price from '../site/Price.astro';
+import { pname, psummary, type Product } from '../../lib/db/repo/products';
+import { productUrl } from '../../lib/urls';
+import { t } from '../../i18n/ui';
+import type { Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang; items: Product[] }
+const { lang, items } = Astro.props;
+---
+{items.length > 0 && (
+  <ul class="rel">
+    {items.map((p) => (
+      <li class="rel__item">
+        <Photo slug={p.images[0]?.slug ?? null} lang={lang} ratio="3 / 2" sizes="(min-width: 900px) 320px, 90vw" alt={lang === 'en' ? p.images[0]?.alt_en : p.images[0]?.alt_sq} crosshair={false} />
+        <p class="rel__kind mono">{t(lang, `home.kind.${p.kind}`)}</p>
+        <h3 class="rel__name"><a href={productUrl(p.kind, p.slug, lang)} class="rel__a"><span class="rel__nm">{pname(p, lang)}</span></a></h3>
+        <p class="rel__sum">{psummary(p, lang)}</p>
+        <p class="rel__price"><Price lek={p.price} lang={lang} from={p.kind === 'room' || p.kind === 'gift'} per={p.kind === 'room' ? 'night' : p.kind === 'experience' ? 'person' : null} /></p>
+      </li>
+    ))}
+  </ul>
+)}
+
+<style>
+  .rel { list-style: none; margin: 0; padding: 0; display: grid; gap: 28px; }
+  .rel__item { position: relative; display: grid; gap: 8px; border-block-start: 2px solid var(--ink); padding-block-start: 10px; }
+  .rel__item :global(.plate__credit) { position: relative; z-index: 2; }
+  .rel__kind { font-size: var(--step--2); color: var(--muted); }
+  .rel__name { font-size: var(--step-1); font-weight: 700; font-stretch: 85%; line-height: 1.08; }
+  .rel__a { display: block; min-block-size: 44px; text-decoration: none; color: inherit; }
+  .rel__a::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+  .rel__a:focus-visible { outline: none; box-shadow: none; }
+  .rel__a:focus-visible::after { outline: 2px solid var(--pouch); outline-offset: 3px; }
+  .rel__nm { display: inline-block; transition: transform 200ms var(--ease-out); }
+  @media (hover: hover) and (pointer: fine) { .rel__item:hover .rel__nm { transform: translateX(6px); } }
+  .rel__sum { color: var(--muted); font-size: var(--step--1); line-height: 1.45; }
+  .rel__price { padding-block-start: 8px; border-block-start: 1px solid var(--rule); }
+</style>

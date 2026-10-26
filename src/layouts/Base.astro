@@ -22,6 +22,7 @@ import Footer from '../components/site/Footer.astro';
 import Menu from '../components/site/Menu.astro';
 import CartDrawer from '../components/site/CartDrawer.astro';
 import AssistantPill from '../components/site/AssistantPill.astro';
+import AssistantPanel from '../components/assistant/AssistantPanel.astro'; // T7 (HANDOFF 2026-10-23)
 import Preloader from '../components/site/Preloader.astro';
 import { t, pick } from '../i18n/ui';
 import { path, ROUTES, type Lang, type RouteKey } from '../i18n/routes';
@@ -176,6 +177,7 @@ const clientStrings = pick(lang, ['cart.', 'live.', 'motion.', 'currency.', 'sta
   <Menu lang={lang} routeKey={routeKey} params={params} hotel={spot} langHref={langHref} />
   <CartDrawer lang={lang} />
   <AssistantPill lang={lang} />
+  <AssistantPanel lang={lang} />
   <div class="tide" aria-hidden="true"></div>
   <div id="dv-toast" class="toast" role="status" aria-live="polite" data-state="closed" popover="manual">
     <p class="toast__msg mono" data-toast-msg></p>

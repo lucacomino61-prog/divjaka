@@ -26,7 +26,7 @@ const zOrigin = s(200).refine((v) => {
 
 const SCHEMAS: Record<SettingKey, z.ZodType> = {
   business: z.object({
-    name: s(120), legal_name: s(200), nipt: s(40), address: s(300), phone: s(40), email: s(200).refine((v) => !v || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), 'email'),
+    name: s(120), legal_name: s(200), nipt: s(40), address: s(300), address_sq: s(300), address_en: s(300), phone: s(40), email: s(200).refine((v) => !v || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), 'email'),
     whatsapp: s(40), viber: s(40), checkin: s(40), checkout: s(40), reception_hours: s(120),
     lat: z.number().min(-90).max(90).nullable(), lon: z.number().min(-180).max(180).nullable(), placeholders: z.array(s(40)).max(40),
   }).partial(),
@@ -71,6 +71,16 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
     events_per_address_day: z.number().int().min(100).max(5_000_000),
     orders_days: z.number().int().min(0).max(3650),
     inventory_log_days: z.number().int().min(0).max(3650),
+  }).partial(),
+  // T0 (2026-10-23): verified third-party scores; `items` replaces the list when given.
+  proof: z.object({
+    show: z.boolean(),
+    items: z.array(z.object({
+      label_sq: s(160).min(1), label_en: s(160).min(1), value: s(40).min(1),
+      score: z.number().min(0).max(100).optional(), scale: z.number().positive().max(100).optional(), count: z.number().int().min(0).optional(),
+      source_url: s(300).refine((v) => /^https:\/\/[^\s/]+/i.test(v), 'https url'),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD'),
+    })).max(10),
   }).partial(),
 };
 

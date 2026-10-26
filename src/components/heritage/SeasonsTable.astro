@@ -1,0 +1,93 @@
+---
+/**
+ * SeasonsTable — research/seasons.json month by month as a ruled table (verified items only),
+ * this month marked. Rows have ids "muaji-1"…"muaji-12" (the hub's month strip links here).
+ * Low-confidence items carry a mark; events dated for one year say so in the caveat.
+ */
+import { seasonMonths, seasonYearRound } from './facts';
+import { tirane } from '../../lib/time';
+import { t } from '../../i18n/ui';
+import type { Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const months = seasonMonths();
+const year = seasonYearRound();
+const now = tirane().month;
+const typeLabel = (type: string) => t(lang, `seasons.type.${['birds', 'nature', 'event', 'beach', 'practical'].includes(type) ? type : 'nature'}`);
+---
+{months.length > 0 && (
+  <div class="seasons">
+    <table class="seasons__table">
+      <caption class="visually-hidden">{t(lang, 'heritage.months.title')}</caption>
+      <thead>
+        <tr><th scope="col" class="mono">{t(lang, 'seasons.month')}</th><th scope="col" class="mono">{t(lang, 'seasons.what')}</th></tr>
+      </thead>
+      <tbody>
+        {months.map((m) => (
+          <tr id={`muaji-${m.month}`} class:list={[m.month === now && 'is-now']} aria-current={m.month === now ? 'date' : undefined}>
+            <th scope="row" class="seasons__m">
+              <span class="seasons__n mono">{String(m.month).padStart(2, '0')}</span>
+              <span class="seasons__name">{m.name[lang]}</span>
+              {m.month === now && <span class="seasons__now mono">{t(lang, 'heritage.months.now')}</span>}
+            </th>
+            <td>
+              <ul class="seasons__items">
+                {m.items.map((it) => (
+                  <li>
+                    <span class="seasons__type mono">{typeLabel(it.type)}</span>
+                    <span class="seasons__text">{it.text[lang]}{it.confidence === 'low' && <span class="seasons__low" title={lang === 'sq' ? 'burim i vetëm, i pakonfirmuar' : 'single, unconfirmed source'}> ≈</span>}</span>
+                    <a class="seasons__src mono" href={it.source.url} rel="noopener">{it.source.publisher}</a>
+                  </li>
+                ))}
+              </ul>
+            </td>
+          </tr>
+        ))}
+        {year.length > 0 && (
+          <tr id="gjithe-vitin">
+            <th scope="row" class="seasons__m"><span class="seasons__name">{t(lang, 'seasons.year')}</span></th>
+            <td>
+              <ul class="seasons__items">
+                {year.map((it) => (
+                  <li>
+                    <span class="seasons__type mono">{typeLabel(it.type)}</span>
+                    <span class="seasons__text">{it.text[lang]}</span>
+                    <a class="seasons__src mono" href={it.source.url} rel="noopener">{it.source.publisher}</a>
+                  </li>
+                ))}
+              </ul>
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+    <p class="seasons__caveat mono">{t(lang, 'seasons.caveat')} ≈ = {lang === 'sq' ? 'burim i vetëm, i pakonfirmuar' : 'single, unconfirmed source'}.</p>
+  </div>
+)}
+
+<style>
+  .seasons { margin-block: 32px; }
+  .seasons__table { inline-size: 100%; border-collapse: collapse; }
+  .seasons__table thead th { text-align: start; font-size: var(--step--2); padding: 8px 0; border-block-end: 2px solid var(--ink); font-weight: 450; }
+  .seasons__table tbody tr { border-block-end: 1px solid var(--rule); scroll-margin-block-start: calc(var(--header-h) + 24px); }
+  .seasons__table tbody th, .seasons__table tbody td { vertical-align: top; padding-block: 14px; text-align: start; }
+  .seasons__m { inline-size: 9.5em; padding-inline-end: 14px; font-weight: 700; }
+  .seasons__n { display: block; font-size: var(--step--2); color: var(--muted); font-weight: 450; }
+  .seasons__name { font-size: var(--step-1); font-stretch: 88%; }
+  .seasons__now { display: inline-flex; align-items: center; gap: 6px; font-size: var(--step--2); font-weight: 450; margin-inline-start: 8px; }
+  .seasons__now::before { content: ""; inline-size: 7px; block-size: 7px; border-radius: 99px; background: var(--pouch); }
+  tr.is-now { background: var(--salt-2); }
+  .seasons__items { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .seasons__items li { display: grid; gap: 2px; max-inline-size: 68ch; }
+  .seasons__type { font-size: var(--step--2); color: var(--muted); }
+  .seasons__src { font-size: var(--step--2); color: var(--muted); justify-self: start; min-block-size: 24px; display: inline-flex; align-items: center; }
+  .seasons__low { color: var(--muted); }
+  .seasons__caveat { font-size: var(--step--2); color: var(--muted); margin-block-start: 12px; max-inline-size: 70ch; text-transform: none; letter-spacing: 0; }
+  @media (max-width: 599px) {
+    .seasons__table, .seasons__table tbody, .seasons__table tr, .seasons__table th, .seasons__table td { display: block; inline-size: auto; }
+    .seasons__table thead { display: none; }
+    .seasons__table tbody th { padding-block-end: 4px; }
+    .seasons__table tbody td { padding-block-start: 4px; }
+  }
+</style>

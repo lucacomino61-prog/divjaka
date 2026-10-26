@@ -1,0 +1,92 @@
+---
+/**
+ * One measure over days, hand-drawn SVG (dataviz skill: one axis, 2 px line, 10 % wash, hairline
+ * grid, compact ticks, one direct label at the end, crosshair + tooltip, table fallback).
+ * Ink for the series, pouch only for the current (latest) value. The plot is an SVG stretched to
+ * the frame (non-scaling strokes); every text is HTML so it stays legible at phone widths.
+ * Charts inside one [data-chart-sync] share the crosshair (revenue over orders, same days).
+ *
+ *   <SeriesChart lang title desc points={[{ day, value }]} kind="line|bars" format="lek|int|pct" />
+ */
+import type { Lang } from '../../i18n/routes';
+import { t } from '../../i18n/ui';
+import { formatDate, number, money } from '../../i18n/format';
+
+interface Point { day: string; value: number }
+interface Props { lang: Lang; title: string; desc: string; points: Point[]; kind?: 'line' | 'bars'; format?: 'lek' | 'int' | 'pct'; height?: number; id?: string; size?: 'm' | 's' }
+const { lang, title, desc, points, kind = 'line', format = 'int', height = 220, id = `c${Math.random().toString(36).slice(2, 8)}`, size = 'm' } = Astro.props;
+
+const fmt = (v: number) => (format === 'lek' ? money(v, lang) : format === 'pct' ? `${number(v, lang, v % 1 ? 1 : 0)} %` : number(v, lang));
+const compact = (v: number) => {
+  if (format === 'pct') return `${number(v, lang)} %`;
+  const dec = lang === 'sq' ? ',' : '.';
+  const c = (n: number, s: string) => `${String(Math.round(n * 10) / 10).replace('.', dec)}${s}`;
+  if (v >= 1e6) return c(v / 1e6, 'M');
+  if (v >= 1e3) return c(v / 1e3, 'K');
+  return number(v, lang);
+};
+const max = Math.max(0, ...points.map((p) => p.value));
+// nice ceiling: 1, 2, 2.5, 5 × 10^n
+const nice = (m: number) => {
+  if (m <= 0) return format === 'pct' ? 100 : 4;
+  const p = 10 ** Math.floor(Math.log10(m));
+  for (const f of [1, 2, 2.5, 5, 10]) if (f * p >= m) return f * p;
+  return 10 * p;
+};
+const top = format === 'pct' ? Math.max(100, nice(max)) : nice(max);
+const ticks = [0, top / 2, top];
+const n = points.length;
+const W = 1000, H = 1000;
+const x = (i: number) => (n <= 1 ? W / 2 : (i / (n - 1)) * W);
+const y = (v: number) => H - (v / top) * H;
+const band = W / Math.max(1, n);
+const barW = Math.min(band * 0.62, band - 2);
+const line = points.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ');
+const area = n ? `${line} L${x(n - 1).toFixed(1)},${H} L${x(0).toFixed(1)},${H} Z` : '';
+const last = points[n - 1];
+const pctX = (i: number) => (kind === 'bars' ? ((i + 0.5) * band) / W : x(i) / W) * 100;
+const xLabels = n ? [...new Set([0, Math.floor((n - 1) / 2), n - 1])] : [];
+const series = points.map((p) => ({ d: formatDate(p.day, lang, 'medium'), v: fmt(p.value) }));
+const empty = !points.some((p) => p.value > 0);
+---
+<figure class:list={['chart', `chart--${size}`]} data-chart={kind} id={id} aria-labelledby={`${id}-t`}>
+  <figcaption class="chart__cap">
+    <h3 class="chart__title" id={`${id}-t`}>{title}</h3>
+    {last && <p class="chart__last mono"><span class="chart__lastdot" aria-hidden="true"></span>{formatDate(last.day, lang, 'short')} · <strong>{fmt(last.value)}</strong></p>}
+  </figcaption>
+  <div class="chart__frame" style={`--h:${height}px`}>
+    <div class="chart__yaxis mono" aria-hidden="true">
+      {ticks.map((v) => <span style={`--y:${(1 - v / top) * 100}%`}>{compact(v)}</span>)}
+    </div>
+    <div class="chart__plot" data-series={JSON.stringify(series)} data-kind={kind} tabindex="0" role="img" aria-label={`${title}. ${desc}`}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        {ticks.map((v) => <line class="chart__grid" x1="0" x2={W} y1={y(v)} y2={y(v)} vector-effect="non-scaling-stroke" />)}
+        {kind === 'line' ? (
+          <>
+            <path class="chart__area" d={area} />
+            <path class="chart__line" d={line} vector-effect="non-scaling-stroke" />
+          </>
+        ) : (
+          points.map((p, i) => p.value > 0 && <rect class:list={['chart__bar', i === n - 1 && 'is-current']} x={(i * band + (band - barW) / 2).toFixed(1)} y={y(p.value).toFixed(1)} width={barW.toFixed(1)} height={(H - y(p.value)).toFixed(1)} />)
+        )}
+      </svg>
+      {kind === 'line' && last && <span class="chart__dot" style={`--x:${pctX(n - 1)}%;--y:${(y(last.value) / H) * 100}%`} aria-hidden="true"></span>}
+      <span class="chart__cross" aria-hidden="true" hidden></span>
+      <span class="chart__tip mono" aria-hidden="true" hidden></span>
+      {empty && <p class="chart__empty mono">{t(lang, 'admin.analytics.none')}</p>}
+    </div>
+    <div class="chart__xaxis mono" aria-hidden="true">
+      {xLabels.map((i) => <span style={`--x:${pctX(i)}%`} data-edge={i === 0 ? 'start' : i === n - 1 ? 'end' : undefined}>{formatDate(points[i].day, lang, 'short')}</span>)}
+    </div>
+  </div>
+  <p class="visually-hidden">{desc}</p>
+  <details class="chart__table">
+    <summary class="mono">{t(lang, 'admin.table.show')}</summary>
+    <div class="table-scroll">
+      <table class="adm-table adm-table--compact">
+        <thead><tr><th scope="col">{t(lang, 'admin.date')}</th><th scope="col" class="num">{title}</th></tr></thead>
+        <tbody>{points.map((_, i) => <tr><td>{series[i].d}</td><td class="num">{series[i].v}</td></tr>)}</tbody>
+      </table>
+    </div>
+  </details>
+</figure>

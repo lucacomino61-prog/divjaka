@@ -1,13 +1,170 @@
 ---
 /**
- * Experiences view — PLACEHOLDER from T2 (route shell). The owning feature task (PLAN §9)
- * replaces this file. Props contract: { lang, params?, data? } — data comes from
- * the view itself.
+ * Experiences (/eksperienca/, /en/experiences/) — T4. Poster "EKSPERIENCA", the packages as the
+ * hotel's own document lists them (SPEC), the dedicated-guides sentence, filters by interest
+ * (?interes=) and the view (?pamja=liste) in the URL. Default view: the Bécane survey strip ordered
+ * by distance from the hotel; list view: a ruled table (nr · name · length · distance · next time
+ * slot · free places · price). Free places and next sessions are live; season hints are verified
+ * items, their sources listed at the end.
  */
-import PlaceholderView from '../components/site/PlaceholderView.astro';
-import type { Lang } from '../i18n/routes';
+import Base from '../layouts/Base.astro';
+import SectionHead from '../components/site/SectionHead.astro';
+import Breadcrumbs from '../components/site/Breadcrumbs.astro';
+import Price from '../components/site/Price.astro';
+import SourceList from '../components/site/SourceList.astro';
+import ExpStrip from '../components/experiences/ExpStrip.astro';
+import { lines } from '../components/experiences/lineup';
+import { lineup } from './experience.load';
+import { siteOriginOf } from '../components/site/site-data';
+import { t, has } from '../i18n/ui';
+import { formatDate, relativeDay } from '../i18n/format';
+import { path, type Lang } from '../i18n/routes';
+import type { Source } from '../components/site/SourceList.astro';
 
 interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
-const { lang, params = {} } = Astro.props;
+const { lang } = Astro.props;
+const sp = Astro.url.searchParams;
+const origin = await siteOriginOf(Astro.url, Astro.site);
+const all = lineup();
+const view = sp.get('pamja') === 'liste' ? 'list' : 'strip';
+const counts = new Map<string, number>();
+for (const p of all) for (const tag of p.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+const interests = ['birds', 'nature', 'culture', 'food', 'active', 'family', 'couple', 'slow'].filter((k) => counts.get(k) && has(lang, `recommend.interest.${k}`));
+const interest = interests.includes(sp.get('interes') ?? '') ? sp.get('interes')! : null;
+const shown = interest ? all.filter((p) => p.tags.includes(interest)) : all;
+const rows = lines(lang, shown);
+const base = path('experiences', lang);
+const href = (patch: Record<string, string | null>) => {
+  const q = new URLSearchParams();
+  const v = { interes: interest, pamja: view === 'list' ? 'liste' : null, ...patch };
+  for (const [k, val] of Object.entries(v)) if (val) q.set(k, val);
+  const s = q.toString();
+  return `${base}${s ? `?${s}` : ''}`;
+};
+const when = (iso: string) => {
+  const d = iso.slice(0, 10);
+  const rel = relativeDay(d, lang);
+  return `${/^(sot|nesër|today|tomorrow)$/.test(rel) ? rel : `${formatDate(d, lang, 'weekday-short')} ${formatDate(d, lang, 'short')}`}, ${iso.slice(11, 16)}`;
+};
+const hintSources: Source[] = [];
+for (const r of rows) if (r.hint && !hintSources.some((s) => s.url === r.hint!.source.url)) hintSources.push(r.hint.source);
+const count = rows.length === 1 ? t(lang, 'exp.count1') : t(lang, 'exp.count', { n: rows.length });
+
+const jsonld = {
+  '@context': 'https://schema.org', '@type': 'ItemList', name: t(lang, 'page.experiences.title'),
+  itemListElement: rows.map((r, i) => ({ '@type': 'ListItem', position: i + 1, url: new URL(r.url, origin).href, name: r.name })),
+};
 ---
-<PlaceholderView lang={lang} routeKey="experiences" index="03" params={params} />
+<Base lang={lang} title={t(lang, 'page.experiences.title')} description={t(lang, 'exp.meta.description')} routeKey="experiences" jsonld={jsonld}>
+  <div class="xp-index">
+    <section class="wrap xi-hero" aria-labelledby="xi-h">
+      <Breadcrumbs lang={lang} items={[{ label: t(lang, 'nav.experiences') }]} />
+      <SectionHead as="h1" id="xi-h" index={t(lang, 'exp.index')} kicker={t(lang, 'exp.kicker')} title={t(lang, 'exp.title')} size="poster" />
+      <div class="xi-hero__grid">
+        <p class="lede xi-lead">{t(lang, 'exp.lead')}</p>
+        <figure class="xi-guide">
+          <blockquote><p>{t(lang, 'exp.guide')}</p></blockquote>
+          <figcaption class="mono">{t(lang, 'exp.guide.src')}</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="xi-list" aria-labelledby="xi-count">
+      <div class="wrap xi-tools">
+        <h2 class="xi-count mono" id="xi-count">{count}</h2>
+        <nav class="xi-filter" aria-label={t(lang, 'exp.filter')}>
+          <span class="mono xi-tools__k" aria-hidden="true">{t(lang, 'exp.filter')}</span>
+          <a href={href({ interes: null })} class="chip" aria-current={!interest ? 'true' : undefined}>{t(lang, 'exp.filter.all')}</a>
+          {interests.map((k) => <a href={href({ interes: k })} class="chip" aria-current={interest === k ? 'true' : undefined}>{t(lang, `recommend.interest.${k}`)}</a>)}
+        </nav>
+        <nav class="xi-view" aria-label={t(lang, 'exp.view')}>
+          <a href={href({ pamja: null })} class="chip" aria-current={view === 'strip' ? 'true' : undefined}>{t(lang, 'exp.view.strip')}</a>
+          <a href={href({ pamja: 'liste' })} class="chip" aria-current={view === 'list' ? 'true' : undefined}>{t(lang, 'exp.view.list')}</a>
+        </nav>
+      </div>
+
+      {rows.length === 0 ? (
+        <div class="wrap xi-empty">
+          <p>{t(lang, 'exp.empty')}</p>
+          <a href={href({ interes: null })}>{t(lang, 'exp.empty.all')}</a>
+        </div>
+      ) : view === 'strip' ? (
+        <ExpStrip lang={lang} lines={rows} id="lineup" label={t(lang, 'exp.title')} />
+      ) : (
+        <div class="wrap">
+          <div class="xi-table" role="region" aria-label={t(lang, 'exp.title')} tabindex="0">
+            <table class="xt">
+              <thead>
+                <tr>
+                  <th scope="col" class="mono">{t(lang, 'exp.col.nr')}</th>
+                  <th scope="col" class="mono">{t(lang, 'exp.col.name')}</th>
+                  <th scope="col" class="mono">{t(lang, 'exp.col.length')}</th>
+                  <th scope="col" class="mono">{t(lang, 'exp.col.km')}</th>
+                  <th scope="col" class="mono">{t(lang, 'exp.col.next')}</th>
+                  <th scope="col" class="mono xt__num">{t(lang, 'exp.col.seats')}</th>
+                  <th scope="col" class="mono xt__num">{t(lang, 'exp.col.price')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr>
+                    <td class="mono">{r.n}</td>
+                    <th scope="row">
+                      <a href={r.url}>{r.name}</a>
+                      {r.hint && <span class="xt__hint mono">{t(lang, `exp.hint.${r.hint.key}`)}</span>}
+                    </th>
+                    <td class="mono">{r.length}</td>
+                    <td class="mono">{r.km != null && r.km < 0.1 ? t(lang, 'exp.here') : r.kmText}</td>
+                    <td class="mono">{r.next ? when(r.next) : t(lang, 'exp.none')}</td>
+                    <td class="mono xt__num">{r.next && r.left != null ? r.left : '—'}</td>
+                    <td class="xt__num"><Price lek={r.p.price} lang={lang} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </section>
+    <div class="wrap xi-sources"><SourceList lang={lang} items={hintSources} title={t(lang, 'exp.sources.title')} id="burimet-stinet" /></div>
+  </div>
+</Base>
+
+<script>
+  import { initExperiences } from '../scripts/experiences';
+  initExperiences();
+</script>
+
+<style>
+  .xi-hero { display: grid; gap: clamp(14px, 2vw, 24px); padding-block: clamp(10px, 1.6vw, 20px) clamp(28px, 4vw, 56px); }
+  .xi-hero__grid { display: grid; gap: clamp(20px, 4vw, 64px); align-items: end; margin-block-start: clamp(8px, 2vw, 32px); }
+  .xi-lead { max-inline-size: 26ch; }
+  .xi-guide { margin: 0; display: grid; gap: 10px; padding-inline-start: 18px; border-inline-start: 2px solid var(--ink); }
+  .xi-guide blockquote { margin: 0; }
+  .xi-guide p { font-family: var(--font-serif); font-style: italic; font-size: var(--step-2); line-height: 1.2; max-inline-size: 34ch; }
+  .xi-guide figcaption { font-size: var(--step--2); color: var(--muted); }
+  @media (min-width: 900px) { .xi-hero__grid { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); } }
+  .xi-list { display: grid; gap: 22px; padding-block-end: clamp(40px, 6vw, 96px); }
+  .xi-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding-block: 14px; border-block: 1px solid var(--ink); }
+  .xi-count { margin: 0; font-size: var(--step--1); font-weight: 600; margin-inline-end: auto; }
+  .xi-filter, .xi-view { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .xi-tools__k { font-size: var(--step--2); color: var(--muted); margin-inline-end: 4px; }
+  .chip { display: inline-flex; align-items: center; min-block-size: 36px; padding: 0 14px; border: 1px solid var(--rule-strong); border-radius: var(--radius-pill); text-decoration: none; color: inherit; font-family: var(--font-mono); font-size: var(--step--2); text-transform: uppercase; letter-spacing: 0.06em; transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out), transform 120ms var(--ease-out); }
+  .chip:active { transform: scale(0.97); }
+  .chip[aria-current] { background: var(--ink); color: var(--salt); }
+  @media (pointer: coarse) { .chip { min-block-size: 44px; } }
+  @media (hover: hover) and (pointer: fine) { .chip:not([aria-current]):hover { background: color-mix(in oklch, var(--ink) 8%, transparent); } }
+  .xi-empty { display: grid; gap: 10px; justify-items: start; padding-block: 32px; }
+  .xi-table { overflow-x: auto; overscroll-behavior-x: contain; }
+  .xi-table:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  .xt { inline-size: 100%; border-collapse: collapse; min-inline-size: 760px; }
+  .xt :is(th, td) { text-align: start; padding: 14px 14px 14px 0; border-block-end: 1px solid var(--rule); vertical-align: baseline; }
+  .xt thead th { font-size: var(--step--2); color: var(--muted); border-block-end: 2px solid var(--ink); font-weight: 450; }
+  .xt tbody th { font-weight: 650; font-stretch: 90%; font-size: var(--step-1); }
+  .xt tbody th a { text-decoration: none; display: inline-flex; min-block-size: 32px; align-items: center; }
+  .xt tbody th a:hover { text-decoration: underline; }
+  .xt td.mono { font-size: var(--step--1); white-space: nowrap; }
+  .xt__hint { display: block; font-size: var(--step--2); color: var(--muted); font-weight: 450; }
+  .xt__num { text-align: end !important; }
+  .xi-sources { padding-block-end: var(--section-gap); }
+</style>

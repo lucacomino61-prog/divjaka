@@ -1,0 +1,123 @@
+---
+/**
+ * ExpStrip — the Bécane lineup (DESIGN §5): the experiences on a horizontal survey strip ordered
+ * by distance from the hotel. A survey line runs along the top with one pin per experience and its
+ * straight-line distance; under each pin a specimen tag (number, plate, name, length, price per
+ * person, next session + real free places, the season hint). Mouse: drag the strip (and the arrow
+ * buttons); touch: native horizontal scroll with snap; keyboard: the strip is focusable, ←/→ move
+ * one tag (src/scripts/experiences.ts). Every tag is a plain link; the list view is one click away.
+ *
+ * Props: lang, lines (Line[]), id, label, end? (show the itinerary card at the end)
+ */
+import Photo from '../site/Photo.astro';
+import Price from '../site/Price.astro';
+import { t } from '../../i18n/ui';
+import { formatDate, relativeDay } from '../../i18n/format';
+import { path, type Lang } from '../../i18n/routes';
+import type { Line } from './lineup';
+
+interface Props { lang: Lang; lines: Line[]; id: string; label: string; end?: boolean; headingLevel?: 'h2' | 'h3' }
+const { lang, lines, id, label, end = true, headingLevel: H = 'h3' } = Astro.props;
+const when = (iso: string) => {
+  const d = iso.slice(0, 10);
+  const rel = relativeDay(d, lang);
+  const day = /^(sot|nesër|today|tomorrow)$/.test(rel) ? rel : `${formatDate(d, lang, 'weekday-short')} ${formatDate(d, lang, 'short')}`;
+  return `${day}, ${iso.slice(11, 16)}`;
+};
+---
+<div class="xstrip" data-xstrip id={id}>
+  <div class="xstrip__bar wrap">
+    <p class="xstrip__order mono">{t(lang, 'exp.order')}</p>
+    <div class="xstrip__nav" data-xstrip-nav hidden>
+      <button type="button" class="xstrip__btn" data-xstrip-prev aria-controls={`${id}-scroller`} aria-label={t(lang, 'exp.prev')}><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M14 8H3M7 4 3 8l4 4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></button>
+      <button type="button" class="xstrip__btn" data-xstrip-next aria-controls={`${id}-scroller`} aria-label={t(lang, 'exp.nextBtn')}><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></button>
+    </div>
+  </div>
+  <div class="xstrip__scroller" id={`${id}-scroller`} data-xstrip-scroller tabindex="0" role="region" aria-label={label}>
+    <ol class="xstrip__track">
+      {lines.map((x) => (
+        <li class="xs">
+          <div class="xs__survey" aria-hidden="true">
+            <span class:list={['xs__pin', x.km != null && x.km < 0.1 && 'xs__pin--home']}></span>
+            <span class="xs__km mono">{x.km != null && x.km < 0.1 ? t(lang, 'exp.here') : x.kmText}</span>
+          </div>
+          <p class="xs__row mono">
+            <span>{t(lang, 'exp.nr')} {x.n}</span>
+            <span>{x.length}</span>
+          </p>
+          <Photo slug={x.image?.slug ?? null} lang={lang} ratio="4 / 5" sizes="(min-width: 900px) 24vw, 72vw" alt={x.image?.alt} />
+          <H class="xs__name"><a href={x.url} class="xs__a" draggable="false"><span class="xs__nm">{x.name}</span></a></H>
+          <p class="xs__meta">
+            <Price lek={x.p.price} lang={lang} per="person" />
+            {x.km != null && x.km >= 0.1 && <span class="visually-hidden">{x.kmText} {t(lang, 'exp.from')}</span>}
+          </p>
+          <p class="xs__next mono">
+            {x.next ? (
+              <Fragment>
+                <span>{t(lang, 'exp.next', { date: when(x.next) })}</span>
+                {x.left != null && x.left > 0 && <span class="xs__seats">{x.left === 1 ? t(lang, 'exp.seats1') : t(lang, 'exp.seats', { n: x.left })}</span>}
+              </Fragment>
+            ) : <span>{t(lang, 'exp.none')}</span>}
+          </p>
+          {x.hint && <p class="xs__hint mono"><span class="xs__hint-dot" aria-hidden="true"></span><span class="visually-hidden">{t(lang, 'exp.season')}: </span>{t(lang, `exp.hint.${x.hint.key}`)}</p>}
+        </li>
+      ))}
+      {end && (
+        <li class="xs xs--end">
+          <div class="xs__survey" aria-hidden="true"><span class="xs__pin xs__pin--open"></span><span class="xs__km mono">{t(lang, 'exp.end')}</span></div>
+          <a href={path('itinerary', lang)} class="xs__end" draggable="false">
+            <span class="xs__end-t">{t(lang, 'exp.end.cta')}</span>
+            <span class="xs__end-b">{t(lang, 'exp.end.body')}</span>
+            <svg viewBox="0 0 16 16" width="32" height="32" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.2" /></svg>
+          </a>
+        </li>
+      )}
+    </ol>
+  </div>
+  <p class="xstrip__hint wrap mono">{t(lang, 'exp.hint')}</p>
+</div>
+
+<style>
+  .xstrip { display: grid; gap: 14px; }
+  .xstrip__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+  .xstrip__order { margin: 0; font-size: var(--step--2); color: var(--muted); }
+  .xstrip__nav { display: flex; gap: 8px; }
+  .xstrip__nav[hidden] { display: none; }
+  .xstrip__btn { inline-size: 48px; block-size: 48px; border-radius: var(--radius-pill); border: 1px solid var(--ink); display: grid; place-items: center; background: transparent; color: var(--ink); cursor: pointer; touch-action: manipulation; transition: transform 120ms var(--ease-out), background-color 150ms var(--ease-out), color 150ms var(--ease-out), opacity 150ms var(--ease-out); }
+  .xstrip__btn:active { transform: scale(0.97); }
+  .xstrip__btn[aria-disabled="true"] { opacity: 0.3; }
+  @media (hover: hover) and (pointer: fine) { .xstrip__btn:not([aria-disabled="true"]):hover { background: var(--ink); color: var(--salt); } }
+  .xstrip__scroller { overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-inline: var(--page-pad); scrollbar-width: thin; scrollbar-color: var(--ink) transparent; padding-block: 4px 20px; outline-offset: -2px; }
+  .xstrip__scroller.is-dragging { scroll-snap-type: none; cursor: grabbing; user-select: none; }
+  @media (hover: hover) and (pointer: fine) { .xstrip__scroller { cursor: grab; } }
+  .xstrip__track { list-style: none; margin: 0; padding: 0 var(--page-pad); display: flex; gap: var(--gutter); inline-size: max-content; position: relative; }
+  /* the survey line along the top of the strip */
+  .xstrip__track::before { content: ""; position: absolute; inset-inline: var(--page-pad); inset-block-start: 7px; block-size: 1px; background: var(--ink); }
+  .xs { inline-size: clamp(250px, 23vw, 340px); scroll-snap-align: start; position: relative; display: grid; gap: 10px; align-content: start; }
+  .xs__survey { display: flex; align-items: center; gap: 10px; block-size: 16px; }
+  .xs__pin { inline-size: 14px; block-size: 14px; border-radius: var(--radius-pill); border: 2px solid var(--ink); background: var(--salt); position: relative; z-index: 1; flex: none; }
+  .xs__pin--home { background: var(--pouch); }
+  .xs__pin--open { border-style: dashed; }
+  .xs__km { font-size: var(--step--2); background: var(--bg); padding-inline: 6px; position: relative; z-index: 1; }
+  .xs__row { display: flex; justify-content: space-between; gap: 10px; margin: 6px 0 0; font-size: var(--step--2); padding-block-start: 8px; border-block-start: 2px solid var(--ink); }
+  .xs__name { margin: 2px 0 0; font-size: var(--step-2); font-weight: 700; font-stretch: 85%; line-height: 1.04; letter-spacing: -0.015em; min-block-size: 2.1em; text-wrap: balance; }
+  .xs__a { display: block; min-block-size: 44px; color: inherit; text-decoration: none; }
+  .xs__a::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+  .xs :global(.plate__credit) { position: relative; z-index: 2; }
+  .xs__a:focus-visible { outline: none; box-shadow: none; }
+  .xs__a:focus-visible::after { outline: 2px solid var(--pouch); outline-offset: 3px; }
+  .xs__nm { display: inline-block; transition: transform 200ms var(--ease-out); }
+  .xs__meta { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin: 0; padding-block-start: 8px; border-block-start: 1px solid var(--rule); }
+  .xs__next { display: grid; gap: 2px; margin: 0; font-size: var(--step--2); color: var(--muted); }
+  .xs__seats { color: var(--fg); }
+  .xs__hint { display: flex; align-items: center; gap: 8px; margin: 0; font-size: var(--step--2); color: var(--fg); padding-block-start: 8px; border-block-start: 1px dashed var(--rule); }
+  .xs__hint-dot { inline-size: 6px; block-size: 6px; border-radius: var(--radius-pill); background: var(--pouch); flex: none; }
+  @media (hover: hover) and (pointer: fine) { .xs:hover .xs__nm { transform: translateX(6px); } }
+  .xs:has(.xs__a:active) { transform: scale(0.99); transition: transform 120ms var(--ease-out); }
+  .xs--end { inline-size: clamp(250px, 20vw, 300px); }
+  .xs__end { display: grid; align-content: end; gap: 12px; min-block-size: 100%; padding: 18px; margin-block-start: 6px; border: 1px solid var(--ink); text-decoration: none; color: inherit; transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out); }
+  .xs__end-t { font-family: var(--font-poster); font-weight: 800; font-stretch: 75%; text-transform: uppercase; letter-spacing: -0.03em; line-height: 0.92; font-size: var(--step-4); overflow-wrap: anywhere; }
+  .xs__end-b { color: var(--muted); font-size: var(--step--1); }
+  @media (hover: hover) and (pointer: fine) { .xs__end:hover { background: var(--ink); color: var(--salt); } .xs__end:hover .xs__end-b { color: var(--salt-70); } }
+  .xstrip__hint { font-size: var(--step--2); color: var(--muted); margin: 0; }
+</style>

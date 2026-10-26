@@ -1,0 +1,125 @@
+---
+/**
+ * Calendar — a month grid in mono (DESIGN §3 Calendar), the ARIA date-grid pattern:
+ * <table role="grid">, one roving tab stop, arrows ±1/±7 days, Home/End = week, Page Up/Down =
+ * month (src/scripts/booking.ts). Each day shows its price per night (rooms; `stay` = the lowest
+ * room type) or its free places (experiences); taken days are struck through. The server prints
+ * the first month (same markup the client renders), so prices are in the HTML and nothing shifts:
+ * a month has the rows it needs (5 or 6; a user-initiated change, so no CLS). Prev/next are real links (?muaji=YYYY-MM) for a page without JS;
+ * the script fetches the month instead and keeps the URL in step.
+ *
+ * Props: lang, id (unique), mode 'night' | 'stay' | 'seats', ym, days (DayCell[]), min, max
+ *        (YYYY-MM bounds), hrefFor (ym → link for prev/next), selected? { from?, to?, date? }.
+ */
+import './booking.css';
+import { t } from '../../i18n/ui';
+import { MONTHS, WEEKDAYS, WEEKDAYS_MIN, formatDate, number, money } from '../../i18n/format';
+import type { Lang } from '../../i18n/routes';
+import { addMonths, horizonDate, monthWeeks, todayLocal, type DayCell } from './server';
+import { eurRate } from '../site/site-data';
+
+interface Props {
+  lang: Lang; id: string; mode: 'night' | 'stay' | 'seats'; ym: string; days: DayCell[];
+  min: string; max: string; hrefFor: (ym: string) => string;
+  selected?: { from?: string | null; to?: string | null; date?: string | null };
+}
+const { lang, id, mode, ym, days, min, max, hrefFor, selected = {} } = Astro.props;
+const rate = await eurRate();
+const byDate = new Map(days.map((d) => [d.date, d]));
+const weeks = monthWeeks(ym);
+const [y, m] = ym.split('-').map(Number);
+const monthLabel = `${MONTHS[lang][m - 1]} ${y}`;
+const prev = addMonths(ym, -1), next = addMonths(ym, 1);
+const today = todayLocal();
+const firstOpen = days.find((d) => d.status === 'open')?.date;
+const focusDate = selected.date ?? selected.from ?? (firstOpen && firstOpen.startsWith(ym) ? firstOpen : days.find((d) => d.date >= today)?.date ?? days[0]?.date);
+const { from, to, date: single } = selected;
+
+const statusWord: Record<string, string> = {
+  past: t(lang, 'booking.cal.past'), full: t(lang, 'booking.cal.full'), closed: t(lang, 'booking.cal.closed'),
+  none: t(lang, 'booking.cal.none'), far: t(lang, 'booking.cal.far'),
+};
+const eurNum = (lek: number) => (rate > 0 ? number(Math.round(lek / rate), lang) : '');
+function label(c: DayCell): string {
+  const d = formatDate(c.date, lang, 'long');
+  let s = d;
+  if (c.status === 'open' && c.price != null) s = t(lang, 'booking.cal.dayNight', { date: d, price: money(c.price, lang) });
+  else if (c.status === 'open' && c.seats != null) s = t(lang, 'booking.cal.daySeats', { date: d, seats: c.seats === 1 ? (lang === 'sq' ? '1 vend' : '1 place') : (lang === 'sq' ? `${c.seats} vende` : `${c.seats} places`) });
+  else if (statusWord[c.status]) s = `${d}, ${statusWord[c.status]}`;
+  if (c.date === today) s += `, ${t(lang, 'booking.cal.today')}`;
+  if (from && c.date === from) s += `, ${t(lang, 'booking.cal.selectedIn')}`;
+  if (to && c.date === to) s += `, ${t(lang, 'booking.cal.selectedOut')}`;
+  return s;
+}
+const mark = (date: string) => {
+  if (single) return date === single ? 'pick' : '';
+  if (from && date === from) return to ? 'in' : 'in solo';
+  if (to && date === to) return 'out';
+  if (from && to && date > from && date < to) return 'mid';
+  return '';
+};
+---
+<div class:list={['cal', `cal--${mode}`]} id={id} data-cal data-mode={mode} data-ym={ym} data-min={min} data-max={max} data-today={today} data-horizon={horizonDate()}>
+  <script type="application/json" data-cal-data set:html={JSON.stringify(days).replace(/</g, '\\u003c')} />
+  <div class="cal__head">
+    <a class="cal__nav" href={hrefFor(prev)} data-cal-prev aria-label={t(lang, 'booking.cal.prev')} aria-disabled={prev < min ? 'true' : undefined} rel="nofollow">
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M14 8H3M7 4 3 8l4 4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
+    </a>
+    <h3 class="cal__month" id={`${id}-m`} data-cal-month aria-live="polite">{monthLabel}</h3>
+    <a class="cal__nav" href={hrefFor(next)} data-cal-next aria-label={t(lang, 'booking.cal.next')} aria-disabled={next > max ? 'true' : undefined} rel="nofollow">
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
+    </a>
+  </div>
+  <table class="cal__grid" role="grid" aria-labelledby={`${id}-m`} aria-describedby={`${id}-keys`}>
+    <thead>
+      <tr>{WEEKDAYS_MIN[lang].map((w, i) => <th scope="col" abbr={WEEKDAYS[lang][i]}><span aria-hidden="true">{w}</span><span class="visually-hidden">{WEEKDAYS[lang][i]}</span></th>)}</tr>
+    </thead>
+    <tbody data-cal-body>
+      {weeks.map((week) => (
+        <tr>
+          {week.map((date) => {
+            if (!date) return <td class="cal__pad"></td>;
+            const c = byDate.get(date) ?? { date, status: date < today ? 'past' : 'none' } as DayCell;
+            const val = c.status === 'open' ? (c.price != null ? number(c.price, lang) : c.seats != null ? String(c.seats) : '') : '';
+            const mk = mark(date);
+            return (
+              <td class="cal__cell" data-mark={mk || undefined}>
+                <button
+                  type="button"
+                  class="cal__day"
+                  data-date={date}
+                  data-status={c.status}
+                  data-today={date === today ? '' : undefined}
+                  tabindex={date === focusDate ? 0 : -1}
+                  aria-label={label(c)}
+                  aria-pressed={mk === 'pick' || mk.startsWith('in') || mk === 'out' ? 'true' : undefined}
+                  aria-disabled={c.status === 'open' ? undefined : 'true'}
+                >
+                  <span class="cal__n" aria-hidden="true">{Number(date.slice(8))}</span>
+                  {c.price != null && c.status === 'open' && rate > 0 ? (
+                    <span class="cal__v" aria-hidden="true"><span data-cur-all>{val}</span><span data-cur-eur>{eurNum(c.price)}</span></span>
+                  ) : (
+                    <span class="cal__v" aria-hidden="true">{val}</span>
+                  )}
+                </button>
+              </td>
+            );
+          })}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+  <p class="cal__legend mono">
+    {mode === 'seats' ? (
+      <span>{t(lang, 'booking.cal.legend.seats')}</span>
+    ) : (
+      <>
+        <span data-cur-all>{t(lang, mode === 'stay' ? 'booking.cal.legend.nightFrom' : 'booking.cal.legend.night')}</span>
+        {rate > 0 && <span data-cur-eur>{t(lang, mode === 'stay' ? 'booking.cal.legend.nightFromEur' : 'booking.cal.legend.nightEur')}</span>}
+      </>
+    )}
+    <span class="cal__legend-full"><s aria-hidden="true">12</s> {t(lang, 'booking.cal.legend.full')}</span>
+    <span id={`${id}-keys`} class="visually-hidden">{t(lang, 'booking.cal.keys')}</span>
+  </p>
+  <p class="cal__status mono" data-cal-status role="status"></p>
+</div>

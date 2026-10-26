@@ -1,0 +1,63 @@
+---
+/** FAQ fields (T6): bilingual question/answer, keywords, links (a site page by route key or an address), order, active. */
+import type { Lang } from '../../i18n/routes';
+import { t } from '../../i18n/ui';
+import type { Faq } from '../../lib/db/repo/misc';
+
+interface Props { lang: Lang; faq?: Faq; prefill?: { q: string; lang: string } }
+const { lang, faq, prefill } = Astro.props;
+const T = (k: string, v?: Record<string, string | number>) => t(lang, k, v);
+const id = faq ? `f${faq.id}` : 'fnew';
+const PAGES = ['home', 'stay', 'experiences', 'shop', 'itinerary', 'heritage', 'now', 'contact', 'account', 'cart', 'checkout', 'privacy', 'terms', 'credits'];
+type Link = { key?: string; url?: string; params?: Record<string, string>; label_sq?: string; label_en?: string };
+const links = ((faq?.links ?? []) as Link[]);
+const q = (l: 'sq' | 'en') => faq?.[`q_${l}`] ?? (prefill && prefill.lang === l ? prefill.q : '');
+---
+<form class="rec__body" data-api={faq ? `/api/admin/faq/${faq.id}` : '/api/admin/faq'} data-method={faq ? 'PATCH' : 'POST'} data-faq-form>
+  <div class="fields fields--wide">
+    <div class="fld" lang="sq"><label class="fld__label mono" for={`${id}-qsq`}>{T('admin.assistant.faq.q_sq')}</label><input id={`${id}-qsq`} class="fld__input" name="q_sq" data-nullable value={q('sq')} maxlength="500" /></div>
+    <div class="fld" lang="en"><label class="fld__label mono" for={`${id}-qen`}>{T('admin.assistant.faq.q_en')}</label><input id={`${id}-qen`} class="fld__input" name="q_en" data-nullable value={q('en')} maxlength="500" /></div>
+    <div class="fld" lang="sq"><label class="fld__label mono" for={`${id}-asq`}>{T('admin.assistant.faq.a_sq')}</label><textarea id={`${id}-asq`} class="fld__input" name="a_sq" data-nullable rows="5" maxlength="5000">{faq?.a_sq ?? ''}</textarea></div>
+    <div class="fld" lang="en"><label class="fld__label mono" for={`${id}-aen`}>{T('admin.assistant.faq.a_en')}</label><textarea id={`${id}-aen`} class="fld__input" name="a_en" data-nullable rows="5" maxlength="5000">{faq?.a_en ?? ''}</textarea></div>
+  </div>
+  <div class="fld"><label class="fld__label mono" for={`${id}-kw`}>{T('admin.assistant.faq.keywords')}</label><input id={`${id}-kw`} class="fld__input" name="keywords" data-nullable value={faq?.keywords ?? ''} maxlength="1000" /><p class="fld__help">{T('admin.assistant.faq.keywords.help')}</p></div>
+  <fieldset class="group" data-path="links">
+    <legend>{T('admin.assistant.faq.links')}</legend>
+    <ol class="vstack" style="list-style:none;padding:0;gap:14px" data-links>
+      {links.map((l) => (
+        <li class="linkrow" data-link-row data-params={l.params ? JSON.stringify(l.params) : undefined}>
+          <select class="fld__input fld__input--s" data-k="page" aria-label={T('admin.assistant.faq.link.page')}>
+            {PAGES.map((p) => <option value={p} selected={l.key === p}>{T(`nav.${p}`)}</option>)}
+            {l.key && !PAGES.includes(l.key) && <option value={l.key} selected>{l.key}</option>}
+            <option value="" selected={!l.key}>{T('admin.assistant.faq.link.custom')}</option>
+          </select>
+          <input class="fld__input fld__input--s" data-k="url" value={l.url ?? ''} placeholder="/… https://…" aria-label={T('admin.assistant.faq.link.url')} hidden={!!l.key} />
+          <input class="fld__input fld__input--s" data-k="label_sq" value={l.label_sq ?? ''} aria-label={T('admin.assistant.faq.link.sq')} placeholder={T('admin.assistant.faq.link.sq')} lang="sq" />
+          <input class="fld__input fld__input--s" data-k="label_en" value={l.label_en ?? ''} aria-label={T('admin.assistant.faq.link.en')} placeholder={T('admin.assistant.faq.link.en')} lang="en" />
+          <button type="button" class="btn-icon" data-link-remove aria-label={T('admin.remove')}>×</button>
+        </li>
+      ))}
+    </ol>
+    <div><button type="button" class="btn-text" data-link-add>+ {T('admin.assistant.faq.link.add')}</button></div>
+  </fieldset>
+  <div class="fields">
+    <div class="fld"><label class="fld__label mono" for={`${id}-sort`}>{T('admin.product.sort')}</label><input id={`${id}-sort`} class="fld__input" type="number" name="sort" data-type="int" value={faq?.sort ?? 0} /></div>
+    <label class="fld fld--check" style="align-self:end"><input class="check" type="checkbox" name="active" data-type="bool" checked={faq ? faq.active : true} /><span class="fld__label">{T('admin.assistant.faq.active')}</span></label>
+  </div>
+  <div class="form-actions">
+    <button class="pill pill--primary pill--s" type="submit">{faq ? T('admin.save') : T('admin.assistant.faq.create')}</button>
+    {faq && <button type="button" class="btn-text btn-text--danger" data-action={`/api/admin/faq/${faq.id}`} data-method="DELETE" data-confirm="admin.assistant.faq.c.delete" data-danger>{T('admin.delete')}</button>}
+  </div>
+  <template data-link-template>
+    <li class="linkrow" data-link-row>
+      <select class="fld__input fld__input--s" data-k="page" aria-label={T('admin.assistant.faq.link.page')}>
+        {PAGES.map((p) => <option value={p}>{T(`nav.${p}`)}</option>)}
+        <option value="">{T('admin.assistant.faq.link.custom')}</option>
+      </select>
+      <input class="fld__input fld__input--s" data-k="url" placeholder="/… https://…" aria-label={T('admin.assistant.faq.link.url')} hidden />
+      <input class="fld__input fld__input--s" data-k="label_sq" aria-label={T('admin.assistant.faq.link.sq')} placeholder={T('admin.assistant.faq.link.sq')} lang="sq" />
+      <input class="fld__input fld__input--s" data-k="label_en" aria-label={T('admin.assistant.faq.link.en')} placeholder={T('admin.assistant.faq.link.en')} lang="en" />
+      <button type="button" class="btn-icon" data-link-remove aria-label={T('admin.remove')}>×</button>
+    </li>
+  </template>
+</form>

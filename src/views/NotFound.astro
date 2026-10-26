@@ -1,59 +1,170 @@
 ---
 /**
- * NotFound view — 404, PLACEHOLDER-PLUS from T2 (T7 owns and may restyle it). "A pin dropped
- * in the open sea" (DESIGN §5, Don't Board Me). Bilingual: the requested language first, the
- * other language as a second line. Search goes to the shop's ?q= filter; back to the chart.
+ * NotFound (404) — T7. The joke chart (DESIGN §5, after Don't Board Me): T3's lagoon chart with
+ * a pin dropped in the open sea west of the coast, "Ky vend nuk është në hartë", and the way
+ * back. Bilingual: the requested language first, the other below. Site search works without
+ * JavaScript (GET ?q= on this same URL, rendered here with lib/search) and live with it
+ * (GET /api/search, debounced; the submitted query is tracked once with track=1).
+ * The HTTP status (404) is set by the route (src/pages/404.astro or the dynamic shells).
  */
 import Base from '../layouts/Base.astro';
 import Pill from '../components/site/Pill.astro';
+import Chart from '../components/chart/Chart.astro';
+import { HOTEL_ID, poi } from '../components/chart/geo';
+import { search, type SearchResult } from '../lib/search';
 import { t } from '../i18n/ui';
 import { path, type Lang } from '../i18n/routes';
 
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const other: Lang = lang === 'sq' ? 'en' : 'sq';
+const q = (Astro.url.searchParams.get('q') ?? '').slice(0, 100).trim();
+let results: SearchResult[] = [];
+if (q.length >= 2) { try { results = search(q, lang, 12); } catch { results = []; } }
+// the lost pin: ~5 km west of the hotel, in the open Adriatic
+const hotel = poi(HOTEL_ID);
+const lost = hotel ? { x: hotel.x - 235, y: hotel.y + 40 } : { x: 300, y: 650 };
+const crop: [number, number, number, number] = hotel ? [Math.round(lost.x - 120), Math.round(hotel.y - 190), 460, 360] : [200, 450, 420, 360];
+const ways = [
+  { href: path('home', lang), label: t(lang, 'nav.home') },
+  { href: path('stay', lang), label: t(lang, 'nav.stay') },
+  { href: path('experiences', lang), label: t(lang, 'nav.experiences') },
+  { href: path('heritage', lang), label: t(lang, 'nav.heritage') },
+  { href: path('now', lang), label: t(lang, 'page.now.title') },
+  { href: path('contact', lang), label: t(lang, 'nav.contact') },
+];
+const typeLabel = (r: SearchResult) => t(lang, `lost.type.${r.type}`);
 ---
-<Base lang={lang} title={t(lang, 'page.notfound.title')} description={t(lang, 'notfound.body')} routeKey="notfound" noindex langHref={path('home', other)}>
-  <section class="wrap nf">
-    <p class="nf__code mono">{t(lang, 'notfound.code')}</p>
-    <div class="nf__sea" aria-hidden="true">
-      <svg viewBox="0 0 1200 360" preserveAspectRatio="none">
-        {Array.from({ length: 8 }, (_, i) => <path d={`M0 ${50 + i * 40} C 300 ${30 + i * 40}, 800 ${80 + i * 40}, 1200 ${44 + i * 40}`} fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke" opacity={0.9 - i * 0.09} />)}
-      </svg>
-      <span class="nf__pin"><span class="nf__dot"></span><span class="nf__ring"></span><span class="nf__tag mono">?°??′N ?°??′E</span></span>
+<Base lang={lang} title={t(lang, 'page.notfound.title')} description={t(lang, 'notfound.body')} routeKey="notfound" noindex langHref={path('home', other)} clientKeys={['lost.']}>
+  <section class="wrap nf" aria-labelledby="nf-h">
+    <p class="nf__rule mono"><span>{t(lang, 'notfound.code')}</span><span class="nf__coords">{t(lang, 'lost.coords')}</span></p>
+    <div class="nf__grid">
+      <div class="nf__words">
+        <p class="nf__poster" aria-hidden="true">404</p>
+        <h1 id="nf-h" class="nf__title">{t(lang, 'notfound.title')}</h1>
+        <p class="nf__body">{t(lang, 'notfound.body')}</p>
+        <p class="nf__other" lang={other}>{t(other, 'notfound.title')}. {t(other, 'notfound.body')}</p>
+      </div>
+      <figure class="nf__chart">
+        <Chart lang={lang} mode="pin" crop={crop} pins={[{ x: lost.x, y: lost.y, label: '?°??′N ?°??′E', selected: true, key: 'lost', side: 'right' }]} route={[HOTEL_ID, lost]} routeTone="signal" title={t(lang, 'lost.chart.title')} />
+      </figure>
     </div>
-    <h1 class="nf__title heading">{t(lang, 'notfound.title')}</h1>
-    <p class="lede">{t(lang, 'notfound.body')}</p>
-    <p class="nf__other serif-i" lang={other}>{t(other, 'notfound.title')} — {t(other, 'notfound.body')}</p>
-    <form class="nf__search" action={path('shop', lang)} method="get" role="search">
-      <label class="label" for="nf-q">{t(lang, 'search.label')}</label>
+
+    <form class="nf__search" action="" method="get" role="search" data-nf-search>
+      <label class="nf__label mono" for="nf-q">{t(lang, 'search.label')}</label>
       <div class="nf__row">
-        <input id="nf-q" name="q" type="search" placeholder={t(lang, 'search.placeholder')} autocomplete="off" enterkeyhint="search" />
+        <input id="nf-q" name="q" type="search" value={q} placeholder={t(lang, 'search.placeholder')} autocomplete="off" enterkeyhint="search" spellcheck="false" aria-controls="nf-results" />
         <Pill type="submit">{t(lang, 'search.submit')}</Pill>
       </div>
     </form>
-    <div class="cluster">
-      <Pill href={path('home', lang)} arrow>{t(lang, 'notfound.back')}</Pill>
-      <Pill href={path('contact', lang)} variant="outline">{t(lang, 'nav.contact')}</Pill>
+    <div id="nf-results" class="nf__results" data-nf-results aria-live="polite">
+      {q.length >= 2 && (
+        <>
+          <p class="nf__count mono">{results.length === 0 ? t(lang, 'lost.none', { q }) : results.length === 1 ? t(lang, 'lost.result', { q }) : t(lang, 'lost.results', { n: String(results.length), q })}</p>
+          {results.length > 0 && (
+            <ol class="res">
+              {results.map((r) => <li><a href={r.url}><span class="res__t mono">{typeLabel(r)}</span><span class="res__n">{r.title}</span>{r.snippet && <span class="res__s">{r.snippet}</span>}</a></li>)}
+            </ol>
+          )}
+        </>
+      )}
     </div>
+
+    <nav class="nf__ways" aria-labelledby="nf-ways-h">
+      <p id="nf-ways-h" class="nf__label mono">{t(lang, 'lost.ways')}</p>
+      <ul>{ways.map((w, i) => <li><a href={w.href}><span class="mono">{String(i + 1).padStart(2, '0')}</span>{w.label}</a></li>)}</ul>
+      <Pill href={path('home', lang)} arrow>{t(lang, 'notfound.back')}</Pill>
+    </nav>
   </section>
 </Base>
 
 <style>
-  .nf { display: grid; gap: clamp(16px, 2.4vw, 28px); padding-block-start: clamp(24px, 4vw, 56px); }
-  .nf__code { font-size: var(--step--2); padding-block-start: 10px; border-block-start: var(--rule-2); }
-  .nf__sea { position: relative; aspect-ratio: 10 / 3; color: var(--ink); border-block: 1px solid var(--ink); background: var(--salt-2); }
-  .nf__sea svg { inline-size: 100%; block-size: 100%; }
-  .nf__pin { position: absolute; inset-inline-start: 62%; inset-block-start: 44%; display: flex; align-items: center; }
-  .nf__dot { inline-size: 16px; block-size: 16px; border-radius: 99px; background: var(--pouch); border: 2px solid var(--ink); }
-  .nf__ring { position: absolute; inset-inline-start: 0; inline-size: 16px; block-size: 16px; border-radius: 99px; border: 1px solid var(--pouch); animation: nf-ripple 1.2s var(--ease-out) 600ms 1 both; }
-  @keyframes nf-ripple { from { transform: scale(1); opacity: 1; } to { transform: scale(3.5); opacity: 0; } }
-  .nf__tag { margin-inline-start: 26px; background: var(--salt); border: 1px solid var(--ink); padding: 3px 8px; font-size: var(--step--2); position: relative; }
-  .nf__tag::before { content: ""; position: absolute; inset-inline-end: 100%; inset-block-start: 50%; inline-size: 10px; block-size: 1px; background: var(--ink); }
-  .nf__title { max-inline-size: 18ch; }
-  .nf__other { color: var(--muted); font-size: var(--step-1); max-inline-size: 60ch; }
-  .nf__search { display: grid; gap: 8px; max-inline-size: 640px; }
-  .nf__row { display: flex; gap: 10px; flex-wrap: wrap; }
-  .nf__row input { flex: 1 1 240px; min-block-size: 48px; padding: 0 16px; border: 1px solid var(--ink); border-radius: 0; background: var(--salt); color: var(--ink); }
-  .nf__row input::placeholder { color: var(--muted); }
+  .nf { padding-block: clamp(16px, 2vw, 28px) var(--section-gap); display: grid; gap: clamp(24px, 3vw, 40px); }
+  .nf__rule { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; font-size: var(--step--2); padding-block: 10px; border-block-start: 3px double var(--ink); }
+  .nf__coords { color: var(--pouch-text); }
+  .nf__grid { display: grid; gap: clamp(24px, 4vw, 56px); }
+  @media (min-width: 960px) { .nf__grid { grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); align-items: center; } }
+  .nf__words { display: grid; gap: 14px; min-inline-size: 0; }
+  .nf__poster { font-family: var(--font-poster); font-weight: 800; font-stretch: 75%; letter-spacing: -0.045em; line-height: 0.8; font-size: clamp(9rem, 4rem + 22vw, 24rem); color: var(--ink); }
+  .nf__title { font-size: var(--step-4); font-weight: 700; font-stretch: 85%; line-height: 1; letter-spacing: -0.02em; overflow-wrap: anywhere; max-inline-size: 16ch; }
+  .nf__body { font-size: var(--step-1); line-height: 1.4; max-inline-size: 44ch; }
+  .nf__other { font-family: var(--font-serif); font-style: italic; font-size: var(--step-1); color: var(--muted); max-inline-size: 52ch; }
+  .nf__chart { margin: 0; min-inline-size: 0; }
+  .nf__search { display: grid; gap: 8px; max-inline-size: 760px; padding-block-start: 14px; border-block-start: 2px solid var(--ink); }
+  .nf__label { font-size: var(--step--2); color: var(--muted); }
+  .nf__row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .nf__row input { flex: 1 1 240px; min-block-size: 48px; padding: 0 16px; font: inherit; font-size: 16px; border: 1px solid var(--ink); border-radius: var(--radius-pill); background: var(--salt); color: var(--ink); }
+  .nf__row input:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  .nf__results { max-inline-size: 760px; }
+  .nf__results :global(.nf__count) { font-size: var(--step--1); padding-block: 8px; }
+  .nf__results :global(.res) { list-style: none; margin: 0; padding: 0; border-block-start: 1px solid var(--ink); }
+  .nf__results :global(.res a) { display: grid; grid-template-columns: 8em minmax(0, 1fr); gap: 2px 16px; padding-block: 12px; border-block-end: 1px solid var(--rule); text-decoration: none; min-block-size: 44px; }
+  .nf__results :global(.res__t) { font-size: var(--step--2); color: var(--muted); grid-row: span 2; padding-block-start: 4px; }
+  .nf__results :global(.res__n) { font-weight: 650; overflow-wrap: anywhere; }
+  .nf__results :global(.res__s) { font-size: var(--step--1); color: var(--muted); overflow-wrap: anywhere; }
+  @media (hover: hover) and (pointer: fine) { .nf__results :global(.res a:hover .res__n) { text-decoration: underline; text-underline-offset: 3px; } }
+  @media (max-width: 480px) { .nf__results :global(.res a) { grid-template-columns: minmax(0, 1fr); } .nf__results :global(.res__t) { grid-row: auto; } }
+  .nf__ways { display: grid; gap: 12px; justify-items: start; }
+  .nf__ways ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 0 24px; inline-size: 100%; }
+  .nf__ways a { display: flex; gap: 12px; align-items: baseline; min-block-size: 44px; padding-block: 10px; border-block-end: 1px solid var(--rule); text-decoration: none; font-weight: 600; font-size: var(--step-1); }
+  .nf__ways a span { font-size: var(--step--2); color: var(--muted); font-weight: 400; }
 </style>
+
+<script>
+  import { tc } from '../i18n/client';
+  import { sid } from '../scripts/track';
+  const form = document.querySelector<HTMLFormElement>('[data-nf-search]');
+  const out = document.querySelector<HTMLElement>('[data-nf-results]');
+  if (form && out) {
+    const input = form.querySelector<HTMLInputElement>('input[name="q"]')!;
+    const lang = document.documentElement.lang === 'en' ? 'en' : 'sq';
+    let timer: number | undefined;
+    let ctl: AbortController | null = null;
+    const render = (q: string, results: { type: string; title: string; url: string; snippet: string }[]) => {
+      out.replaceChildren();
+      if (q.length < 2) return;
+      const count = document.createElement('p');
+      count.className = 'nf__count mono';
+      count.textContent = results.length === 0 ? tc('lost.none', { q }) : results.length === 1 ? tc('lost.result', { q }) : tc('lost.results', { n: String(results.length), q });
+      out.append(count);
+      if (!results.length) return;
+      const ol = document.createElement('ol');
+      ol.className = 'res';
+      for (const r of results.slice(0, 12)) {
+        if (!/^\/(?![/\\])/.test(r.url)) continue;
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = r.url;
+        const ty = document.createElement('span'); ty.className = 'res__t mono'; ty.textContent = tc(`lost.type.${r.type}`);
+        const n = document.createElement('span'); n.className = 'res__n'; n.textContent = r.title;
+        a.append(ty, n);
+        if (r.snippet) { const s = document.createElement('span'); s.className = 'res__s'; s.textContent = r.snippet; a.append(s); }
+        li.append(a);
+        ol.append(li);
+      }
+      out.append(ol);
+    };
+    const run = async (track: boolean) => {
+      const q = input.value.trim();
+      ctl?.abort();
+      if (q.length < 2) { render(q, []); return; }
+      ctl = new AbortController();
+      try {
+        const u = `/api/search?q=${encodeURIComponent(q)}&lang=${lang}${track ? `&track=1&sid=${encodeURIComponent(sid())}` : ''}`;
+        const res = await fetch(u, { signal: ctl.signal, headers: { accept: 'application/json' } });
+        if (!res.ok) return;
+        const data = await res.json();
+        render(q, Array.isArray(data.results) ? data.results : []);
+      } catch { /* aborted or offline: the no-JS submit still works */ }
+    };
+    input.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(() => run(false), 250); });
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      clearTimeout(timer);
+      const u = new URL(location.href);
+      if (input.value.trim()) u.searchParams.set('q', input.value.trim()); else u.searchParams.delete('q');
+      history.replaceState(history.state, '', u);
+      run(true);
+    });
+  }
+</script>

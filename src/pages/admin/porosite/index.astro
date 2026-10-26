@@ -1,0 +1,154 @@
+---
+/** /admin/porosite/ — Porositë (T6): filters in the URL, ruled table (stacked rows on phones), flood cancel tool. */
+import Admin from '../../../layouts/Admin.astro';
+import OrderBadges from '../../../components/admin/OrderBadges.astro';
+import { adminLang, tr, lek, when, pageOf, withParam, callApi, ORDER_STATUSES, PAY_STATUSES, PAY_METHODS, KINDS } from '../../../components/admin/admin-data';
+import { GET as ordersGET } from '../../api/admin/orders/index';
+import type { OrderListRow } from '../../../lib/db/repo/orders';
+
+const lang = adminLang(Astro);
+const T = tr(lang);
+const sp = Astro.url.searchParams;
+const limit = 50;
+const offset = Math.max(0, Number(sp.get('offset')) || 0);
+const u = new URL(Astro.url);
+u.searchParams.set('limit', String(limit));
+const data = (await callApi<{ items: OrderListRow[]; total: number }>(ordersGET as never, Astro, u.href)) ?? { items: [], total: 0 };
+const pg = pageOf(data.total, offset, limit);
+const f = { status: sp.get('status') ?? '', payment_status: sp.get('payment_status') ?? '', payment_method: sp.get('payment_method') ?? '', kind: sp.get('kind') ?? '', q: sp.get('q') ?? '', from: sp.get('from') ?? '', to: sp.get('to') ?? '' };
+const filtered = Object.values(f).some(Boolean);
+const reviewText = (r: string | null) => (r ? r.split(',').map((x) => T(`admin.review.${x}`)).join(', ') : '');
+const now = Date.now();
+---
+<Admin lang={lang} title={T('admin.orders.title')} section="orders" kicker={T('admin.orders.kicker')}>
+  <form class="filters" method="get" action="/admin/porosite/" data-autosubmit role="search">
+    <div class="fields">
+      <div class="fld span-2">
+        <label class="fld__label mono" for="f-q">{T('admin.search')}</label>
+        <input id="f-q" class="fld__input" type="search" name="q" value={f.q} placeholder={T('admin.orders.q')} />
+      </div>
+      <div class="fld">
+        <label class="fld__label mono" for="f-status">{T('admin.orders.status')}</label>
+        <select id="f-status" class="fld__input" name="status">
+          <option value="">{T('admin.all')}</option>
+          {ORDER_STATUSES.map((s) => <option value={s} selected={f.status === s}>{T(`admin.order.status.${s}`)}</option>)}
+        </select>
+      </div>
+      <div class="fld">
+        <label class="fld__label mono" for="f-pay">{T('admin.orders.payment')}</label>
+        <select id="f-pay" class="fld__input" name="payment_status">
+          <option value="">{T('admin.all')}</option>
+          {PAY_STATUSES.map((s) => <option value={s} selected={f.payment_status === s}>{T(`admin.pay.status.${s}`)}</option>)}
+        </select>
+      </div>
+      <div class="fld">
+        <label class="fld__label mono" for="f-method">{T('admin.orders.method')}</label>
+        <select id="f-method" class="fld__input" name="payment_method">
+          <option value="">{T('admin.all')}</option>
+          {PAY_METHODS.map((s) => <option value={s} selected={f.payment_method === s}>{T(`admin.pay.method.${s}`)}</option>)}
+        </select>
+      </div>
+      <div class="fld">
+        <label class="fld__label mono" for="f-kind">{T('admin.orders.kind')}</label>
+        <select id="f-kind" class="fld__input" name="kind">
+          <option value="">{T('admin.all')}</option>
+          {KINDS.map((s) => <option value={s} selected={f.kind === s}>{T(`admin.kinds.${s}`)}</option>)}
+        </select>
+      </div>
+      <div class="fld">
+        <label class="fld__label mono" for="f-from">{T('admin.from')}</label>
+        <input id="f-from" class="fld__input" type="date" name="from" value={f.from} />
+      </div>
+      <div class="fld">
+        <label class="fld__label mono" for="f-to">{T('admin.to')}</label>
+        <input id="f-to" class="fld__input" type="date" name="to" value={f.to} />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="pill pill--primary pill--s" type="submit">{T('admin.filter')}</button>
+      {filtered && <a class="btn-text" href="/admin/porosite/">{T('admin.filter.clear')}</a>}
+      <span class="pager__info mono">{T('admin.showing', { from: pg.from, to: pg.to, total: pg.total })}</span>
+    </div>
+  </form>
+
+  <section class="blk" aria-label={T('admin.orders.title')}>
+    {data.items.length ? (
+      <div class="table-scroll">
+        <table class="adm-table adm-table--stack orders-table">
+          <thead>
+            <tr>
+              <th scope="col">{T('admin.orders.code')}</th>
+              <th scope="col">{T('admin.orders.guest')}</th>
+              <th scope="col">{T('admin.orders.items')}</th>
+              <th scope="col">{T('admin.orders.method')}</th>
+              <th scope="col">{T('admin.status')}</th>
+              <th scope="col" class="num">{T('admin.total')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.items.map((o) => {
+              const holding = o.hold_until && o.status === 'pending' && Date.parse(o.hold_until) > now;
+              return (
+                <tr class:list={[o.status === 'cancelled' && 'is-muted']}>
+                  <td data-label="" class="c-code">
+                    <a class="rowlink mono mono-lc" href={`/admin/porosite/${o.code}/`}>{o.code}</a>
+                    <span class="cell-sub mono">{when(o.created_at, lang)}</span>
+                  </td>
+                  <td data-label="" class="c-guest">
+                    <span class="break">{o.name || '—'}</span>
+                    <span class="cell-sub break">{o.email}</span>
+                  </td>
+                  <td data-label={T('admin.orders.items')}>
+                    {(o.kinds ?? '').split(',').filter(Boolean).map((k) => T(`admin.kind.${k}`)).join(' · ') || '—'}
+                    <span class="cell-sub mono">× {o.items_count}</span>
+                  </td>
+                  <td data-label={T('admin.orders.method')}>{T(`admin.pay.method.${o.payment_method}`)}</td>
+                  <td data-label={T('admin.status')} class="c-status">
+                    <OrderBadges lang={lang} status={o.status} payment_status={o.payment_status} test={o.test} demo={o.demo} />
+                    {holding && <span class="cell-sub mono">{T('admin.orders.hold', { time: when(o.hold_until, lang) })}</span>}
+                    {o.review && o.status === 'pending' && <span class="cell-sub signal-text">{T('admin.orders.hold.short', { why: reviewText(o.review) })}</span>}
+                    {!!o.staff_hold && o.status === 'pending' && <span class="cell-sub mono">{T('admin.orders.staff')}</span>}
+                  </td>
+                  <td data-label="" class="num mono c-total">{lek(o.total, lang)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    ) : <p class="adm-empty mono">{T('admin.orders.none')}</p>}
+    <nav class="pager" aria-label={T('admin.page')}>
+      {pg.prev !== null && <a class="pill pill--outline pill--s" href={withParam(Astro.url, { offset: pg.prev || null })}>← {T('admin.prev')}</a>}
+      {pg.next !== null && <a class="pill pill--outline pill--s" href={withParam(Astro.url, { offset: pg.next })}>{T('admin.next')} →</a>}
+    </nav>
+  </section>
+
+  <section class="blk" id="flood" aria-labelledby="flood-t">
+    <div class="blk__head"><h2 class="blk__title" id="flood-t">{T('admin.orders.flood.title')}</h2></div>
+    <p class="blk__lede">{T('admin.orders.flood.lede')}</p>
+    <form class="vstack" data-flood>
+      <div class="fields">
+        <div class="fld">
+          <label class="fld__label mono" for="fl-min">{T('admin.orders.flood.minutes')}</label>
+          <select id="fl-min" class="fld__input" name="minutes">
+            {[60, 180, 720, 1440].map((m) => <option value={m}>{T(`admin.orders.flood.m${m}`)}</option>)}
+          </select>
+        </div>
+        <fieldset class="group fld">
+          <legend>{T('admin.orders.flood.methods')}</legend>
+          <div class="chips">
+            {PAY_METHODS.map((m) => <label class="chip"><input type="checkbox" name="methods" value={m} checked={m !== 'card'} />{T(`admin.pay.method.${m}`)}</label>)}
+          </div>
+        </fieldset>
+      </div>
+      <div class="form-actions">
+        <button class="pill pill--outline pill--s" type="submit">{T('admin.orders.flood.check')}</button>
+        <button class="pill pill--danger pill--s" type="button" data-flood-run hidden></button>
+      </div>
+      <p class="form-status" data-form-status role="status"></p>
+    </form>
+  </section>
+  <script>
+    import '../../../scripts/admin/orders';
+  </script>
+</Admin>

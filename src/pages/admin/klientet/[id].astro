@@ -1,0 +1,63 @@
+---
+/** /admin/klientet/:id/ — one customer (T6): details + consent, order history, erase (owner, confirmed). */
+import Admin from '../../../layouts/Admin.astro';
+import OrderBadges from '../../../components/admin/OrderBadges.astro';
+import { adminLang, tr, lek, when, callApi } from '../../../components/admin/admin-data';
+import { GET as customerGET } from '../../api/admin/customers/[id]';
+import type { Customer } from '../../../lib/db/repo/customers';
+
+const lang = adminLang(Astro);
+const T = tr(lang);
+const owner = (Astro.locals.admin as { role: string } | null)?.role === 'owner';
+const id = String(Astro.params.id ?? '');
+if (!/^\d+$/.test(id)) return Astro.redirect('/admin/klientet/', 303);
+type O = { id: number; code: string; total: number; status: string; payment_status: string; payment_method: string; test: number; created_at: string };
+const data = await callApi<{ customer: Customer; orders: O[] }>(customerGET as never, Astro, undefined, { id });
+if (!data) return Astro.redirect('/admin/klientet/', 303);
+const { customer: c, orders } = data;
+const total = orders.filter((o) => o.status !== 'cancelled' && !o.test && (o.payment_status === 'paid' || o.status === 'confirmed' || o.status === 'completed')).reduce((s, o) => s + o.total, 0);
+---
+<Admin lang={lang} title={c.name || c.email} titleSize="s" section="customers" kicker={T('admin.customer.since', { date: when(c.created_at, lang, 'medium') })}>
+  <Fragment slot="actions">
+    <a class="pill pill--outline pill--s" href="/admin/klientet/">← {T('admin.customer.back')}</a>
+    <a class="pill pill--outline pill--s" href={`mailto:${c.email}`}>{T('admin.customer.mail')}</a>
+  </Fragment>
+  <div class="cols cols--side">
+    <section class="blk" aria-labelledby="cd-t">
+      <div class="blk__head"><h2 class="blk__title" id="cd-t">{T('admin.customer.details')}</h2></div>
+      <form class="vstack" style="gap:18px" data-api={`/api/admin/customers/${c.id}`} data-method="PATCH">
+        <div class="fld"><span class="fld__label mono">{T('admin.customer.email')}</span><p class="break">{c.email}</p></div>
+        <div class="fld"><label class="fld__label mono" for="c-name">{T('admin.customer.name')}</label><input id="c-name" class="fld__input" name="name" data-nullable value={c.name ?? ''} /></div>
+        <div class="fld"><label class="fld__label mono" for="c-phone">{T('admin.customer.phone')}</label><input id="c-phone" class="fld__input" type="tel" name="phone" data-nullable value={c.phone ?? ''} /></div>
+        <div class="fld"><label class="fld__label mono" for="c-country">{T('admin.customer.country')}</label><input id="c-country" class="fld__input" name="country" data-nullable value={c.country ?? ''} /></div>
+        <div class="fld"><label class="fld__label mono" for="c-notes">{T('admin.customer.notes')}</label><textarea id="c-notes" class="fld__input" name="notes" data-nullable rows="4">{c.notes ?? ''}</textarea></div>
+        <label class="fld fld--check"><input class="check" type="checkbox" name="marketing_consent" data-type="bool" checked={!!c.marketing_consent} /><span class="fld__label">{T('admin.customer.consent')}</span></label>
+        {c.consent_at && <p class="fld__help">{T('admin.customer.consent.at', { date: when(c.consent_at, lang, 'medium') })}</p>}
+        <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.save')}</button></div>
+      </form>
+    </section>
+    <div class="vstack" style="gap:clamp(36px,4vw,52px)">
+      <section class="blk" aria-labelledby="ch-t">
+        <div class="blk__head"><h2 class="blk__title" id="ch-t">{T('admin.customer.history')}</h2><span class="blk__meta mono">{T('admin.customers.revenue')}: {lek(total, lang)}</span></div>
+        {orders.length ? (
+          <ul class="ledger">
+            {orders.map((o) => (
+              <li class="ledger__row">
+                <span class="ledger__main"><a class="mono mono-lc" href={`/admin/porosite/${o.code}/`}>{o.code}</a></span>
+                <span class="ledger__side mono">{lek(o.total, lang)}</span>
+                <span class="ledger__sub"><span class="mono">{when(o.created_at, lang)}</span><span>{T(`admin.pay.method.${o.payment_method}`)}</span><OrderBadges lang={lang} status={o.status} payment_status={o.payment_status} test={o.test} compact /></span>
+              </li>
+            ))}
+          </ul>
+        ) : <p class="adm-empty mono">{T('admin.empty')}</p>}
+      </section>
+      {owner && (
+        <section class="blk" aria-labelledby="ce-t">
+          <div class="blk__head"><h2 class="blk__title" id="ce-t">{T('admin.customer.erase')}</h2></div>
+          <p class="blk__lede">{T('admin.customer.erase.lede')}</p>
+          <div><button type="button" class="pill pill--danger pill--s" data-action={`/api/admin/customers/${c.id}`} data-method="DELETE" data-confirm={T('admin.customer.c.erase', { email: c.email })} data-danger data-after="go:/admin/klientet/" data-success="admin.customer.erased">{T('admin.customer.erase')}</button></div>
+        </section>
+      )}
+    </div>
+  </div>
+</Admin>

@@ -1,0 +1,59 @@
+---
+/** /admin/porosite/:code/printo/ — the order as a printable permit sheet (T6). */
+import Admin from '../../../../layouts/Admin.astro';
+import Wordmark from '../../../../components/site/Wordmark.astro';
+import { adminLang, tr, lek, when, callApi } from '../../../../components/admin/admin-data';
+import { GET as orderGET } from '../../../api/admin/orders/[id]';
+import type { Order, OrderItem } from '../../../../lib/db/repo/orders';
+import { formatDate, formatRange, nights as nightsWord, tirane } from '../../../../i18n/format';
+import { daysBetween } from '../../../../lib/time';
+import { business } from '../../../../components/site/site-data';
+
+const lang = adminLang(Astro);
+const T = tr(lang);
+const code = String(Astro.params.code ?? '');
+const data = await callApi<{ order: Order; items: OrderItem[] }>(orderGET as never, Astro, undefined, { id: code });
+if (!data) return Astro.redirect('/admin/porosite/', 303);
+const { order: o, items } = data;
+const b = await business();
+const meta = (it: OrderItem) => {
+  const m = (it.meta ?? {}) as { starts_at?: string; amount?: number };
+  if (it.kind === 'room' && it.date_from && it.date_to) return `${formatRange(it.date_from, it.date_to, lang)} · ${nightsWord(daysBetween(it.date_from, it.date_to), lang)} · ${T('admin.order.rooms', { n: it.qty })}${it.guests ? ' · ' + T('admin.order.guests', { n: it.guests }) : ''}`;
+  if (it.kind === 'experience' && m.starts_at) return `${T('admin.order.session', { date: formatDate(m.starts_at.slice(0, 10), lang, 'long'), time: m.starts_at.slice(11, 16) })} · ${T('admin.order.guests', { n: it.guests ?? it.qty })}`;
+  return `× ${it.qty}`;
+};
+---
+<Admin lang={lang} title={`${T('admin.order.print.title')} ${o.code}`} bare>
+  <div class="print-sheet">
+    <div class="row no-print" style="justify-content:space-between;margin-block-end:24px">
+      <a class="pill pill--outline pill--s" href={`/admin/porosite/${o.code}/`}>← {o.code}</a>
+      <button type="button" class="pill pill--primary pill--s" data-print>{T('admin.print')}</button>
+    </div>
+    <article class="osheet">
+      <header class="osheet__stub">
+        <div class="row" style="justify-content:space-between;align-items:start">
+          <div class="vstack" style="gap:6px"><Wordmark variant="solid" class="print-mark" /><span class="mono" style="font-size:11px">{b.name}</span></div>
+          <div class="vstack" style="gap:4px;text-align:end"><span class="mono" style="font-size:11px">{T('admin.order.print.title')}</span><h1 class="osheet__total mono mono-lc" style="font-family:var(--font-mono);font-size:1.6rem">{o.code}</h1></div>
+        </div>
+        <dl class="kv">
+          <dt>{T('admin.order.customer')}</dt><dd>{o.name}</dd>
+          <dt>{T('admin.order.contact')}</dt><dd>{[o.email, o.phone].filter(Boolean).join(' · ')}</dd>
+          <dt>{T('admin.orders.created')}</dt><dd>{when(o.created_at, lang, 'medium')}</dd>
+          <dt>{T('admin.status')}</dt><dd>{T(`admin.order.status.${o.status}`)} · {T(`admin.pay.status.${o.payment_status}`)} · {T(`admin.pay.method.${o.payment_method}`)}{o.test ? ' · TEST' : ''}</dd>
+        </dl>
+      </header>
+      <div class="osheet__body">
+        <ul class="lines">
+          {items.map((it) => <li class="lines__row"><span class="lines__name">{it.name}</span><span class="mono">{lek(it.line_total, lang)}</span><span class="lines__meta mono">{meta(it)}</span></li>)}
+        </ul>
+        <dl class="sums">
+          <dt>{T('admin.order.subtotal')}</dt><dd>{lek(o.subtotal, lang)}</dd>
+          {o.discount > 0 && <><dt>{o.promo_code ? T('admin.order.promo', { code: o.promo_code }) : T('admin.order.discount')}</dt><dd>− {lek(o.discount, lang)}</dd></>}
+          <dt class="sums__total">{T('admin.total')}</dt><dd class="sums__total">{lek(o.total, lang)}</dd>
+        </dl>
+        {o.notes && <div><p class="mono" style="font-size:11px">{T('admin.order.notes')}</p><p style="white-space:pre-wrap">{o.notes}</p></div>}
+        <p class="mono muted" style="font-size:10.5px">{T('admin.order.print.issued', { date: `${formatDate(tirane().iso, lang, 'medium')}, ${tirane().time}` })}</p>
+      </div>
+    </article>
+  </div>
+</Admin>

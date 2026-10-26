@@ -1,0 +1,89 @@
+---
+/**
+ * HotelStrip — "02 · Hotel Pelikan" on the home. Facts only from research/SPEC.md (the hotel's
+ * own document: 20+ years, near the sea and the pine park, modern rooms, bar-restaurant) and
+ * research/business.json entries with verified: true (setting by the park, room features,
+ * restaurant, facilities). The proof line prints settings.proof only when the owner shows it.
+ * No photo of the hotel or its rooms is licensed: the plates show the beach and the forest
+ * next to it, and say so.
+ */
+import SectionHead from '../site/SectionHead.astro';
+import Photo from '../site/Photo.astro';
+import Pill from '../site/Pill.astro';
+import Price from '../site/Price.astro';
+import { listProducts } from '../../lib/db/repo/products';
+import { getSetting } from '../../lib/db/repo/settings';
+import { t } from '../../i18n/ui';
+import { formatDate } from '../../i18n/format';
+import { path, type Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const rooms = listProducts({ kind: 'room' });
+const from = rooms.length ? Math.min(...rooms.map((r) => r.price)) : null;
+let proof: { value: string; site: string; count?: number; url: string; date: string } | null = null;
+try {
+  const p = getSetting('proof');
+  const it = p.show ? p.items?.[0] : null;
+  if (it && /^https:\/\//.test(it.source_url)) {
+    proof = { value: it.value, site: (() => { try { return new URL(it.source_url).hostname.replace(/^www\./, '').replace(/^(\w)/, (c) => c.toUpperCase()); } catch { return ''; } })(), count: it.count, url: it.source_url, date: it.date };
+  }
+} catch { proof = null; }
+const facts = ['setting', 'rooms', 'food', 'service'];
+---
+<section class="hotel wrap sheet" aria-labelledby="hotel-h">
+  <SectionHead id="hotel-h" index={t(lang, 'home.hotel.index')} kicker={t(lang, 'home.hotel.kicker')} title={t(lang, 'home.hotel.title')} size="poster" />
+  <div class="hotel__grid">
+    <div class="hotel__text">
+      <p class="hotel__lead lede" data-reveal="lines">{t(lang, 'home.hotel.lead')}</p>
+      <dl class="hotel__facts">
+        {facts.map((f) => (
+          <div class="hotel__fact">
+            <dt class="mono">{t(lang, `home.hotel.f.${f}.k`)}</dt>
+            <dd>{t(lang, `home.hotel.f.${f}.v`)}</dd>
+          </div>
+        ))}
+      </dl>
+      {proof && (
+        <p class="hotel__proof mono">
+          <a href={proof.url} rel="noopener">{t(lang, 'home.hotel.proof', { value: proof.value, site: proof.site, count: String(proof.count ?? '') })}</a>
+          <span class="muted"> · {t(lang, 'home.hotel.proofDate', { date: formatDate(proof.date, lang, 'medium') })}</span>
+        </p>
+      )}
+      <div class="hotel__buy">
+        {from != null && (
+          <p class="hotel__from">
+            <span class="mono muted">{t(lang, 'home.hotel.from')}</span>
+            <Price lek={from} lang={lang} per="night" from size="title" />
+          </p>
+        )}
+        <Pill href={path('stay', lang)} arrow>{t(lang, 'home.hotel.cta')}</Pill>
+      </div>
+    </div>
+    <div class="hotel__plates">
+      <Photo slug="beach-shelters" lang={lang} caption ratio="4 / 5" sizes="(min-width: 900px) 30vw, 60vw" class="hotel__plate hotel__plate--a" reveal parallax />
+      <Photo slug="pine-forest-light" lang={lang} caption ratio="4 / 3" sizes="(min-width: 900px) 24vw, 50vw" class="hotel__plate hotel__plate--b" reveal />
+      <p class="hotel__note mono">{t(lang, 'home.hotel.note')}</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hotel__grid { display: grid; gap: clamp(28px, 4vw, 64px); margin-block-start: clamp(20px, 3vw, 40px); }
+  .hotel__lead { max-inline-size: 24ch; }
+  .hotel__facts { margin: 28px 0 0; display: grid; }
+  .hotel__fact { display: grid; grid-template-columns: minmax(7.5em, 1fr) minmax(0, 2.4fr); gap: 4px 18px; padding-block: 14px; border-block-start: 1px solid var(--rule); }
+  .hotel__fact:last-child { border-block-end: 1px solid var(--rule); }
+  .hotel__fact dt { font-size: var(--step--2); padding-block-start: 4px; }
+  .hotel__fact dd { margin: 0; }
+  .hotel__proof { margin-block-start: 18px; font-size: var(--step--1); }
+  .hotel__buy { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; margin-block-start: 28px; }
+  .hotel__from { display: grid; gap: 4px; }
+  .hotel__from .mono { font-size: var(--step--2); }
+  .hotel__plates { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--gutter); align-items: end; }
+  .hotel__plates :global(.hotel__plate--b) { margin-block-end: 18%; }
+  .hotel__note { grid-column: 1 / -1; font-size: var(--step--2); color: var(--muted); max-inline-size: 60ch; }
+  @media (min-width: 900px) {
+    .hotel__grid { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); align-items: start; }
+  }
+</style>

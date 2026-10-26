@@ -1,0 +1,64 @@
+---
+/**
+ * ShopTeaser — "07 · Dyqani": two specimen tags (the gift card and the lagoon chart print) and
+ * the way into the shop. Prices and stock are the catalogue's (owner-set; demo until saved).
+ */
+import SectionHead from '../site/SectionHead.astro';
+import Photo from '../site/Photo.astro';
+import Price from '../site/Price.astro';
+import Pill from '../site/Pill.astro';
+import Chart from '../chart/Chart.astro';
+import { findPublished } from '../../lib/catalog';
+import { pname, psummary, type Product } from '../../lib/db/repo/products';
+import { productUrl } from '../../lib/urls';
+import { t } from '../../i18n/ui';
+import { path, type Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const items = ['karte-dhurate', 'harta-e-lagunes'].map((s) => findPublished(s)).filter(Boolean) as Product[];
+---
+{items.length > 0 && (
+  <section class="shop wrap sheet" aria-labelledby="shop-h">
+    <SectionHead id="shop-h" index={t(lang, 'home.shop.index')} kicker={t(lang, 'home.shop.kicker')} title={t(lang, 'home.shop.title')} size="heading" />
+    <div class="shop__grid">
+      {items.map((p) => (
+        <div class="spec">
+          <p class="spec__row mono"><span>{t(lang, 'home.exp.nr')} {String(p.id).padStart(3, '0')}</span><span>{t(lang, `home.kind.${p.kind}`)}</span></p>
+          {p.slug === 'harta-e-lagunes' ? (
+            <div class="spec__chart"><Chart lang={lang} mode="mini" scale={false} pins={[{ id: 'hotel-pelikan', tag: 'none' }]} title={pname(p, lang)} /></div>
+          ) : (
+            <Photo slug={p.images[0]?.slug ?? null} lang={lang} ratio="4 / 3" sizes="(min-width: 900px) 40vw, 90vw" alt={lang === 'en' ? p.images[0]?.alt_en : p.images[0]?.alt_sq} crosshair={false} />
+          )}
+          <h3 class="spec__name"><a href={productUrl(p.kind, p.slug, lang)} class="spec__a"><span class="spec__nm">{pname(p, lang)}</span></a></h3>
+          <p class="spec__sum">{psummary(p, lang)}</p>
+          <p class="spec__price mono"><Price lek={p.price} lang={lang} from={p.kind === 'gift'} size="title" /></p>
+        </div>
+      ))}
+      <div class="shop__cta">
+        <Pill href={path('shop', lang)} arrow>{t(lang, 'home.shop.cta')}</Pill>
+      </div>
+    </div>
+  </section>
+)}
+
+<style>
+  .shop__grid { display: grid; gap: clamp(28px, 4vw, 56px) var(--gutter); margin-block-start: clamp(20px, 3vw, 40px); }
+  .spec { position: relative; display: grid; gap: 12px; align-content: start; border-block-start: 2px solid var(--ink); padding-block-start: 10px; }
+  .spec__a { display: block; min-block-size: 44px; text-decoration: none; color: inherit; }
+  .spec__a::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+  .spec :global(.plate__credit), .spec :global(.chart__osm) { position: relative; z-index: 2; }
+  .spec__a:focus-visible { outline: none; box-shadow: none; }
+  .spec__a:focus-visible::after { outline: 2px solid var(--pouch); outline-offset: 3px; }
+  .spec__row { display: flex; justify-content: space-between; font-size: var(--step--2); }
+  .spec__chart { border: 1px solid var(--ink); background: var(--salt); padding: 6px; aspect-ratio: 4 / 3; display: grid; place-items: center; overflow: hidden; }
+  .spec__chart :global(.chart) { block-size: 100%; inline-size: auto; }
+  .spec__chart :global(.chart__box) { block-size: 100%; inline-size: auto; }
+  .spec__name { font-size: var(--step-3); font-weight: 700; font-stretch: 85%; line-height: 1; letter-spacing: -0.02em; }
+  .spec__nm { display: inline-block; transition: transform 200ms var(--ease-out); }
+  .spec__sum { color: var(--muted); max-inline-size: 46ch; }
+  .spec__price { padding-block-start: 10px; border-block-start: 1px solid var(--rule); }
+  @media (hover: hover) and (pointer: fine) { .spec:hover .spec__nm { transform: translateX(6px); } }
+  .shop__cta { display: flex; align-items: end; }
+  @media (min-width: 900px) { .shop__grid { grid-template-columns: minmax(0, 5fr) minmax(0, 5fr) minmax(0, 2fr); } .shop__cta { justify-content: flex-end; } }
+</style>

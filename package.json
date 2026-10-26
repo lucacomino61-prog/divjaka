@@ -15,6 +15,7 @@
     "check": "astro check",
     "db:seed": "node scripts/seed.mjs",
     "db:demo": "node scripts/seed.mjs --reset --demo",
+    "db:faq": "node scripts/seed-data/faq.mjs --sync",
     "test:api": "node --test --test-concurrency=1 \"tests/api/*.test.mjs\"",
     "wordmark": "node tools/wordmark.mjs",
     "icons": "node tools/icons.mjs"

@@ -5,7 +5,10 @@
 import { all, get, run, parseJson, toJson } from '../index';
 
 export interface BusinessSettings {
-  name: string; legal_name: string; nipt: string; address: string; phone: string; email: string;
+  name: string; legal_name: string; nipt: string; address: string;
+  /** Per-language forms of `address` (T0, 2026-10-23); the footer prefers them when confirmed. */
+  address_sq?: string; address_en?: string;
+  phone: string; email: string;
   whatsapp: string; viber: string; checkin: string; checkout: string; reception_hours: string;
   lat: number | null; lon: number | null; placeholders: string[];
 }
@@ -103,6 +106,18 @@ export interface PrivacySettings {
   inventory_log_days: number;
 }
 
+/**
+ * Third-party proof (T0, 2026-10-23): verified aggregate scores the site may show, e.g. the
+ * Booking.com guest score (research/business.json hotel.ratings). Never review text, never
+ * sub-scores. `show: false` hides every item; the owner edits it in the admin settings.
+ */
+export interface ProofItem {
+  label_sq: string; label_en: string; value: string;
+  score?: number; scale?: number; count?: number;
+  source_url: string; date: string;
+}
+export interface ProofSettings { show: boolean; items: ProofItem[] }
+
 export interface AllSettings {
   business: BusinessSettings;
   payments: PaymentSettings;
@@ -112,6 +127,7 @@ export interface AllSettings {
   seo: SeoSettings;
   inventory: InventorySettings;
   privacy: PrivacySettings;
+  proof: ProofSettings;
 }
 
 export const DEFAULTS: AllSettings = {
@@ -140,6 +156,7 @@ export const DEFAULTS: AllSettings = {
     pending_alert_per_hour: 5,
   },
   privacy: { events_days: 180, messages_days: 730, events_per_day: 30000, events_per_address_day: 2000, orders_days: 90, inventory_log_days: 730 },
+  proof: { show: false, items: [] },
 };
 
 export type SettingKey = keyof AllSettings;

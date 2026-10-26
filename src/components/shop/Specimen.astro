@@ -1,0 +1,87 @@
+---
+/**
+ * Specimen — a shop card as a specimen tag (DESIGN §3): mono catalogue number + kind, the
+ * mounted plate (with OFERTË / MBARUAR stamps), the name in display type, one line of summary,
+ * the live readouts (next session + free places, stock, rooms tonight) and the price in mono with
+ * the strike-through when an offer applies. The name is the link; the whole card is clickable
+ * through a stretched link, and the plate forwards its clicks (scripts/shop.ts) so the crosshair
+ * can follow the pointer over the photo. Hover (pointer only): the tag slides 6 px.
+ * data-* carry the filter facts the URL filters use on both sides (components/shop/filters.ts).
+ */
+import Photo from '../site/Photo.astro';
+import Price from '../site/Price.astro';
+import Stamp from '../site/Stamp.astro';
+import type { Specimen } from './shop-data';
+import type { Lang } from '../../i18n/routes';
+
+interface Props { s: Specimen; lang: Lang; hidden?: boolean; priority?: boolean; heading?: 'h2' | 'h3' }
+const { s, lang, hidden = false, priority = false, heading: H = 'h3' } = Astro.props;
+---
+<li
+  class="spec"
+  data-spec={s.card.slug}
+  data-kind={s.kind}
+  data-tags={s.tags.join(' ')}
+  data-hay={s.hay}
+  data-price={s.price}
+  data-name={s.name}
+  data-rank={s.rank}
+  data-next={s.next ?? ''}
+  hidden={hidden}
+>
+  <div class="spec__in">
+    <p class="spec__row mono"><span>Nr. {s.nr}</span><span>{s.kindLabel}</span></p>
+    <div class="spec__plate" data-spec-plate>
+      <Photo slug={s.image.slug} lang={lang} ratio="4 / 3" sizes="(min-width: 1440px) 24vw, (min-width: 1024px) 31vw, (min-width: 640px) 46vw, 92vw" alt={s.image.alt} priority={priority} />
+      {(s.offer || s.soldOut) && (
+        <span class="spec__stamps">
+          {s.soldOut ? <Stamp kind="soldout" lang={lang} /> : <Stamp kind="offer" lang={lang} />}
+        </span>
+      )}
+    </div>
+    <div class="spec__tag">
+      <H class="spec__name"><a href={s.card.url} class="spec__a" data-spec-link><span class="spec__nm">{s.name}</span></a></H>
+      {s.card.summary && <p class="spec__sum">{s.card.summary}</p>}
+      <ul class="spec__reads mono">
+        {s.readouts.map((r) => <li class:list={['spec__read', r.tone && `spec__read--${r.tone}`]}>{r.text}</li>)}
+      </ul>
+      <p class="spec__price"><Price lek={s.lek} compare={s.compare} lang={lang} per={s.per} from={s.from} /></p>
+    </div>
+  </div>
+</li>
+
+<style>
+  .spec { min-inline-size: 0; }
+  .spec[hidden] { display: none; }
+  .spec__in { position: relative; display: grid; grid-template-rows: auto auto 1fr; gap: 12px; block-size: 100%; padding-block-start: 10px; border-block-start: 2px solid var(--ink); }
+  .spec__row { display: flex; justify-content: space-between; gap: 12px; font-size: var(--step--2); }
+  .spec__plate { position: relative; z-index: 2; cursor: pointer; }
+  .spec__plate :global(.plate__frame) { cursor: inherit; }
+  .spec__stamps { position: absolute; inset-block-start: 16px; inset-inline-end: 16px; z-index: 3; pointer-events: none; }
+  .spec__stamps :global(.stamp) { background: var(--salt); }
+  .spec__tag { display: flex; flex-direction: column; gap: 10px; min-inline-size: 0; }
+  /* the tag slides as one, but the stretched link's box must not move with it (a transform on
+     .spec__tag would become the overlay's containing block), so its parts move instead */
+  .spec__tag > :not(.spec__name), .spec__nm { transition: transform 200ms var(--ease-out); }
+  .spec__nm { display: inline-block; }
+  .spec__name { font-size: var(--step-2); font-weight: 700; font-stretch: 85%; font-variation-settings: "opsz" 48; line-height: 1.02; letter-spacing: -0.02em; text-wrap: balance; overflow-wrap: anywhere; }
+  .spec__a { display: block; min-block-size: 44px; text-decoration: none; color: inherit; }
+  .spec__a::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+  .spec__a:focus-visible { outline: none; box-shadow: none; }
+  .spec__a:focus-visible::after { outline: 2px solid var(--pouch); outline-offset: 4px; }
+  .spec__in :global(.plate__credit) { position: relative; z-index: 3; }
+  .spec__sum { color: var(--muted); font-size: var(--step--1); line-height: 1.45; max-inline-size: 46ch; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .spec__reads { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: var(--step--2); }
+  .spec__read { position: relative; padding-inline-start: 12px; }
+  .spec__read::before { content: ""; position: absolute; inset-inline-start: 0; inset-block-start: 0.5em; inline-size: 6px; block-size: 6px; border-radius: 99px; background: var(--ink); }
+  .spec__read--muted { color: var(--muted); }
+  .spec__read--muted::before { background: transparent; border: 1px solid currentColor; }
+  .spec__read--signal { color: var(--pouch-text); }
+  .spec__read--signal::before { background: var(--pouch); }
+  .spec__price { padding-block-start: 10px; border-block-start: 1px solid var(--rule); margin-block-start: auto; }
+  @media (hover: hover) and (pointer: fine) {
+    .spec__in:hover .spec__tag > :not(.spec__name), .spec__in:hover .spec__nm { transform: translateX(6px); }
+  }
+  @media (prefers-reduced-motion: reduce) { .spec__tag > :not(.spec__name), .spec__nm { transition-duration: 0s; } }
+  :global(html[data-motion="off"]) .spec__tag > :not(.spec__name), :global(html[data-motion="off"]) .spec__nm { transition-duration: 0s; }
+</style>

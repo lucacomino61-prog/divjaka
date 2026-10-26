@@ -1,0 +1,53 @@
+---
+/**
+ * RangePicker — check-in / check-out on a Calendar (rooms, stay search). The chosen range is
+ * drawn on the grid like a route plotted between two survey pins (pouch line, ink pins), and the
+ * two readouts above are joined by the same dashed route. Minimum 1 night (or the room's
+ * min_nights), at most 30 (pricing.ts), arrival up to the booking horizon; a range that crosses a
+ * taken night is refused with an explanation. Logic: src/scripts/booking.ts (RangeCtl).
+ *
+ * Props: lang, id, mode 'night' | 'stay', ym, days, min, max, hrefFor, from?, to?,
+ *        collapsible? (stay search: the calendar opens from the readouts), minNights?
+ */
+import Calendar from './Calendar.astro';
+import { t } from '../../i18n/ui';
+import { formatDate, nights as nightsLabel, daysBetween, formatRange } from '../../i18n/format';
+import type { Lang } from '../../i18n/routes';
+import type { DayCell } from './server';
+
+interface Props {
+  lang: Lang; id: string; mode: 'night' | 'stay'; ym: string; days: DayCell[]; min: string; max: string;
+  hrefFor: (ym: string) => string; from?: string | null; to?: string | null; collapsible?: boolean; minNights?: number;
+}
+const { lang, id, mode, ym, days, min, max, hrefFor, from = null, to = null, collapsible = false, minNights = 1 } = Astro.props;
+const calId = `${id}-cal`;
+const choose = t(lang, 'booking.range.choose');
+const msg = from && to
+  ? t(lang, 'booking.range.done', { nights: nightsLabel(daysBetween(from, to), lang), range: formatRange(from, to, lang) })
+  : from ? t(lang, 'booking.range.pickOut') : t(lang, 'booking.range.pickIn');
+---
+<div class:list={['bk-range', collapsible && 'bk-range--collapsible']} data-range data-min-nights={minNights} data-max-nights="30" data-from={from ?? undefined} data-to={to ?? undefined}>
+  <div class="bk-range__fields">
+    <button type="button" class="bk-range__field" data-range-field="in" aria-controls={collapsible ? calId : undefined} aria-expanded={collapsible ? 'false' : undefined}>
+      <span class="bk-range__k label">{t(lang, 'booking.range.in')}</span>
+      <span class="bk-range__v" data-range-in>{from ? formatDate(from, lang, 'short') : choose}</span>
+      <span class="bk-range__w mono" data-range-in-w>{from ? formatDate(from, lang, 'weekday') : ''}</span>
+    </button>
+    <span class="bk-range__route" aria-hidden="true">
+      <svg viewBox="0 0 100 12" preserveAspectRatio="none"><path d="M2 6H98" /></svg>
+      <span class="bk-range__n mono" data-range-n>{from && to ? nightsLabel(daysBetween(from, to), lang) : ''}</span>
+    </span>
+    <button type="button" class="bk-range__field bk-range__field--out" data-range-field="out" aria-controls={collapsible ? calId : undefined} aria-expanded={collapsible ? 'false' : undefined}>
+      <span class="bk-range__k label">{t(lang, 'booking.range.out')}</span>
+      <span class="bk-range__v" data-range-out>{to ? formatDate(to, lang, 'short') : choose}</span>
+      <span class="bk-range__w mono" data-range-out-w>{to ? formatDate(to, lang, 'weekday') : ''}</span>
+    </button>
+  </div>
+  <div class="bk-range__cal" id={calId} data-range-cal hidden={collapsible && !(from && !to) ? true : undefined}>
+    <Calendar lang={lang} id={`${id}-grid`} mode={mode} ym={ym} days={days} min={min} max={max} hrefFor={hrefFor} selected={{ from, to }} />
+  </div>
+  <div class="bk-range__foot">
+    <p class="bk-range__msg mono" data-range-msg aria-live="polite">{msg}</p>
+    <button type="button" class="bk-range__clear mono" data-range-clear hidden={!from ? true : undefined}>{t(lang, 'booking.range.clear')}</button>
+  </div>
+</div>

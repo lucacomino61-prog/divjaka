@@ -1,0 +1,132 @@
+---
+/**
+ * /admin/analitika/ — Analitika (T6): visitors per day, sources/UTM, order sources, devices,
+ * languages, top pages and products, site search (zero results flagged), assistant misses,
+ * real-user Web Vitals p75 with good / needs-improvement / poor bands. Range in the URL.
+ */
+import Admin from '../../layouts/Admin.astro';
+import SeriesChart from '../../components/admin/SeriesChart.astro';
+import BarList from '../../components/admin/BarList.astro';
+import RangePicker from '../../components/admin/RangePicker.astro';
+import { adminLang, tr, lek, when, rangeOf } from '../../components/admin/admin-data';
+import { stats } from '../../lib/stats';
+import { number, percent } from '../../i18n/format';
+
+const lang = adminLang(Astro);
+const T = tr(lang);
+const range = rangeOf(Astro.url);
+const s = stats(range.from, range.to);
+const vis = (n: number) => number(n, lang);
+const dev = (d: string) => { const k = `admin.analytics.device.${d}`; const v = T(k); return v === k ? d : v; };
+const lng = (l: string) => { const k = `admin.analytics.lang.${l}`; const v = T(k); return v === k ? l.toUpperCase() : v; };
+const src = (x: string) => (x === 'direct' ? T('admin.analytics.direct') : x);
+const totalDev = s.devices.reduce((a, d) => a + d.visitors, 0) || 1;
+const totalLang = s.languages.reduce((a, d) => a + d.visitors, 0) || 1;
+const share = (n: number, t: number) => `${vis(n)} · ${percent(Math.round((n / t) * 100), lang)}`;
+// Web Vitals thresholds (web.dev): good ≤ a, poor > b. CLS is unitless; the rest in ms.
+const BANDS: Record<string, [number, number, number]> = { LCP: [2500, 4000, 6000], INP: [200, 500, 800], CLS: [0.1, 0.25, 0.4], FCP: [1800, 3000, 4500], TTFB: [800, 1800, 2700] };
+const fmtV = (name: string, v: number) => (name === 'CLS' ? number(v, lang, 2) : v >= 1000 ? `${number(v / 1000, lang, 2)}` : number(Math.round(v), lang));
+const unit = (name: string, v: number) => (name === 'CLS' ? '' : v >= 1000 ? 's' : 'ms');
+const rating = (name: string, v: number) => (v <= BANDS[name][0] ? 'good' : v <= BANDS[name][1] ? 'ni' : 'poor');
+const zeroTotal = s.search_terms.reduce((a, x) => a + Number(x.zero), 0);
+---
+<Admin lang={lang} title={T('admin.analytics.title')} section="analytics" kicker={T('admin.analytics.kicker')}>
+  <RangePicker lang={lang} url={Astro.url} from={range.from} to={range.to} preset={range.preset} />
+  <p class="fld__help" style="margin-block-end:24px">{T('admin.analytics.note')}</p>
+
+  <section class="blk" aria-labelledby="vi-t">
+    <div class="blk__head"><h2 class="blk__title" id="vi-t">{T('admin.dash.chart.visitors')}</h2><span class="blk__meta mono">{T('admin.dash.visitors', { n: vis(s.kpis.visitors), c: percent(s.kpis.conversion, lang) })}</span></div>
+    <SeriesChart lang={lang} title={T('admin.dash.chart.visitors')} desc={T('admin.dash.chart.visitors.desc')} points={s.series.map((d) => ({ day: d.day, value: d.visitors }))} height={200} />
+  </section>
+
+  <div class="cols cols--3" style="margin-block-start:clamp(36px,4vw,56px)">
+    <section class="blk" aria-labelledby="so-t">
+      <div class="blk__head"><h2 class="blk__title" id="so-t">{T('admin.analytics.sources')}</h2></div>
+      <p class="blk__lede small">{T('admin.analytics.sources.desc')}</p>
+      <BarList label={T('admin.analytics.sources')} rows={s.sources.map((x) => ({ label: src(x.source), value: x.visitors, display: vis(x.visitors), mono: x.source !== 'direct' }))} empty={T('admin.analytics.none')} />
+    </section>
+    <section class="blk" aria-labelledby="de-t">
+      <div class="blk__head"><h2 class="blk__title" id="de-t">{T('admin.analytics.devices')}</h2></div>
+      <BarList label={T('admin.analytics.devices')} rows={s.devices.map((x) => ({ label: dev(x.device), value: x.visitors, display: share(x.visitors, totalDev) }))} empty={T('admin.analytics.none')} />
+      <div class="blk__head" style="margin-block-start:24px"><h2 class="blk__title">{T('admin.analytics.languages')}</h2></div>
+      <BarList label={T('admin.analytics.languages')} rows={s.languages.map((x) => ({ label: lng(x.lang), value: x.visitors, display: share(x.visitors, totalLang) }))} empty={T('admin.analytics.none')} />
+    </section>
+    <section class="blk" aria-labelledby="os-t">
+      <div class="blk__head"><h2 class="blk__title" id="os-t">{T('admin.analytics.order.sources')}</h2></div>
+      {s.order_sources.length ? (
+        <table class="adm-table adm-table--compact">
+          <thead><tr><th scope="col">{T('admin.analytics.source')}</th><th scope="col" class="num">{T('admin.orders.title')}</th><th scope="col" class="num">{T('admin.dash.revenue')}</th></tr></thead>
+          <tbody>{s.order_sources.map((x) => <tr><td class="mono mono-lc break">{src(x.source)}</td><td class="num mono">{x.orders}</td><td class="num mono">{lek(x.revenue, lang)}</td></tr>)}</tbody>
+        </table>
+      ) : <p class="adm-empty mono">{T('admin.analytics.none')}</p>}
+    </section>
+  </div>
+
+  <section class="blk" aria-labelledby="ca-t">
+    <div class="blk__head"><h2 class="blk__title" id="ca-t">{T('admin.analytics.campaigns')}</h2><a class="blk__meta mono" href="/admin/cilesimet/#utm">{T('admin.settings.utm')}</a></div>
+    {s.campaigns.length ? (
+      <div class="table-scroll">
+        <table class="adm-table adm-table--stack">
+          <thead><tr><th scope="col">{T('admin.analytics.campaign')}</th><th scope="col">{T('admin.analytics.source')}</th><th scope="col">{T('admin.analytics.medium')}</th><th scope="col" class="num">{T('admin.analytics.visitors')}</th></tr></thead>
+          <tbody>{s.campaigns.map((x) => <tr><td data-label="" class="mono mono-lc cell-wide">{x.campaign}</td><td data-label={T('admin.analytics.source')} class="mono mono-lc">{x.source}</td><td data-label={T('admin.analytics.medium')} class="mono mono-lc">{x.medium ?? '—'}</td><td data-label={T('admin.analytics.visitors')} class="num mono">{vis(x.visitors)}</td></tr>)}</tbody>
+        </table>
+      </div>
+    ) : <p class="adm-empty mono">{T('admin.analytics.none')}</p>}
+  </section>
+
+  <div class="cols cols--2" style="margin-block-start:clamp(36px,4vw,56px)">
+    <section class="blk" aria-labelledby="pg-t">
+      <div class="blk__head"><h2 class="blk__title" id="pg-t">{T('admin.analytics.pages')}</h2></div>
+      <BarList label={T('admin.analytics.pages')} rows={s.top_pages.map((x) => ({ label: x.path, value: x.views, display: `${vis(x.views)} · ${vis(x.visitors)}`, mono: true }))} empty={T('admin.analytics.none')} />
+      <p class="mono muted" style="font-size:10.5px">{T('admin.analytics.views')} · {T('admin.analytics.visitors')}</p>
+    </section>
+    <section class="blk" aria-labelledby="tv-t">
+      <div class="blk__head"><h2 class="blk__title" id="tv-t">{T('admin.analytics.products')}</h2></div>
+      <BarList label={T('admin.analytics.products')} rows={s.top_viewed.map((x) => ({ label: x.name, value: x.views, display: vis(x.views) }))} empty={T('admin.analytics.none')} />
+    </section>
+  </div>
+
+  <div class="cols cols--2" style="margin-block-start:clamp(36px,4vw,56px)">
+    <section class="blk" aria-labelledby="se-t">
+      <div class="blk__head"><h2 class="blk__title" id="se-t">{T('admin.analytics.search')}</h2>{zeroTotal > 0 && <span class="blk__meta mono signal-text">{T('admin.analytics.search.zero', { n: zeroTotal })}</span>}</div>
+      <p class="blk__lede small">{T('admin.analytics.search.desc')}</p>
+      <BarList label={T('admin.analytics.search')} rows={s.search_terms.map((x) => ({ label: `“${x.q}”`, value: x.searches, display: vis(x.searches), flag: Number(x.zero) > 0, note: Number(x.zero) > 0 ? T('admin.analytics.search.zero', { n: x.zero }) : undefined }))} empty={T('admin.analytics.none')} />
+    </section>
+    <section class="blk" aria-labelledby="mi-t">
+      <div class="blk__head"><h2 class="blk__title" id="mi-t">{T('admin.analytics.misses')}</h2><a class="blk__meta mono" href="/admin/asistenti/">{T('admin.nav.assistant')}</a></div>
+      <p class="blk__lede small">{T('admin.analytics.misses.desc', { n: s.assistant.questions })}</p>
+      {s.assistant.misses.length ? (
+        <ul class="ledger">
+          {s.assistant.misses.slice(0, 15).map((m) => (
+            <li class="ledger__row">
+              <span class="ledger__main break">“{m.q}”</span>
+              <span class="ledger__side mono">{(m.lang ?? 'sq').toUpperCase()}</span>
+              <span class="ledger__sub"><span class="mono">{when(m.ts, lang)}</span><a class="mono" href={`/admin/asistenti/?q=${encodeURIComponent(m.q ?? '')}&ql=${m.lang ?? 'sq'}#faq-new`}>{T('admin.assistant.misses.create')}</a></span>
+            </li>
+          ))}
+        </ul>
+      ) : <p class="adm-empty mono">{T('admin.dash.misses.empty')}</p>}
+    </section>
+  </div>
+
+  <section class="blk" aria-labelledby="wv-t">
+    <div class="blk__head"><h2 class="blk__title" id="wv-t">{T('admin.analytics.vitals')}</h2></div>
+    <p class="blk__lede">{T('admin.analytics.vitals.desc')}</p>
+    <ul class="vitals">
+      {Object.entries(s.vitals).map(([name, v]) => {
+        const [g, n, max] = BANDS[name];
+        if (v.p75 == null) return <li class="vital"><span class="vital__name">{T(`admin.analytics.vital.${name}`)}</span><span class="mono muted" style="font-size:11px">{T('admin.analytics.vitals.none')}</span></li>;
+        const r = rating(name, v.p75);
+        const pos = Math.min(100, (v.p75 / max) * 100);
+        return (
+          <li class:list={['vital', `is-${r}`]}>
+            <span class="vital__name">{T(`admin.analytics.vital.${name}`)}</span>
+            <span class="vital__value">{fmtV(name, v.p75)}<small>{unit(name, v.p75)}</small></span>
+            <span class="vital__scale" style={`--g:${(g / max) * 100}%;--n:${((n - g) / max) * 100}%;--p:${((max - n) / max) * 100}%;--m:${pos}%`} aria-hidden="true"><i></i><i></i><i></i><span class="vital__marker"></span></span>
+            <span class="vital__rating mono"><b>{r === 'good' ? '✓ ' : r === 'ni' ? '! ' : '× '}{T(`admin.analytics.vitals.${r}`)}</b><span>{T('admin.analytics.vitals.n', { n: vis(v.n) })}</span>{v.mobile_p75 != null && <span>{T('admin.analytics.vitals.mobile', { v: `${fmtV(name, v.mobile_p75)} ${unit(name, v.mobile_p75)}` })}</span>}<span>{T('admin.analytics.vitals.good')} ≤ {fmtV(name, g)} {unit(name, g)} · {T('admin.analytics.vitals.poor')} &gt; {fmtV(name, n)} {unit(name, n)}</span></span>
+          </li>
+        );
+      })}
+    </ul>
+  </section>
+</Admin>

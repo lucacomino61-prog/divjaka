@@ -1,0 +1,114 @@
+---
+/** /admin/produktet/ — Produktet (T6): every kind, filters + list/grid in the URL, new product by kind. */
+import Admin from '../../../layouts/Admin.astro';
+import Badge from '../../../components/admin/Badge.astro';
+import Stamp from '../../../components/site/Stamp.astro';
+import { adminLang, tr, lek, when, withParam, imageThumb, KINDS } from '../../../components/admin/admin-data';
+import { listProducts, type Kind, type Product } from '../../../lib/db/repo/products';
+import { fold } from '../../../lib/text';
+
+const lang = adminLang(Astro);
+const T = tr(lang);
+const sp = Astro.url.searchParams;
+const kind = (KINDS as readonly string[]).includes(sp.get('lloji') ?? '') ? (sp.get('lloji') as Kind) : undefined;
+const status = ['draft', 'published', 'archived'].includes(sp.get('statusi') ?? '') ? sp.get('statusi')! : '';
+const q = (sp.get('q') ?? '').slice(0, 100);
+const grid = sp.get('pamja') === 'rrjete';
+let items = listProducts({ kind, status: (status || 'any') as never });
+if (!status) items = items.filter((p) => p.status !== 'archived');
+if (q) { const f = fold(q); items = items.filter((p) => fold(`${p.slug} ${p.name_sq} ${p.name_en}`).includes(f)); }
+const nr = (p: Product) => `NR. ${String(p.id).padStart(3, '0')}`;
+const per = (p: Product) => (p.kind === 'room' ? T('admin.per.night') : p.kind === 'experience' ? T('admin.per.person') : '');
+const amount = (p: Product) => {
+  if (p.kind === 'room') return T('admin.products.units', { n: p.units ?? 0 });
+  if (p.kind === 'experience') return T('admin.products.seats', { n: p.capacity ?? 0 });
+  return p.stock == null ? T('admin.products.stock.untracked') : T('admin.products.stock.n', { n: p.stock });
+};
+const stTone = (s: string) => (s === 'published' ? 'ink' : s === 'archived' ? 'signal' : 'muted');
+const name = (p: Product) => (lang === 'en' ? p.name_en || p.name_sq : p.name_sq);
+---
+<Admin lang={lang} title={T('admin.products.title')} section="products" kicker={T('admin.products.kicker')}>
+  <Fragment slot="actions">
+    <details class="newmenu">
+      <summary class="pill pill--primary pill--s">+ {T('admin.products.new')}</summary>
+      <div class="newmenu__list">
+        <p class="mono muted" style="font-size:10.5px">{T('admin.products.new.kind')}</p>
+        {KINDS.map((k) => <a class="newmenu__item" href={`/admin/produktet/i-ri/?lloji=${k}`}>{T(`admin.kind.${k}`)}</a>)}
+      </div>
+    </details>
+  </Fragment>
+
+  <form class="filters" method="get" action="/admin/produktet/" data-autosubmit role="search">
+    <div class="chips" role="group" aria-label={T('admin.products.kind')}>
+      <a class="chip" href={withParam(Astro.url, { lloji: null })} aria-current={!kind ? 'true' : undefined}>{T('admin.all')}</a>
+      {KINDS.map((k) => <a class="chip" href={withParam(Astro.url, { lloji: k })} aria-current={kind === k ? 'true' : undefined}>{T(`admin.kinds.${k}`)}</a>)}
+    </div>
+    <div class="fields">
+      <div class="fld span-2">
+        <label class="fld__label mono" for="p-q">{T('admin.search')}</label>
+        <input id="p-q" class="fld__input" type="search" name="q" value={q} placeholder={T('admin.products.q')} />
+      </div>
+      <div class="fld">
+        <label class="fld__label mono" for="p-st">{T('admin.products.status')}</label>
+        <select id="p-st" class="fld__input" name="statusi">
+          <option value="">{T('admin.all')}</option>
+          {['published', 'draft', 'archived'].map((s) => <option value={s} selected={status === s}>{T(`admin.pstatus.${s}`)}</option>)}
+        </select>
+      </div>
+      {kind && <input type="hidden" name="lloji" value={kind} />}
+      {grid && <input type="hidden" name="pamja" value="rrjete" />}
+    </div>
+    <div class="form-actions">
+      <button class="pill pill--primary pill--s" type="submit">{T('admin.filter')}</button>
+      <span class="pager__info mono">{items.length}</span>
+      <span class="chips" role="group" aria-label={T('admin.view.label')} style="margin-inline-start:auto">
+        <a class="chip" href={withParam(Astro.url, { pamja: null })} aria-current={!grid ? 'true' : undefined}>{T('admin.view.list')}</a>
+        <a class="chip" href={withParam(Astro.url, { pamja: 'rrjete' })} aria-current={grid ? 'true' : undefined}>{T('admin.view.grid')}</a>
+      </span>
+    </div>
+  </form>
+
+  {!items.length && <p class="adm-empty mono">{T('admin.products.none')}</p>}
+  {items.length > 0 && (grid ? (
+    <ul class="specs" style="list-style:none;padding:0;margin-block-start:24px">
+      {items.map((p, i) => {
+        const th = p.images[0] ? imageThumb(p.images[0]) : null;
+        return (
+          <li>
+            <a class="spec" href={`/admin/produktet/${p.id}/`}>
+              <span class:list={['spec__plate', !th && 'spec__plate--empty']}>{th && <img src={th} alt="" loading={i < 4 ? 'eager' : 'lazy'} fetchpriority={i === 0 ? 'high' : undefined} width="320" height="240" />}</span>
+              <span class="spec__stamps">{p.demo && <Stamp kind="demo" lang={lang} tilt={false} />}</span>
+              <span class="spec__tag">
+                <span class="spec__nr mono"><span>{nr(p)}</span><span>{T(`admin.kind.${p.kind}`)}</span></span>
+                <span class="spec__name">{name(p)}</span>
+                <span class="spec__meta mono"><span>{lek(p.price, lang)}{per(p)}</span><Badge tone={stTone(p.status)}>{T(`admin.pstatus.${p.status}`)}</Badge></span>
+              </span>
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  ) : (
+    <div class="table-scroll">
+      <table class="adm-table adm-table--stack">
+        <thead><tr><th scope="col">{T('admin.products.nr')}</th><th scope="col">{T('admin.products.name')}</th><th scope="col">{T('admin.products.kind')}</th><th scope="col" class="num">{T('admin.products.price')}</th><th scope="col">{T('admin.products.stock')}</th><th scope="col">{T('admin.status')}</th><th scope="col">{T('admin.products.updated')}</th></tr></thead>
+        <tbody>
+          {items.map((p) => {
+            const th = p.images[0] ? imageThumb(p.images[0]) : null;
+            return (
+              <tr class:list={[p.status === 'archived' && 'is-muted']}>
+                <td data-label="" class="cell-hide-s">{th ? <img class="thumb" src={th} alt="" loading="lazy" width="56" height="42" /> : <span class="thumb spec__plate--empty" style="display:block"></span>}<span class="cell-sub mono">{nr(p)}</span></td>
+                <td data-label="" class="cell-wide"><a class="rowlink" href={`/admin/produktet/${p.id}/`}>{name(p)}</a><span class="cell-sub">{lang === 'en' ? p.name_sq : p.name_en}</span></td>
+                <td data-label={T('admin.products.kind')}>{T(`admin.kind.${p.kind}`)}</td>
+                <td data-label={T('admin.products.price')} class="num mono">{lek(p.price, lang)}<span class="cell-sub">{per(p).replace(' / ', '/ ')}</span></td>
+                <td data-label={T('admin.products.stock')} class="mono" style="font-size:12px">{amount(p)}</td>
+                <td data-label={T('admin.status')}><span class="badges"><Badge tone={stTone(p.status)}>{T(`admin.pstatus.${p.status}`)}</Badge>{p.featured && <Badge tone="outline">{T('admin.products.featured')}</Badge>}{p.demo && <Stamp kind="demo" lang={lang} tilt={false} />}</span></td>
+                <td data-label={T('admin.products.updated')} class="mono when" style="font-size:11.5px">{when(p.updated_at, lang)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  ))}
+</Admin>

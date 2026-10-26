@@ -1,0 +1,59 @@
+---
+/** Offer / promo-code fields (T6). Used for every existing offer and for the new one. */
+import type { Lang } from '../../i18n/routes';
+import { t } from '../../i18n/ui';
+import type { Offer } from '../../lib/db/repo/offers';
+import type { Category, Product } from '../../lib/db/repo/products';
+import { KINDS } from './admin-data';
+
+interface Props { lang: Lang; offer?: Offer; products: Product[]; categories: Category[]; owner: boolean; promo?: boolean }
+const { lang, offer, products, categories, owner, promo = false } = Astro.props;
+const T = (k: string, v?: Record<string, string | number>) => t(lang, k, v);
+const id = offer ? `o${offer.id}` : 'onew';
+const sc = offer?.scope ?? {};
+const has = (arr: (string | number)[] | undefined, v: string | number) => !!arr?.some((x) => String(x) === String(v));
+---
+<form class="rec__body" data-api={offer ? `/api/admin/offers/${offer.id}` : '/api/admin/offers'} data-method={offer ? 'PATCH' : 'POST'}>
+  <fieldset class="group" disabled={!owner} style="gap:18px">
+    <div class="fields">
+      <div class="fld"><label class="fld__label mono" for={`${id}-nsq`}>{T('admin.offers.name_sq')}</label><input id={`${id}-nsq`} class="fld__input" name="name_sq" data-nullable value={offer?.name_sq ?? ''} lang="sq" /></div>
+      <div class="fld"><label class="fld__label mono" for={`${id}-nen`}>{T('admin.offers.name_en')}</label><input id={`${id}-nen`} class="fld__input" name="name_en" data-nullable value={offer?.name_en ?? ''} lang="en" /></div>
+    </div>
+    <div class="fields">
+      <div class="fld">
+        <label class="fld__label mono" for={`${id}-type`}>{T('admin.offers.type')}</label>
+        <select id={`${id}-type`} class="fld__input" name="type">
+          <option value="percent" selected={(offer?.type ?? 'percent') === 'percent'}>{T('admin.offers.type.percent')}</option>
+          <option value="fixed" selected={offer?.type === 'fixed'}>{T('admin.offers.type.fixed')}</option>
+        </select>
+      </div>
+      <div class="fld"><label class="fld__label mono" for={`${id}-val`}>{T('admin.offers.value')}</label><input id={`${id}-val`} class="fld__input" type="number" min="0" name="value" data-type="int" value={offer?.value ?? 10} required /></div>
+      <div class="fld"><label class="fld__label mono" for={`${id}-code`}>{T('admin.offers.code')}</label><input id={`${id}-code`} class="fld__input mono-lc" name="code" data-nullable value={offer?.code ?? ''} pattern="[A-Za-z0-9_\-]{8,40}" autocapitalize="characters" spellcheck="false" /><p class="fld__help">{T('admin.offers.code.help')}</p></div>
+      <div class="fld"><label class="fld__label mono" for={`${id}-max`}>{T('admin.offers.max_uses')}</label><input id={`${id}-max`} class="fld__input" type="number" min="0" name="max_uses" data-type="int" data-nullable value={offer?.max_uses ?? ''} /></div>
+    </div>
+    <div class="fields">
+      <div class="fld"><label class="fld__label mono" for={`${id}-mn`}>{T('admin.offers.min_nights')}</label><input id={`${id}-mn`} class="fld__input" type="number" min="0" name="min_nights" data-type="int" data-nullable value={offer?.min_nights ?? ''} /></div>
+      <div class="fld"><label class="fld__label mono" for={`${id}-mt`}>{T('admin.offers.min_total')}</label><input id={`${id}-mt`} class="fld__input" type="number" min="0" name="min_total" data-type="int" data-nullable value={offer?.min_total ?? ''} /></div>
+      <div class="fld"><label class="fld__label mono" for={`${id}-s`}>{T('admin.offers.starts')}</label><input id={`${id}-s`} class="fld__input" type="date" name="starts_on" data-nullable value={offer?.starts_on ?? ''} /></div>
+      <div class="fld"><label class="fld__label mono" for={`${id}-e`}>{T('admin.offers.ends')}</label><input id={`${id}-e`} class="fld__input" type="date" name="ends_on" data-nullable value={offer?.ends_on ?? ''} /></div>
+    </div>
+    <fieldset class="group">
+      <legend>{T('admin.offers.scope')} — <span class="muted">{T('admin.offers.scope.all')}</span></legend>
+      <p class="mono muted" style="font-size:10.5px">{T('admin.offers.scope.kinds')}</p>
+      <div class="chips">{KINDS.map((k) => <label class="chip"><input type="checkbox" name="scope.kinds" value={k} data-type="list" checked={has(sc.kinds, k)} />{T(`admin.kinds.${k}`)}</label>)}</div>
+      <p class="mono muted" style="font-size:10.5px">{T('admin.offers.scope.categories')}</p>
+      <div class="chips">{categories.map((c) => <label class="chip"><input type="checkbox" name="scope.categories" value={c.id} data-type="list" checked={has(sc.categories, c.id)} />{lang === 'en' ? c.name_en : c.name_sq}</label>)}</div>
+      <details>
+        <summary class="mono" style="font-size:11px;min-block-size:44px;display:inline-flex;align-items:center;cursor:pointer">{T('admin.offers.scope.products')} ({(sc.products ?? []).length})</summary>
+        <div class="chips" style="padding-block:8px">{products.map((p) => <label class="chip"><input type="checkbox" name="scope.products" value={p.slug} data-type="list" checked={has(sc.products, p.slug) || has(sc.products, p.id)} />{lang === 'en' ? p.name_en : p.name_sq}</label>)}</div>
+      </details>
+    </fieldset>
+    <label class="fld fld--check"><input class="check" type="checkbox" name="active" data-type="bool" checked={offer ? offer.active : !promo} /><span class="fld__label">{T('admin.offers.active')}</span></label>
+  </fieldset>
+  {owner && (
+    <div class="form-actions">
+      <button class="pill pill--primary pill--s" type="submit">{offer ? T('admin.save') : T('admin.offers.create')}</button>
+      {offer && <button type="button" class="btn-text btn-text--danger" data-action={`/api/admin/offers/${offer.id}`} data-method="DELETE" data-confirm="admin.offers.c.delete" data-danger>{T('admin.delete')}</button>}
+    </div>
+  )}
+</form>

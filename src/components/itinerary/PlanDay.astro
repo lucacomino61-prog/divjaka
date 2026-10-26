@@ -1,0 +1,111 @@
+---
+/**
+ * PlanDay — one day of the plan as a logbook timeline: mono times on a rule, the travel leg
+ * before each stop, why it fits (with source numbers), hours (never invented) and, for bookable
+ * stops, the real session with places left and "Shto në shportë" (scripts/itinerary.ts adds the
+ * session to the cart; without JavaScript the link opens the experience on that date and time).
+ */
+import Price from '../site/Price.astro';
+import type { Day, PlanInput } from './engine';
+import { t } from '../../i18n/ui';
+import { formatDate, number } from '../../i18n/format';
+import { productUrl } from '../../lib/urls';
+import type { Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang; day: Day; input: PlanInput }
+const { lang, day, input } = Astro.props;
+const km = (v: number) => number(v, lang, v < 10 ? 1 : 0);
+const pname = (p: { name_sq: string; name_en: string }) => (lang === 'en' ? p.name_en : p.name_sq);
+---
+<article class="pday" data-day={day.n} id={`dita-${day.n}`} aria-labelledby={`dita-${day.n}-h`}>
+  <header class="pday__head">
+    <h3 id={`dita-${day.n}-h`} class="pday__title">{t(lang, 'itinerary.day', { n: String(day.n) })}</h3>
+    <p class="pday__date mono">{day.date ? formatDate(day.date, lang, 'long') : t(lang, 'itinerary.day.nodate')}</p>
+    {day.sun && <p class="pday__sun mono">{t(lang, 'itinerary.day.sun', { rise: day.sun.sunrise, set: day.sun.sunset })}</p>}
+  </header>
+  <ol class="pday__stops">
+    {day.stops.map((s) => (
+      <li class="stop" data-stop={s.label}>
+        {(s.travel || s.act.transportIncluded) && (
+          <p class="stop__leg mono">
+            <span class="stop__leg-line" aria-hidden="true"></span>
+            {s.act.transportIncluded ? t(lang, 'itinerary.travel.included')
+              : s.travel!.far ? t(lang, 'itinerary.travel.far', { min: String(s.travel!.min) })
+              : t(lang, `itinerary.travel.${s.travel!.mode}`, { min: String(s.travel!.min), km: km(s.travel!.km) })}
+          </p>
+        )}
+        <div class="stop__card">
+          <p class="stop__time mono"><time>{s.start}</time><span aria-hidden="true">–</span><time>{s.end}</time></p>
+          <div class="stop__body">
+            <p class="stop__slot mono"><span class="stop__n">{s.label}</span>{t(lang, `itinerary.slot.${s.slot}`)}</p>
+            <h4 class="stop__name">{s.act.name[lang]}</h4>
+            <p class="stop__why">{s.act.why[lang]}{s.refs.length > 0 && <sup class="stop__refs mono"> <a href="#plan-burimet" aria-label={t(lang, 'itinerary.refs', { n: s.refs.join(', ') })}>[{s.refs.join(', ')}]</a></sup>}</p>
+            {s.note && <p class="stop__note">{s.note[lang]}</p>}
+            <p class="stop__hours mono">{s.act.hours === 'check' ? t(lang, 'itinerary.hours.check') : s.act.hours === 'open' ? t(lang, 'itinerary.hours.open') : ''}</p>
+            {s.product && (
+              <div class="stop__book">
+                <a class="stop__product" href={productUrl('experience', s.product.slug, lang)}>{pname(s.product)}</a>
+                <span class="stop__price"><Price lek={s.product.price} lang={lang} per="person" /></span>
+                {s.session ? (
+                  <>
+                    <p class="stop__seats mono">{s.session.left === 1 ? t(lang, 'itinerary.book.session.one', { time: s.session.time }) : t(lang, 'itinerary.book.session', { time: s.session.time, left: String(s.session.left) })}</p>
+                    <div class="stop__cta">
+                      <button type="button" class="pill pill--primary pill--s stop__add" data-add={JSON.stringify({ slug: s.product.slug, kind: 'experience', qty: input.people, session_id: s.session.id, name: pname(s.product), value: s.product.price * input.people })}>
+                        <span class="pill__main" data-add-label>{t(lang, 'itinerary.book.add')}</span>
+                      </button>
+                      <a class="pill pill--outline pill--s stop__nojs" href={`${productUrl('experience', s.product.slug, lang)}?data=${s.session.date}&orari=${s.session.id}&persona=${input.people}`}>{t(lang, 'itinerary.book.pick')}</a>
+                    </div>
+                  </>
+                ) : s.noSession ? (
+                  <p class="stop__seats mono">{t(lang, 'itinerary.book.none', { n: String(input.people) })}{s.act.selfOk && <> {t(lang, 'itinerary.book.self')}</>}</p>
+                ) : s.next ? (
+                  <p class="stop__seats mono"><a href={`${productUrl('experience', s.product.slug, lang)}?data=${s.next.date}&persona=${input.people}`}>{t(lang, 'itinerary.book.next', { date: formatDate(s.next.date, lang, 'day-month'), time: s.next.time })}</a></p>
+                ) : null}
+              </div>
+            )}
+          </div>
+        </div>
+      </li>
+    ))}
+  </ol>
+  <p class="pday__free mono">{t(lang, 'itinerary.day.free')}</p>
+</article>
+
+<style>
+  .pday { padding-block: 20px 8px; border-block-start: 2px solid var(--ink); scroll-margin-top: calc(var(--header-h) + 16px); }
+  .pday__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+  .pday__title { font-family: var(--font-poster); font-weight: 800; font-stretch: 75%; text-transform: uppercase; letter-spacing: -0.03em; font-size: var(--step-5); line-height: 0.9; }
+  .pday__date { font-size: var(--step--1); }
+  .pday__sun { font-size: var(--step--2); color: var(--muted); inline-size: 100%; }
+  .pday__stops { list-style: none; margin: 18px 0 0; padding: 0; }
+  .stop__leg { position: relative; display: flex; align-items: center; gap: 10px; font-size: var(--step--2); color: var(--muted); padding-block: 10px; padding-inline-start: calc(5.6em + 14px); }
+  .stop__leg-line { position: absolute; inset-inline-start: calc(5.6em + 2px); inset-block: 0; border-inline-start: 2px dashed var(--pouch); }
+  .stop__leg { padding-inline-start: calc(5.6em + 16px); }
+  .stop__card { display: grid; grid-template-columns: 5.6em minmax(0, 1fr); gap: 14px; padding-block: 14px; border-block-start: 1px solid var(--rule); }
+  .stop__time { font-size: var(--step--1); display: grid; align-content: start; gap: 2px; font-variant-numeric: tabular-nums; }
+  .stop__time span { display: none; }
+  .stop__time time + time { color: var(--muted); }
+  .stop__body { display: grid; gap: 6px; min-inline-size: 0; }
+  .stop__slot { display: flex; gap: 10px; align-items: center; font-size: var(--step--2); color: var(--muted); }
+  .stop__n { display: inline-grid; place-items: center; min-inline-size: 30px; block-size: 20px; padding-inline: 4px; background: var(--ink); color: var(--salt); }
+  .stop__name { font-size: var(--step-2); font-weight: 700; font-stretch: 85%; line-height: 1.05; overflow-wrap: anywhere; }
+  .stop__why { max-inline-size: 60ch; }
+  .stop__refs { font-size: 0.6875rem; }
+  .stop__refs a { color: var(--muted); display: inline-block; min-inline-size: 24px; min-block-size: 24px; line-height: 24px; text-align: center; }
+  @media (pointer: coarse) { .stop__refs a { min-block-size: 44px; line-height: 44px; min-inline-size: 44px; } .stop__product { display: inline-flex; align-items: center; min-block-size: 44px; } }
+  .stop__note { max-inline-size: 60ch; font-family: var(--font-serif); font-style: italic; font-size: var(--step-1); line-height: 1.3; }
+  .stop__hours { font-size: var(--step--2); color: var(--muted); }
+  .stop__hours:empty { display: none; }
+  .stop__book { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; align-items: baseline; margin-block-start: 6px; padding: 12px 14px; border: 1px solid var(--ink); background: var(--salt); }
+  .stop__product { font-weight: 650; overflow-wrap: anywhere; display: inline-flex; align-items: center; min-block-size: 24px; }
+  .stop__price { justify-self: end; }
+  .stop__seats { grid-column: 1 / -1; font-size: var(--step--2); }
+  .stop__seats a { display: inline-flex; align-items: center; min-block-size: 24px; }
+  @media (pointer: coarse) { .stop__seats a { min-block-size: 44px; } }
+  .stop__cta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+  html.js .stop__nojs { display: none; }
+  html:not(.js) .stop__add { display: none; }
+  .stop__add[data-state="added"] { --pill-bg: var(--salt); --pill-fg: var(--ink); }
+  .pday__free { font-size: var(--step--2); color: var(--muted); padding-block: 12px; border-block-start: 1px solid var(--rule); }
+  @media (max-width: 420px) { .stop__card { grid-template-columns: minmax(0, 1fr); gap: 6px; } .stop__time { display: flex; gap: 6px; } .stop__time span { display: inline; } .stop__leg { padding-inline-start: 16px; } .stop__leg-line { inset-inline-start: 2px; } }
+</style>

@@ -1,13 +1,350 @@
 ---
 /**
- * Shop view — PLACEHOLDER from T2 (route shell). The owning feature task (PLAN §9)
- * replaces this file. Props contract: { lang, params?, data? } — data comes from
- * the view itself.
+ * Shop (T5) — /dyqani/ · /en/shop/. First screen (DESIGN §6): the poster DYQANI with the
+ * catalogue's live readout beside it, the filters as pills, the grid/list switch and the first
+ * row of specimen tags. Every kind is listed: rooms and experiences link to their own pages (T4),
+ * goods, gift cards and bundles to /dyqani/<slug>/.
+ * Filters live in the URL (?lloji=&interes=&q=&rendit=&pamja=liste — components/shop/filters.ts)
+ * and work without JavaScript (a GET form, the server filters and sorts); with JavaScript
+ * scripts/shop.ts applies them in place and keeps the URL in step (Back/Forward work).
+ * Below: the offers running now (automatic offers; strike-through prices on the cards), the
+ * empty state, and the product feed for partners.
  */
-import PlaceholderView from '../components/site/PlaceholderView.astro';
-import type { Lang } from '../i18n/routes';
+import Base from '../layouts/Base.astro';
+import SectionHead from '../components/site/SectionHead.astro';
+import Price from '../components/site/Price.astro';
+import Stamp from '../components/site/Stamp.astro';
+import Specimen from '../components/shop/Specimen.astro';
+import { specimens, liveOffers } from '../components/shop/shop-data';
+import { readState, matches, compare, writeState, queryTokens, KIND_ORDER, KIND_PARAM, INTEREST_ORDER, INTEREST_PARAM, SORT_ORDER, SORT_PARAM } from '../components/shop/filters';
+import { siteOriginOf } from '../components/site/site-data';
+import { t } from '../i18n/ui';
+import { path, type Lang } from '../i18n/routes';
 
 interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
-const { lang, params = {} } = Astro.props;
+const { lang } = Astro.props;
+
+const state = readState(Astro.url.searchParams);
+const { items } = specimens(lang);
+const qt = queryTokens(state.q);
+const order = [...items].sort(compare(state.sort, lang));
+const visible = new Set(order.filter((s) => matches(s, state, qt)).map((s) => s.card.slug));
+const total = items.length;
+const shown = visible.size;
+const counts = Object.fromEntries(KIND_ORDER.map((k) => [k, items.filter((s) => s.kind === k).length])) as Record<string, number>;
+const kinds = KIND_ORDER.filter((k) => counts[k] > 0);
+const tagsInUse = new Set(items.flatMap((s) => s.tags));
+const interests = INTEREST_ORDER.filter((i) => tagsInUse.has(i));
+const interestLabel = (i: string) => (i === 'rainy' ? t(lang, 'shop.interest.rainy') : t(lang, `recommend.interest.${i}`));
+const openExperiences = items.filter((s) => s.kind === 'experience' && s.next).length;
+const offers = liveOffers(lang);
+const filtered = !!(state.kind || state.interest || state.q);
+const firstVisible = order.find((s) => visible.has(s.card.slug))?.card.slug;
+const shopPath = path('shop', lang);
+const showing = !filtered ? t(lang, 'shop.showing.all', { total }) : shown === 1 ? t(lang, 'shop.showing.one', { total }) : t(lang, 'shop.showing', { n: shown, total });
+
+const origin = await siteOriginOf(Astro.url, Astro.site);
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: t(lang, 'shop.jsonld.name'),
+  url: new URL(shopPath, origin).href,
+  inLanguage: lang === 'sq' ? 'sq-AL' : 'en',
+  isPartOf: { '@id': `${origin}/#website` },
+  mainEntity: {
+    '@type': 'ItemList',
+    numberOfItems: total,
+    itemListElement: items.map((s, i) => ({ '@type': 'ListItem', position: i + 1, url: new URL(s.card.url, origin).href, name: s.name })),
+  },
+};
+// the island the client filter needs (labels for the status line)
+const island = {
+  'shop.showing': t(lang, 'shop.showing'), 'shop.showing.one': t(lang, 'shop.showing.one'), 'shop.showing.all': t(lang, 'shop.showing.all'),
+  'shop.empty.query': t(lang, 'shop.empty.query'), 'shop.empty.body': t(lang, 'shop.empty.body'),
+};
+const titleText = t(lang, 'nav.shop');
 ---
-<PlaceholderView lang={lang} routeKey="shop" index="04" params={params} />
+<Base lang={lang} title={t(lang, 'page.shop.title')} description={t(lang, 'page.shop.description')} routeKey="shop" jsonld={jsonld}>
+  <script type="application/json" data-dv-i18n set:html={JSON.stringify(island).replace(/</g, '\\u003c')} />
+
+  <section class="shop-hero wrap" aria-labelledby="shop-title">
+    <div class="shop-hero__grid">
+      <div class="shop-hero__poster">
+        <SectionHead as="h1" id="shop-title" index={t(lang, 'shop.index')} kicker={t(lang, 'shop.kicker')} title={titleText} size="poster" />
+      </div>
+      <div class="shop-hero__aside">
+        <p class="shop-hero__lead">{t(lang, 'shop.lead')}</p>
+        <ul class="shop-hero__reads mono">
+          <li>{t(lang, 'shop.readout.items', { n: total })}</li>
+          {openExperiences > 0 && <li>{t(lang, 'shop.readout.open', { n: openExperiences })}</li>}
+          <li>{t(lang, 'shop.readout.lek')}</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <form class="filters wrap" method="get" action={shopPath} role="search" aria-label={t(lang, 'shop.filters')} data-shop-form>
+    <div class="facet" role="group" aria-labelledby="facet-kind">
+      <p class="facet__legend mono" id="facet-kind">{t(lang, 'shop.filter.kind')}</p>
+      <div class="facet__row" data-facet-row>
+        <label class="fpill"><input type="radio" name="lloji" value="" checked={!state.kind} /><span>{t(lang, 'shop.filter.all')}</span><span class="fpill__n mono">{String(total).padStart(2, '0')}</span></label>
+        {kinds.map((k) => (
+          <label class="fpill"><input type="radio" name="lloji" value={KIND_PARAM[k]} checked={state.kind === k} /><span>{t(lang, `shop.kind.${k}`)}</span><span class="fpill__n mono">{String(counts[k]).padStart(2, '0')}</span></label>
+        ))}
+      </div>
+    </div>
+    <div class="facet" role="group" aria-labelledby="facet-interest">
+      <p class="facet__legend mono" id="facet-interest">{t(lang, 'shop.filter.interest')}</p>
+      <div class="facet__row" data-facet-row>
+        <label class="fpill fpill--s"><input type="radio" name="interes" value="" checked={!state.interest} /><span>{t(lang, 'shop.filter.all')}</span></label>
+        {interests.map((i) => (
+          <label class="fpill fpill--s"><input type="radio" name="interes" value={INTEREST_PARAM[i]} checked={state.interest === i} /><span>{interestLabel(i)}</span></label>
+        ))}
+      </div>
+    </div>
+    <div class="filters__tools">
+      <div class="field field--search">
+        <label class="field__label mono" for="shop-q">{t(lang, 'shop.search.label')}</label>
+        <input id="shop-q" class="field__input" type="search" name="q" value={state.q} placeholder={t(lang, 'shop.search.placeholder')} autocomplete="off" spellcheck="false" enterkeyhint="search" maxlength="60" />
+      </div>
+      <div class="field field--sort">
+        <label class="field__label mono" for="shop-sort">{t(lang, 'shop.sort.label')}</label>
+        <select id="shop-sort" class="field__input" name="rendit">
+          {SORT_ORDER.map((s) => <option value={SORT_PARAM[s]} selected={state.sort === s}>{t(lang, `shop.sort.${s}`)}</option>)}
+        </select>
+      </div>
+      <div class="viewswitch" role="group" aria-labelledby="shop-view-l">
+        <p class="field__label mono" id="shop-view-l">{t(lang, 'shop.view.label')}</p>
+        <div class="viewswitch__row">
+          <label class="vs"><input type="radio" name="pamja" value="" checked={state.view === 'grid'} />
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z" fill="none" stroke="currentColor" stroke-width="1.4" /></svg>
+            <span>{t(lang, 'shop.view.grid')}</span></label>
+          <label class="vs"><input type="radio" name="pamja" value="liste" checked={state.view === 'list'} />
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2 3.5h12M2 8h12M2 12.5h12" fill="none" stroke="currentColor" stroke-width="1.4" /></svg>
+            <span>{t(lang, 'shop.view.list')}</span></label>
+        </div>
+      </div>
+      <button type="submit" class="pill pill--primary filters__apply" data-shop-apply><span class="pill__main">{t(lang, 'shop.apply')}</span></button>
+    </div>
+  </form>
+
+  <section class="results wrap" aria-labelledby="shop-catalogue-h" data-view={state.view} data-shop-results>
+    <h2 id="shop-catalogue-h" class="visually-hidden">{t(lang, 'shop.catalogue')}</h2>
+    <div class="results__bar">
+      <p class="results__status mono" role="status" aria-live="polite" data-shop-status>{showing}</p>
+      <a href={shopPath} class="results__clear mono" data-shop-clear hidden={!filtered}>{t(lang, 'shop.clear')}</a>
+    </div>
+
+    <ol class="specimens" data-shop-grid>
+      {order.map((s) => <Specimen s={s} lang={lang} hidden={!visible.has(s.card.slug)} priority={s.card.slug === firstVisible && state.view === 'grid'} />)}
+    </ol>
+
+    <div class="ledger-wrap">
+      <table class="ledger" data-shop-table>
+        <caption class="visually-hidden">{t(lang, 'shop.catalogue')}</caption>
+        <thead>
+          <tr class="mono">
+            <th scope="col">{t(lang, 'shop.col.nr')}</th>
+            <th scope="col">{t(lang, 'shop.col.name')}</th>
+            <th scope="col">{t(lang, 'shop.col.kind')}</th>
+            <th scope="col">{t(lang, 'shop.col.status')}</th>
+            <th scope="col" class="ledger__num">{t(lang, 'shop.col.price')}</th>
+          </tr>
+        </thead>
+        <tbody data-shop-rows>
+          {order.map((s) => (
+            <tr data-row={s.card.slug} hidden={!visible.has(s.card.slug)}>
+              <td class="ledger__nr mono">{s.nr}</td>
+              <th scope="row" class="ledger__name">
+                <a href={s.card.url}>{s.name}</a>
+                {s.soldOut ? <Stamp kind="soldout" lang={lang} tilt={false} /> : s.offer && <Stamp kind="offer" lang={lang} tilt={false} />}
+              </th>
+              <td class="ledger__kind mono">{s.kindLabel}</td>
+              <td class="ledger__status mono">{s.readouts.map((r) => r.text).join(' · ')}</td>
+              <td class="ledger__num"><Price lek={s.lek} compare={s.compare} lang={lang} per={s.per} from={s.from} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="empty" data-shop-empty hidden={shown > 0}>
+      <svg class="empty__art" viewBox="0 0 220 120" aria-hidden="true">
+        <path d="M4 86 C 50 74, 96 98, 216 78" fill="none" stroke="currentColor" stroke-width="1.25" />
+        <path d="M14 98 C 60 88, 110 108, 206 92" fill="none" stroke="currentColor" stroke-width="0.75" opacity=".55" />
+        <path d="M30 108 C 70 102, 120 116, 190 104" fill="none" stroke="currentColor" stroke-width="0.5" opacity=".35" />
+        <circle cx="110" cy="40" r="11" fill="var(--salt)" stroke="currentColor" stroke-width="1.5" />
+        <circle cx="110" cy="40" r="3" fill="var(--pouch)" />
+        <path d="M110 51v24" stroke="currentColor" stroke-width="1.5" />
+        <path d="M96 75h28" stroke="currentColor" stroke-width="1" />
+      </svg>
+      <p class="empty__title title">{t(lang, 'shop.empty.title')}</p>
+      <p class="empty__body" data-shop-empty-body>{state.q && shown === 0 ? `${t(lang, 'shop.empty.query', { q: state.q })} ${t(lang, 'shop.empty.body')}` : t(lang, 'shop.empty.body')}</p>
+      <a href={shopPath} class="pill pill--outline" data-shop-clear-2><span class="pill__main">{t(lang, 'shop.clear')}</span></a>
+    </div>
+  </section>
+
+  {offers.length > 0 && (
+    <section class="offers wrap sheet" aria-labelledby="shop-offers-h" id="ofertat">
+      <SectionHead id="shop-offers-h" index={t(lang, 'shop.offers.index')} kicker={t(lang, 'shop.offers.kicker')} title={t(lang, 'shop.offers.title')} size="heading" />
+      <ul class="offers__list">
+        {offers.map((o) => (
+          <li class="offer">
+            <span class="offer__stamp"><Stamp kind="offer" lang={lang} /></span>
+            <p class="offer__value">{o.value}</p>
+            <div class="offer__body">
+              <h3 class="offer__name">{o.name}</h3>
+              <p class="offer__cond mono">{o.conditions.join(' · ')}</p>
+            </div>
+            {o.kinds.length === 1 && (
+              <a class="offer__link mono" href={`${shopPath}${writeState({ kind: o.kinds[0], interest: null, q: '', sort: 'featured', view: 'grid' })}`}>{t(lang, 'shop.offers.see')}</a>
+            )}
+          </li>
+        ))}
+      </ul>
+      <p class="offers__note muted">{t(lang, 'shop.offers.applies')}</p>
+    </section>
+  )}
+
+  <aside class="feed wrap" aria-labelledby="shop-feed-h">
+    <h2 id="shop-feed-h" class="feed__title mono">{t(lang, 'shop.feed.title')}</h2>
+    <p class="feed__body">{t(lang, 'shop.feed.body')}</p>
+    <a class="feed__link mono" href="/feed/products.xml" type="application/rss+xml">{t(lang, 'shop.feed.link')} · /feed/products.xml</a>
+  </aside>
+</Base>
+
+<script>
+  import { initShop } from '../scripts/shop';
+  initShop();
+</script>
+
+<style>
+  /* ---------- first screen ---------- */
+  .shop-hero { padding-block-start: clamp(12px, 2vw, 24px); }
+  /* the poster stays a poster but leaves the first row of tags in view at 1440×900 */
+  .shop-hero :global(.section-head--poster) { --poster-max: clamp(9rem, 27vh, 15rem); }
+  .shop-hero__grid { display: grid; gap: clamp(16px, 2.4vw, 32px); align-items: end; }
+  .shop-hero__aside { display: grid; gap: 14px; padding-block-end: 6px; }
+  .shop-hero__lead { max-inline-size: 44ch; font-size: var(--step-0); }
+  .shop-hero__reads { list-style: none; padding: 0; display: grid; font-size: var(--step--2); }
+  .shop-hero__reads li { padding-block: 6px; border-block-start: 1px solid var(--rule); }
+  .shop-hero__reads li:first-child { border-block-start: 2px solid var(--ink); }
+  @media (min-width: 900px) {
+    .shop-hero__grid { grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); }
+    .shop-hero__aside { justify-self: end; max-inline-size: 34rem; }
+  }
+
+  /* ---------- filters ---------- */
+  .filters { display: grid; gap: 14px; margin-block-start: clamp(20px, 3vw, 36px); padding-block: 14px 18px; border-block: 1px solid var(--rule); }
+  .facet { border: 0; padding: 0; margin: 0; min-inline-size: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .facet__legend { font-size: var(--step--2); color: var(--muted); }
+  .facet__row { display: flex; flex-wrap: wrap; gap: 8px; min-inline-size: 0; }
+  @media (min-width: 900px) {
+    .facet { grid-template-columns: 9rem minmax(0, 1fr); align-items: center; }
+  }
+  /* phones: each facet is one swipeable strip, never a wall of pills */
+  @media (max-width: 719px) {
+    .facet__row { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; margin-inline: calc(-1 * var(--page-pad)); padding-inline: var(--page-pad); padding-block: 2px; scroll-padding-inline: var(--page-pad); }
+    .facet__row::-webkit-scrollbar { display: none; }
+    .fpill { flex: none; }
+  }
+  .fpill {
+    position: relative; display: inline-flex; align-items: center; gap: 8px; min-block-size: 44px; padding: 0 16px;
+    border: 1px solid var(--ink); border-radius: var(--radius-pill); cursor: pointer; font-size: var(--step--1); line-height: 1.1;
+    transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out), transform 120ms var(--ease-out);
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent; white-space: nowrap;
+  }
+  .fpill--s { min-block-size: 44px; padding: 0 14px; border-color: color-mix(in oklch, var(--ink) 45%, var(--salt)); }
+  .fpill input { position: absolute; inset: -1px; margin: 0; opacity: 0; cursor: pointer; border-radius: inherit; }
+  .fpill__n { font-size: var(--step--2); opacity: .7; }
+  .fpill:has(input:checked) { background: var(--ink); color: var(--salt); border-color: var(--ink); }
+  .fpill:has(input:focus-visible) { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  .fpill:active { transform: scale(0.97); }
+  @media (hover: hover) and (pointer: fine) { .fpill:not(:has(input:checked)):hover { background: var(--salt-2); } }
+
+  .filters__tools { display: grid; gap: 12px; align-items: end; grid-template-columns: minmax(0, 1fr) auto; padding-block-start: 6px; }
+  .field--search { grid-column: 1 / -1; }
+  @media (min-width: 720px) { .filters__tools { grid-template-columns: minmax(0, 1fr) minmax(0, 15rem) auto auto; } .field--search { grid-column: auto; } }
+  .field { display: grid; gap: 6px; min-inline-size: 0; }
+  .field__label { font-size: var(--step--2); color: var(--muted); }
+  .field__input {
+    inline-size: 100%; min-block-size: 48px; padding: 0 12px; font-size: 16px; color: var(--ink); background: transparent;
+    border: 0; border-block-end: 1px solid var(--ink); border-radius: 0; appearance: none;
+  }
+  select.field__input { padding-inline-end: 36px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%230E2B29' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 14px; cursor: pointer; }
+  .field__input:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  .field__input::placeholder { color: var(--muted); }
+  .viewswitch { border: 0; padding: 0; margin: 0; display: grid; gap: 6px; min-inline-size: 0; }
+  .viewswitch__row { display: inline-flex; border: 1px solid var(--ink); border-radius: var(--radius-pill); padding: 2px; }
+  .vs { position: relative; display: inline-flex; align-items: center; gap: 8px; min-block-size: 46px; padding: 0 14px; border-radius: var(--radius-pill); cursor: pointer; font-size: var(--step--1); touch-action: manipulation; transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out); }
+  .vs input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+  .vs:has(input:checked) { background: var(--ink); color: var(--salt); }
+  .vs:has(input:focus-visible) { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  :global(html.js) .filters__apply { display: none; }
+
+  /* ---------- results ---------- */
+  .results { margin-block-start: clamp(16px, 2vw, 28px); scroll-margin-block-start: calc(var(--header-h) + var(--ticker-h) + 12px); }
+  .results__bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 16px; margin-block-end: 18px; }
+  .results__status { font-size: var(--step--2); }
+  .results__clear { font-size: var(--step--2); min-block-size: 44px; display: inline-flex; align-items: center; text-underline-offset: 3px; }
+  .results__clear[hidden] { display: none; }
+  .specimens { list-style: none; padding: 0; margin: 0; display: grid; gap: clamp(28px, 3.4vw, 48px) var(--gutter); grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 640px) { .specimens { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 1024px) { .specimens { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (min-width: 1440px) { .specimens { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .results[data-view="list"] .specimens { display: none; }
+  .results[data-view="grid"] .ledger-wrap { display: none; }
+
+  .ledger { inline-size: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .ledger thead tr { border-block-end: 2px solid var(--ink); }
+  .ledger th, .ledger td { text-align: start; padding: 14px 12px 14px 0; vertical-align: baseline; }
+  .ledger thead th { font-size: var(--step--2); font-weight: 400; color: var(--muted); padding-block: 8px; }
+  .ledger tbody tr { border-block-end: 1px solid var(--rule); }
+  .ledger tbody tr[hidden] { display: none; }
+  .ledger__nr { font-size: var(--step--2); color: var(--muted); inline-size: 4.5rem; }
+  .ledger__name { font-size: var(--step-1); font-weight: 650; font-stretch: 88%; line-height: 1.15; overflow-wrap: anywhere; }
+  .ledger__name a { text-decoration: none; }
+  .ledger__name a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .ledger__name :global(.stamp) { margin-inline-start: 10px; vertical-align: middle; }
+  .ledger__kind, .ledger__status { font-size: var(--step--2); }
+  .ledger__status { color: var(--muted); }
+  .ledger__num { text-align: end; padding-inline-end: 0; white-space: nowrap; }
+  @media (max-width: 799px) {
+    .ledger thead { display: none; }
+    .ledger, .ledger tbody { display: block; }
+    .ledger tbody tr { display: grid; grid-template-columns: 3.5rem minmax(0, 1fr); gap: 4px 12px; padding-block: 14px; }
+    .ledger tbody tr[hidden] { display: none; }
+    .ledger th, .ledger td { padding: 0; }
+    .ledger__nr { grid-row: span 4; }
+    .ledger__num { text-align: start; white-space: normal; }
+  }
+
+  .empty { display: grid; justify-items: start; gap: 14px; padding-block: clamp(24px, 5vw, 64px); border-block-start: 1px solid var(--rule); }
+  .empty[hidden] { display: none; }
+  .empty__art { inline-size: min(220px, 60vw); color: var(--ink); }
+  .empty__body { color: var(--muted); max-inline-size: 52ch; }
+
+  /* ---------- offers band ---------- */
+  .offers__list { list-style: none; padding: 0; margin-block-start: clamp(18px, 2.4vw, 32px); display: grid; }
+  .offer { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px 20px; align-items: center; padding-block: 18px; border-block-end: 1px solid var(--rule); }
+  .offer:first-child { border-block-start: 1px solid var(--rule); }
+  .offer__stamp { grid-row: span 2; }
+  .offer__value { font-size: var(--step-4); font-weight: 800; font-stretch: 75%; letter-spacing: -0.03em; line-height: 0.9; }
+  .offer__body { grid-column: 2; display: grid; gap: 4px; min-inline-size: 0; }
+  .offer__name { font-size: var(--step-1); font-weight: 650; font-stretch: 88%; }
+  .offer__cond { font-size: var(--step--2); color: var(--muted); }
+  .offer__link { grid-column: 2; font-size: var(--step--2); min-block-size: 44px; display: inline-flex; align-items: center; justify-self: start; text-underline-offset: 3px; }
+  @media (min-width: 900px) {
+    .offer { grid-template-columns: 9rem 12rem minmax(0, 1fr) auto; }
+    .offer__stamp { grid-row: auto; }
+    .offer__body { grid-column: 3; }
+    .offer__link { grid-column: 4; }
+  }
+  .offers__note { margin-block-start: 14px; font-size: var(--step--1); }
+
+  /* ---------- partners feed ---------- */
+  .feed { display: grid; gap: 8px; margin-block: clamp(48px, 6vw, 96px) 0; padding-block: 18px; border-block-start: 3px double var(--ink); }
+  .feed__title { font-size: var(--step--2); }
+  .feed__body { color: var(--muted); max-inline-size: 60ch; font-size: var(--step--1); }
+  .feed__link { font-size: var(--step--2); justify-self: start; min-block-size: 44px; display: inline-flex; align-items: center; overflow-wrap: anywhere; text-underline-offset: 3px; }
+</style>

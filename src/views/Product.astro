@@ -1,13 +1,350 @@
 ---
 /**
- * Product view — PLACEHOLDER from T2 (route shell). The owning feature task (PLAN §9)
- * replaces this file. Props contract: { lang, params?, data? } — data comes from
- * src/views/product.load.ts.
+ * Product (T5) — /dyqani/<slug>/ for goods, gift cards and bundles (rooms and experiences answer
+ * 301 to their own pages: product.load.ts + the route shell).
+ * iyO split (DESIGN §5): the plates fill the left, the order lives in ONE floating permit card on
+ * the right — kind, name, price (strike-through when an offer applies), the offer's name, gift
+ * amount presets + a custom amount within the owner's limits, the quantity stepper, live stock,
+ * Add to cart and Buy now — all visible together at 1440×900. Phones: the card follows the plate
+ * and a Moooor pill (name · price · Add) floats at the bottom while the card is off screen.
+ * Below: the description, what is (not) included, the bundle's contents (linked), sources, the
+ * share row and "Shkon mirë me" (T3's RecommendRail). Product JSON-LD with the offer in lek
+ * (no rating: none exists).
  */
-import PlaceholderView from '../components/site/PlaceholderView.astro';
-import type { Lang } from '../i18n/routes';
+import Base from '../layouts/Base.astro';
+import Breadcrumbs from '../components/site/Breadcrumbs.astro';
+import Photo from '../components/site/Photo.astro';
+import Price from '../components/site/Price.astro';
+import Stamp from '../components/site/Stamp.astro';
+import PermitCard from '../components/site/PermitCard.astro';
+import SourceList, { type Source } from '../components/site/SourceList.astro';
+import Chart from '../components/chart/Chart.astro';
+import RecommendRail from '../components/recommend/RecommendRail.astro';
+import ShareRow from '../components/shop/ShareRow.astro';
+import { catNo, giftLimits, readouts } from '../components/shop/shop-data';
+import { getPhoto, siteOriginOf } from '../components/site/site-data';
+import { publicConfig } from '../lib/config';
+import { roomsVerified } from '../lib/availability';
+import { t } from '../i18n/ui';
+import { money } from '../i18n/format';
+import { path, type Lang } from '../i18n/routes';
+import type { ProductPageData } from './product.load';
 
-interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
-const { lang, params = {} } = Astro.props;
+interface Props { lang: Lang; params?: Record<string, string>; data?: ProductPageData }
+const { lang, data } = Astro.props;
+if (!data || !('product' in data)) throw new Error('Product view needs product data');
+const { product: p, detail: d } = data;
+
+const nr = catNo(p.id);
+const kindLabel = t(lang, `recommend.kind.${p.kind}`);
+const sale = d.sale_price != null && d.sale_price < d.price ? d.sale_price : null;
+const lek = sale ?? d.price;
+const compare = sale != null ? d.price : d.compare_at;
+const reads = readouts(d, lang, roomsVerified());
+const soldOut = reads.soldOut;
+const gift = p.kind === 'gift' ? giftLimits(p.slug) : null;
+const presets = gift
+  ? [...new Set([gift.min, 5000, 10000, 20000].filter((v) => v >= gift.min && v <= gift.max && (v - gift.min) % gift.step === 0))].sort((a, b) => a - b)
+  : [];
+const defaultAmount = gift ? (presets.includes(d.price) ? d.price : presets[0]) : null;
+const stock = p.stock;
+const offerNames = d.offers.map((o) => o.name).filter(Boolean);
+const excludes = ((lang === 'en' ? p.options.excludes_en : p.options.excludes_sq) as string[] | undefined) ?? [];
+const sources = ((p.options.sources as Source[] | undefined) ?? []).filter((s) => s?.url);
+const body = d.body.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean);
+const isChart = p.slug === 'harta-e-lagunes'; // the print IS this site's lagoon chart: show the chart itself
+const images = p.images.filter((im) => im.slug || im.src);
+const cfg = publicConfig();
+const methods = [
+  cfg.payments.hotel && t(lang, 'product.pay.hotel'),
+  cfg.payments.bank.enabled && t(lang, 'product.pay.bank'),
+  cfg.payments.card && t(lang, cfg.payments.card_mode === 'test' ? 'product.pay.cardTest' : 'product.pay.card'),
+].filter(Boolean) as string[];
+const methodsText = methods.length > 1 ? `${methods.slice(0, -1).join(', ')} ${lang === 'sq' ? 'ose' : 'or'} ${methods.at(-1)}` : methods[0] ?? '';
+
+const origin = await siteOriginOf(Astro.url, Astro.site);
+const pageUrl = new URL(path('product', lang, { slug: p.slug }), origin).href;
+const imgAbs = images.map((im) => {
+  if (im.slug) { const ph = getPhoto(im.slug); const src = ph?.srcFor(1280, 'webp') ?? ph?.srcFor(1920, 'webp'); return src ? new URL(src, origin).href : null; }
+  return im.src ? new URL(im.src.startsWith('/media/') && !/\.\w+$/.test(im.src) ? `${im.src}-1600.webp` : im.src, origin).href : null;
+}).filter(Boolean) as string[];
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  '@id': `${pageUrl}#product`,
+  name: d.name,
+  description: d.summary || body[0] || d.name,
+  sku: p.slug,
+  url: pageUrl,
+  category: t(lang, `shop.kind.${p.kind}`),
+  ...(imgAbs.length ? { image: imgAbs } : {}),
+  brand: { '@type': 'Brand', name: 'Hotel Pelikan' },
+  offers: {
+    '@type': 'Offer',
+    url: pageUrl,
+    price: lek,
+    priceCurrency: 'ALL',
+    availability: soldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+    seller: { '@id': `${origin}/#hotel` },
+  },
+};
+const clientData = {
+  slug: p.slug, kind: p.kind, name: d.name, price: lek, stock,
+  ...(gift ? { min: gift.min, max: gift.max, step: gift.step } : {}),
+  checkout: path('checkout', lang),
+};
+const island = {
+  'product.amount.error': t(lang, 'product.amount.error'),
+  'product.stock.max': t(lang, 'product.stock.max'),
+  'share.copied': t(lang, 'share.copied'),
+  'share.copyFail': t(lang, 'share.copyFail'),
+};
+const bundleQty = (kind: string, n: number) => kind === 'room' ? t(lang, 'product.bundle.nights', { n }) : kind === 'experience' ? t(lang, 'product.bundle.people', { n }) : t(lang, 'product.bundle.qty', { n });
+const ogImage = imgAbs[0];
 ---
-<PlaceholderView lang={lang} routeKey="product" index="04" params={params} />
+<Base lang={lang} title={d.name} description={d.summary || t(lang, 'page.shop.description')} routeKey="product" params={{ slug: p.slug }} image={ogImage} jsonld={jsonld} clientKeys={['recommend.']}>
+  <script type="application/json" data-dv-i18n set:html={JSON.stringify(island).replace(/</g, '\\u003c')} />
+  <script type="application/json" data-product set:html={JSON.stringify(clientData).replace(/</g, '\\u003c')} />
+
+  <div class="wrap pdp-crumbs">
+    <Breadcrumbs lang={lang} items={[{ label: t(lang, 'nav.shop'), href: path('shop', lang) }, { label: d.name }]} />
+  </div>
+
+  <section class="pdp wrap" aria-labelledby="pdp-title">
+    <div class="pdp__media">
+      {isChart && (
+        <figure class="pdp__chart">
+          <Chart lang={lang} mode="mini" scale={false} pins={[{ id: 'hotel-pelikan', tag: 'none' }]} title={t(lang, 'product.chart')} />
+        </figure>
+      )}
+      {images.map((im, i) => (
+        <Photo
+          slug={im.slug ?? null}
+          lang={lang}
+          ratio={i === 0 && !isChart ? '4 / 3' : '3 / 2'}
+          sizes="(min-width: 1024px) 60vw, 100vw"
+          priority={i === 0}
+          alt={lang === 'en' ? im.alt_en : im.alt_sq}
+          caption
+          class="pdp__plate"
+        />
+      ))}
+    </div>
+
+    <div class="pdp__side">
+      <PermitCard as="form" floating label={t(lang, 'product.permit', { n: nr })} class="buy" data-buy method="get" action={path('cart', lang)} novalidate>
+        <p class="buy__kind mono"><span>{kindLabel}</span></p>
+        <h1 id="pdp-title" class="buy__name">{d.name}</h1>
+        <div class="buy__price">
+          <Price lek={lek} compare={compare} lang={lang} from={p.kind === 'gift'} size="title" />
+          {offerNames.length > 0 && !soldOut && <Stamp kind="offer" lang={lang} />}
+          {soldOut && <Stamp kind="soldout" lang={lang} />}
+        </div>
+        {offerNames.map((n) => <p class="buy__offer mono">{t(lang, 'product.offer', { name: n })}</p>)}
+        {d.summary && <p class="buy__sum">{d.summary}</p>}
+
+        <input type="hidden" name="shto" value={p.slug} />
+        {gift && (
+          <fieldset class="amount">
+            <legend class="buy__label mono">{t(lang, 'product.amount')}</legend>
+            <div class="amount__row">
+              {presets.map((v) => (
+                <label class="apill"><input type="radio" name="amount" value={v} checked={v === defaultAmount} /><span>{money(v, lang)}</span></label>
+              ))}
+              <label class="apill"><input type="radio" name="amount" value="custom" /><span>{t(lang, 'product.amount.custom')}</span></label>
+            </div>
+            <div class="amount__custom" data-amount-custom-wrap hidden>
+              <label class="buy__label mono" for="amount-custom">{t(lang, 'product.amount.customLabel')}</label>
+              <input id="amount-custom" class="amount__input" type="text" inputmode="numeric" name="vlera" autocomplete="off" placeholder={String(gift.min * 2)} data-amount-custom aria-describedby="amount-hint" />
+              <p id="amount-hint" class="amount__hint mono">{t(lang, 'product.amount.hint', { min: money(gift.min, lang), max: money(gift.max, lang), step: money(gift.step, lang) })}</p>
+            </div>
+          </fieldset>
+        )}
+
+        {!soldOut && (
+          <div class="qty">
+            <label class="buy__label mono" for="buy-qty">{t(lang, 'product.qty')}</label>
+            <div class="stepper qty__stepper">
+              <button type="button" class="stepper__btn" data-qty-less aria-label={t(lang, 'product.less')}>−</button>
+              <input id="buy-qty" class="qty__input mono" type="number" inputmode="numeric" name="sasia" min="1" max={stock != null ? Math.max(1, Math.min(99, stock)) : 99} value="1" data-qty />
+              <button type="button" class="stepper__btn" data-qty-more aria-label={t(lang, 'product.more')}>+</button>
+            </div>
+            {reads.list.length > 0 && <p class="qty__read mono">{reads.list.map((r) => r.text).join(' · ')}</p>}
+          </div>
+        )}
+
+        <p class="buy__error mono" role="alert" data-buy-error hidden></p>
+
+        {soldOut ? (
+          <div class="buy__soldout">
+            <p>{t(lang, 'product.soldout')} {t(lang, 'product.soldout.more')}</p>
+            <a class="pill pill--outline pill--block" href={path('contact', lang)}><span class="pill__main">{t(lang, 'nav.contact')}</span></a>
+          </div>
+        ) : (
+          <div class="buy__actions">
+            <button type="submit" name="pas" value="add" class="pill pill--primary pill--block"><span class="pill__main">{t(lang, 'product.add')}</span></button>
+            <button type="submit" name="pas" value="buy" class="pill pill--outline pill--block"><span class="pill__main">{t(lang, 'product.buy')}<svg class="pill__arrow" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></span></button>
+          </div>
+        )}
+
+        <Fragment slot="stub">
+          <dl class="buy__stub mono">
+            {methodsText && <div><dt>{t(lang, 'product.pay.title')}</dt><dd>{t(lang, 'product.pay.line', { methods: methodsText })}</dd></div>}
+            <div><dt>{t(lang, 'cart.total')}</dt><dd>{t(lang, 'product.priceNote')}</dd></div>
+          </dl>
+        </Fragment>
+      </PermitCard>
+    </div>
+  </section>
+
+  <section class="pdp-more wrap sheet" aria-labelledby="pdp-about-h">
+    <div class="pdp-more__grid">
+      <div class="pdp-more__body">
+        <h2 id="pdp-about-h" class="pdp-more__h mono">{t(lang, 'product.about')}</h2>
+        <div class="prose pdp-more__prose">{body.map((para) => <p>{para}</p>)}</div>
+      </div>
+      <div class="pdp-more__facts">
+        {d.bundle.length > 0 && (
+          <div class="facts">
+            <h2 class="pdp-more__h mono">{t(lang, 'product.bundle.title')}</h2>
+            <ol class="facts__list">
+              {d.bundle.map((b) => (
+                <li class="facts__row">
+                  <a href={b.url} class="facts__name">{b.name}</a>
+                  <span class="facts__meta mono">{t(lang, `recommend.kind.${b.kind}`)} · {bundleQty(b.kind, b.qty)}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+        {d.includes.length > 0 && (
+          <div class="facts">
+            <h2 class="pdp-more__h mono">{t(lang, 'product.includes')}</h2>
+            <ul class="facts__list">{d.includes.map((x) => <li class="facts__row facts__row--plain">{x}</li>)}</ul>
+          </div>
+        )}
+        {excludes.length > 0 && (
+          <div class="facts">
+            <h2 class="pdp-more__h mono">{t(lang, 'product.excludes')}</h2>
+            <ul class="facts__list">{excludes.map((x) => <li class="facts__row facts__row--plain facts__row--out">{x}</li>)}</ul>
+          </div>
+        )}
+        <ShareRow lang={lang} url={pageUrl} title={d.name} kind={p.kind} product={p.slug} />
+      </div>
+    </div>
+    <SourceList lang={lang} items={sources} />
+  </section>
+
+  <RecommendRail lang={lang} id="shkon-mire-me" title={t(lang, 'product.together')} lead={t(lang, 'product.together.lead')} exclude={[p.slug]} limit={4} />
+
+  {!soldOut && (
+    <div class="buy-pill" data-buy-pill data-show="off">
+      <p class="buy-pill__info">
+        <span class="buy-pill__name">{d.name}</span>
+        <span class="buy-pill__price mono" data-price-lek={lek} data-pill-price><span data-price-main>{money(lek, lang)}</span><span data-price-alt hidden></span></span>
+      </p>
+      <button type="button" class="buy-pill__add" data-pill-add aria-label={t(lang, 'product.pill.label')}>{t(lang, 'product.pill.add')}</button>
+    </div>
+  )}
+</Base>
+
+<script>
+  import { initProduct } from '../scripts/shop';
+  initProduct();
+</script>
+
+<style>
+  .pdp-crumbs { padding-block: 14px 10px; }
+  .pdp { display: grid; gap: clamp(20px, 3vw, 40px); align-items: start; }
+  .pdp__media { display: grid; gap: clamp(16px, 2vw, 28px); min-inline-size: 0; }
+  .pdp__chart { margin: 0; border: 1px solid var(--ink); background: var(--salt); padding: 6px; aspect-ratio: 4 / 3; display: grid; place-items: center; overflow: hidden; }
+  .pdp__chart :global(.chart) { block-size: 100%; inline-size: auto; }
+  .pdp__chart :global(.chart__box) { block-size: 100%; inline-size: auto; }
+  .pdp__side { min-inline-size: 0; }
+  /* phones: the first plate, then the order card, then the other plates */
+  @media (max-width: 1023px) {
+    .pdp__media { display: contents; }
+    .pdp__media > :global(*) { order: 2; }
+    .pdp__media > :global(:first-child) { order: 0; }
+    .pdp__side { order: 1; }
+  }
+  @media (min-width: 1024px) {
+    .pdp { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+    .pdp__side { position: sticky; inset-block-start: calc(var(--header-h) + var(--ticker-h) + 16px); align-self: start; }
+  }
+  @media (min-width: 1280px) { .pdp { grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); } }
+
+  /* the order card */
+  .buy :global(.permit__body) { display: grid; gap: 14px; }
+  .buy__kind { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 14px; font-size: var(--step--2); color: var(--muted); }
+  .buy__name { font-size: var(--step-4); font-weight: 800; font-stretch: 75%; font-variation-settings: "opsz" 72; line-height: 0.92; letter-spacing: -0.035em; text-transform: uppercase; overflow-wrap: anywhere; hyphens: manual; text-wrap: balance; }
+  .buy__price { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+  .buy__offer { font-size: var(--step--2); color: var(--pouch-text); }
+  .buy__sum { color: var(--muted); font-size: var(--step--1); line-height: 1.5; }
+  .buy__label { display: block; font-size: var(--step--2); color: var(--muted); margin-block-end: 6px; }
+  .amount { border: 0; padding: 0; margin: 0; min-inline-size: 0; }
+  .amount__row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .apill { position: relative; display: inline-flex; align-items: center; min-block-size: 44px; padding: 0 14px; border: 1px solid var(--ink); border-radius: var(--radius-pill); cursor: pointer; font-family: var(--font-mono); font-size: var(--step--1); touch-action: manipulation; transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out); }
+  .apill input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .apill:has(input:checked) { background: var(--ink); color: var(--salt); }
+  .apill:has(input:focus-visible) { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  .amount__custom { margin-block-start: 12px; }
+  .amount__custom[hidden] { display: none; }
+  .amount__input { inline-size: 100%; min-block-size: 48px; font-size: 16px; font-family: var(--font-mono); padding: 0 12px; border: 0; border-block-end: 1px solid var(--ink); background: transparent; color: var(--ink); border-radius: 0; }
+  .amount__input:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  .amount__hint { font-size: var(--step--2); color: var(--muted); margin-block-start: 6px; }
+  .qty { display: grid; gap: 0; }
+  .qty__stepper { justify-self: start; }
+  .qty__input { inline-size: 44px; min-block-size: 44px; border: 0; background: transparent; text-align: center; font-size: 16px; color: var(--ink); -moz-appearance: textfield; appearance: textfield; }
+  .qty__input::-webkit-outer-spin-button, .qty__input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .qty__input:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  .qty__read { font-size: var(--step--2); margin-block-start: 8px; }
+  .buy__error { font-size: var(--step--1); color: var(--pouch-text); text-decoration: underline; text-decoration-color: var(--pouch); text-underline-offset: 3px; }
+  .buy__error[hidden] { display: none; }
+  .buy__actions, .buy__soldout { display: grid; gap: 8px; }
+  .buy__soldout p { color: var(--muted); }
+  .buy__stub { display: grid; gap: 8px; font-size: var(--step--2); }
+  .buy__stub div { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: 8px; }
+  .buy__stub dt { color: var(--muted); }
+  @media (max-width: 420px) { .buy__stub div { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+  .buy__stub dd { margin: 0; text-transform: none; letter-spacing: 0; }
+
+  /* below the fold */
+  .pdp-more__grid { display: grid; gap: clamp(28px, 4vw, 56px); }
+  @media (min-width: 900px) { .pdp-more__grid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); } }
+  .pdp-more__h { font-size: var(--step--2); padding-block-end: 8px; border-block-end: 2px solid var(--ink); margin-block-end: 14px; }
+  .pdp-more__prose { font-size: var(--step-1); line-height: 1.45; max-inline-size: 40ch; }
+  .pdp-more__facts { display: grid; gap: 28px; align-content: start; }
+  .facts__list { list-style: none; padding: 0; }
+  .facts__row { display: grid; gap: 2px; padding-block: 12px; border-block-end: 1px solid var(--rule); }
+  .facts__row--plain { padding-inline-start: 18px; position: relative; }
+  .facts__row--plain::before { content: ""; position: absolute; inset-inline-start: 0; inset-block-start: 1.15em; inline-size: 8px; block-size: 1.5px; background: var(--ink); }
+  .facts__row--out { color: var(--muted); }
+  .facts__name { font-weight: 650; font-stretch: 88%; font-size: var(--step-1); text-decoration: none; overflow-wrap: anywhere; justify-self: start; min-block-size: 44px; display: inline-flex; align-items: center; }
+  .facts__name:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .facts__meta { font-size: var(--step--2); color: var(--muted); }
+
+  /* the phone buy pill (Moooor) */
+  .buy-pill {
+    position: fixed; z-index: var(--z-pill); inset-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
+    inset-block-end: max(12px, env(safe-area-inset-bottom));
+    display: flex; align-items: center; gap: 12px; min-block-size: 60px; padding: 6px 6px 6px 20px;
+    background: var(--ink); color: var(--salt); border-radius: var(--radius-pill);
+    transition: opacity 200ms var(--ease-out), visibility 0s linear 0s;
+  }
+  .buy-pill[data-show="off"] { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 160ms var(--ease-out), visibility 0s linear 160ms; }
+  .buy-pill__info { display: grid; min-inline-size: 0; flex: 1; line-height: 1.2; }
+  .buy-pill__name { font-weight: 650; font-stretch: 88%; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .buy-pill__price { font-size: var(--step--2); opacity: .85; }
+  .buy-pill__add { flex: none; min-block-size: 48px; padding: 0 22px; border: 0; border-radius: var(--radius-pill); background: var(--salt); color: var(--ink); font: inherit; font-weight: 650; cursor: pointer; touch-action: manipulation; transition: transform 120ms var(--ease-out); }
+  .buy-pill__add:active { transform: scale(0.97); }
+  .buy-pill__add:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  @media (min-width: 1024px) { .buy-pill { display: none; } }
+  /* while the pill is up, the assistant pill waits above it */
+  @media (max-width: 1023px) {
+    :global(html:has(.buy-pill[data-show="on"]) .assistant-pill) { inset-block-end: calc(max(12px, env(safe-area-inset-bottom)) + 72px); }
+    :global(html:has(.buy-pill[data-show="on"]) .site-footer) { padding-block-end: 84px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .buy-pill, .buy-pill[data-show="off"] { transition-duration: 0s; } }
+  @media print { .buy-pill, .pdp-more :global(.share) { display: none !important; } }
+</style>

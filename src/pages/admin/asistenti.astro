@@ -1,0 +1,76 @@
+---
+/** /admin/asistenti/ — Asistenti (T6): test box (POST /api/assistant), missed questions → "create FAQ from this", bilingual FAQ editor. */
+import Admin from '../../layouts/Admin.astro';
+import Badge from '../../components/admin/Badge.astro';
+import FaqForm from '../../components/admin/FaqForm.astro';
+import { adminLang, tr, when, today } from '../../components/admin/admin-data';
+import { listFaq } from '../../lib/db/repo/misc';
+import { stats } from '../../lib/stats';
+import { addDays } from '../../i18n/format';
+
+const lang = adminLang(Astro);
+const T = tr(lang);
+const faqs = listFaq();
+const t0 = today();
+const misses = stats(addDays(t0, -29), t0).assistant.misses;
+const q = (Astro.url.searchParams.get('q') ?? '').slice(0, 500);
+const ql = Astro.url.searchParams.get('ql') === 'en' ? 'en' : 'sq';
+const active = faqs.filter((f) => f.active).length;
+---
+<Admin lang={lang} title={T('admin.assistant.title')} section="assistant" kicker={T('admin.assistant.kicker')}>
+  <div class="cols cols--side">
+    <section class="blk" aria-labelledby="ts-t">
+      <div class="blk__head"><h2 class="blk__title" id="ts-t">{T('admin.assistant.test')}</h2></div>
+      <p class="blk__lede small">{T('admin.assistant.test.lede')}</p>
+      <form class="vstack" style="gap:14px" data-assistant-test>
+        <div class="fld"><label class="fld__label mono" for="as-q">{T('admin.assistant.test.q')}</label><textarea id="as-q" class="fld__input" rows="3" maxlength="500" required></textarea></div>
+        <div class="row">
+          <label class="visually-hidden" for="as-l">{T('admin.assistant.test.lang')}</label>
+          <select id="as-l" class="fld__input fld__input--s"><option value="sq" selected={lang === 'sq'}>Shqip</option><option value="en" selected={lang === 'en'}>English</option></select>
+          <button class="pill pill--primary pill--s" type="submit">{T('admin.assistant.test.ask')}</button>
+        </div>
+        <p class="form-status" data-form-status role="status"></p>
+        <div class="vstack test-out" data-out hidden aria-live="polite">
+          <p class="mono" style="font-size:11px">{T('admin.assistant.test.reply')} <span data-intent class="muted"></span></p>
+          <p class="msg__text" data-reply></p>
+          <ul class="chips" data-chips style="list-style:none;padding:0"></ul>
+          <ul class="vstack" data-links style="list-style:none;padding:0;gap:4px"></ul>
+        </div>
+      </form>
+
+      <div class="blk__head" style="margin-block-start:32px"><h2 class="blk__title">{T('admin.assistant.misses')}</h2></div>
+      {misses.length ? (
+        <ul class="ledger">
+          {misses.slice(0, 20).map((m) => (
+            <li class="ledger__row">
+              <span class="ledger__main break">“{m.q}”</span>
+              <span class="ledger__side mono">{(m.lang ?? 'sq').toUpperCase()}</span>
+              <span class="ledger__sub"><span class="mono">{when(m.ts, lang)}</span><a class="mono" href={`/admin/asistenti/?q=${encodeURIComponent(m.q ?? '')}&ql=${m.lang ?? 'sq'}#faq-new`}>{T('admin.assistant.misses.create')}</a></span>
+            </li>
+          ))}
+        </ul>
+      ) : <p class="adm-empty mono">{T('admin.assistant.misses.none')}</p>}
+    </section>
+
+    <section class="blk" aria-labelledby="fq-t">
+      <div class="blk__head"><h2 class="blk__title" id="fq-t">{T('admin.assistant.faq')}</h2><span class="blk__meta mono">{T('admin.assistant.faq.count', { n: faqs.length, a: active })}</span></div>
+      <p class="blk__lede small">{T('admin.assistant.faq.help')}</p>
+      <details class="rec rec--new" id="faq-new" open={!!q}>
+        <summary><span class="rec__title">{T('admin.assistant.faq.new')}</span>{q && <span class="rec__meta mono">“{q}”</span>}</summary>
+        <FaqForm lang={lang} prefill={q ? { q, lang: ql } : undefined} />
+      </details>
+      {faqs.length ? faqs.map((f) => (
+        <details class="rec">
+          <summary>
+            <span class="rec__title">{(lang === 'en' ? f.q_en || f.q_sq : f.q_sq || f.q_en) || `#${f.id}`}</span>
+            <span class="rec__meta mono"><Badge tone={f.active ? 'ink' : 'muted'}>{f.active ? T('admin.assistant.faq.active') : T('admin.assistant.faq.inactive')}</Badge><span>#{f.sort}</span>{!f.q_en && <span class="signal-text">{T('admin.product.missing.en')}</span>}{!f.q_sq && <span class="signal-text">{T('admin.product.missing.sq')}</span>}</span>
+          </summary>
+          <FaqForm lang={lang} faq={f} />
+        </details>
+      )) : <p class="adm-empty mono">{T('admin.assistant.faq.none')}</p>}
+    </section>
+  </div>
+  <script>
+    import '../../scripts/admin/assistant';
+  </script>
+</Admin>

@@ -1,0 +1,116 @@
+---
+/**
+ * ExperienceStrip — "03 · Eksperienca" (Bécane lineup, DESIGN §5): the activity packages as
+ * specimen tags on a horizontal survey strip ordered by distance from the hotel (research/geo.json,
+ * straight line). Each tag: catalogue number, distance, plate, name, length, price per person and
+ * the next open session with its real free places (lib/catalog → sessions table; nothing shown
+ * when there is none). Swipe on phones; on pointer devices the strip scrolls with the wheel and
+ * the arrow buttons. A plain list view is one click away (the experiences index, ?pamja=liste).
+ */
+import SectionHead from '../site/SectionHead.astro';
+import Photo from '../site/Photo.astro';
+import Price from '../site/Price.astro';
+import { catalog } from '../../lib/catalog';
+import { fromHotelKm, kmLabel } from '../chart/geo';
+import { t } from '../../i18n/ui';
+import { relativeDay } from '../../i18n/format';
+import { path, type Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const items = catalog({ lang, kind: 'experience' }).items
+  .map((p) => ({ ...p, km: p.poi ? fromHotelKm(p.poi) : null }))
+  .sort((a, b) => (a.km ?? 99) - (b.km ?? 99));
+const dur = (m: number | null) => {
+  if (!m) return '';
+  const h = Math.floor(m / 60), r = m % 60;
+  if (lang === 'sq') return [h ? `${h} orë` : '', r ? `${r} min` : ''].filter(Boolean).join(' ');
+  return [h ? `${h} h` : '', r ? `${r} min` : ''].filter(Boolean).join(' ');
+};
+const nextLabel = (iso: string) => `${relativeDay(iso.slice(0, 10), lang)}, ${iso.slice(11, 16)}`;
+const listHref = `${path('experiences', lang)}?pamja=liste`;
+---
+<section class="exp sheet" aria-labelledby="exp-h">
+  <div class="wrap">
+    <SectionHead id="exp-h" index={t(lang, 'home.exp.index')} kicker={t(lang, 'home.exp.kicker')} title={t(lang, 'home.exp.title')} size="poster">
+      <a slot="aside" href={listHref} class="exp__list-link">{t(lang, 'home.exp.list')}</a>
+    </SectionHead>
+    <div class="exp__bar">
+      <p class="exp__lead">{t(lang, 'home.exp.lead')}</p>
+      <div class="exp__nav" data-strip-nav hidden>
+        <button type="button" class="exp__btn" data-strip-prev aria-label={t(lang, 'recommend.prev')}><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M14 8H3M7 4 3 8l4 4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></button>
+        <button type="button" class="exp__btn" data-strip-next aria-label={t(lang, 'recommend.next')}><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></button>
+      </div>
+    </div>
+  </div>
+  <div class="exp__strip" data-strip tabindex="0" role="region" aria-label={t(lang, 'home.exp.title')}>
+    <ol class="exp__track">
+      {items.map((p, i) => (
+        <li class="tag">
+          <div class="tag__link">
+            <p class="tag__row mono">
+              <span>{t(lang, 'home.exp.nr')} {String(i + 1).padStart(3, '0')}</span>
+              {p.km != null && <span>{p.km < 0.1 ? t(lang, 'home.exp.here') : kmLabel(p.km, lang)}</span>}
+            </p>
+            <Photo slug={p.images[0]?.slug ?? null} lang={lang} ratio="4 / 5" sizes="(min-width: 900px) 22vw, 70vw" alt={lang === 'en' ? p.images[0]?.alt_en : p.images[0]?.alt_sq} />
+            <h3 class="tag__name"><a href={p.url} class="tag__a"><span class="tag__nm">{p.name}</span></a></h3>
+            <p class="tag__meta mono">
+              <span>{dur(p.duration_min)}</span>
+              <Price lek={p.price} lang={lang} per="person" />
+            </p>
+            <p class="tag__next mono">
+              {p.next ? (
+                <Fragment>
+                  <span>{t(lang, 'home.exp.next', { date: nextLabel(p.next) })}</span>
+                  {p.left != null && p.left > 0 && <span class="tag__seats">{p.left === 1 ? t(lang, 'home.exp.seats.one') : t(lang, 'home.exp.seats', { n: String(p.left) })}</span>}
+                </Fragment>
+              ) : <span class="muted">{t(lang, 'home.exp.none')}</span>}
+            </p>
+          </div>
+        </li>
+      ))}
+      <li class="tag tag--end">
+        <a href={path('experiences', lang)} class="tag__all">
+          <span class="tag__all-n mono">{String(items.length).padStart(2, '0')}</span>
+          <span class="tag__all-t">{t(lang, 'home.exp.all')}</span>
+          <svg viewBox="0 0 16 16" width="28" height="28" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.2" /></svg>
+        </a>
+      </li>
+    </ol>
+  </div>
+  <p class="wrap exp__hint mono">{t(lang, 'home.exp.scroll')}</p>
+</section>
+
+<style>
+  .exp__list-link { font-family: var(--font-mono); font-size: var(--step--2); text-transform: uppercase; letter-spacing: 0.06em; min-block-size: 24px; display: inline-flex; align-items: center; }
+  @media (pointer: coarse) { .exp__list-link { min-block-size: 44px; } }
+  .exp__bar { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; margin-block: 18px 22px; }
+  .exp__lead { max-inline-size: 46ch; color: var(--muted); }
+  .exp__nav { display: flex; gap: 8px; }
+  .exp__btn { inline-size: 48px; block-size: 48px; border-radius: 99px; border: 1px solid var(--ink); display: grid; place-items: center; background: transparent; color: var(--ink); cursor: pointer; transition: transform 120ms var(--ease-out), background-color 150ms var(--ease-out), color 150ms var(--ease-out); touch-action: manipulation; }
+  .exp__btn:active { transform: scale(0.97); }
+  @media (hover: hover) and (pointer: fine) { .exp__btn:hover { background: var(--ink); color: var(--salt); } }
+  .exp__strip { overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: var(--ink) transparent; padding-block: 4px 18px; outline-offset: -2px; }
+  .exp__track { list-style: none; margin: 0; padding: 0 var(--page-pad); display: flex; gap: var(--gutter); inline-size: max-content; }
+  .tag { inline-size: clamp(240px, 22vw, 330px); scroll-snap-align: start; scroll-margin-inline: var(--page-pad); border-block-start: 2px solid var(--ink); }
+  .tag__link { position: relative; display: grid; gap: 10px; padding-block-start: 10px; }
+  .tag__a { display: block; min-block-size: 44px; text-decoration: none; color: inherit; }
+  .tag__a::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+  .tag__link :global(.plate__credit) { position: relative; z-index: 2; }
+  .tag__a:focus-visible { outline: none; box-shadow: none; }
+  .tag__a:focus-visible::after { outline: 2px solid var(--pouch); outline-offset: 3px; }
+  .tag__row { display: flex; justify-content: space-between; gap: 10px; font-size: var(--step--2); }
+  .tag__name { font-size: var(--step-2); font-weight: 700; font-stretch: 85%; line-height: 1.04; letter-spacing: -0.015em; min-block-size: 2.1em; text-wrap: balance; }
+  .tag__nm { display: inline-block; transition: transform 200ms var(--ease-out); }
+  .tag__meta { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: var(--step--1); padding-block-start: 8px; border-block-start: 1px solid var(--rule); }
+  .tag__next { display: grid; gap: 2px; font-size: var(--step--2); color: var(--muted); }
+  .tag__seats { color: var(--fg); }
+  @media (hover: hover) and (pointer: fine) { .tag__link:hover .tag__nm { transform: translateX(6px); } }
+  .tag__link:has(.tag__a:active) { transform: scale(0.99); transition: transform 120ms var(--ease-out); }
+  .tag--end { display: grid; }
+  .tag__all { display: grid; align-content: end; gap: 10px; padding: 18px 0 0; min-block-size: 100%; text-decoration: none; color: inherit; }
+  .tag__all-n { font-size: var(--step--1); }
+  .tag__all-t { font-family: var(--font-poster); font-weight: 800; font-stretch: 75%; text-transform: uppercase; letter-spacing: -0.03em; line-height: 0.9; font-size: var(--step-5); overflow-wrap: anywhere; }
+  .exp__hint { font-size: var(--step--2); color: var(--muted); }
+  @media (hover: hover) and (pointer: fine) { .exp__hint { display: none; } }
+</style>

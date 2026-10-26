@@ -1,0 +1,33 @@
+/** Privacy notice and booking terms (/privatesia/, /kushtet/) — T7. Albanian is the source. */
+export default {
+  sq: {
+    'legal.privacy.index': '10',
+    'legal.terms.index': '11',
+    'legal.privacy.poster': 'Privatësia',
+    'legal.terms.poster': 'Kushtet',
+    'legal.privacy.lead': 'Çfarë ruan ky sajt, pse dhe për sa kohë — e shkruar nga ajo që sajti bën në të vërtetë.',
+    'legal.terms.lead': 'Si funksionojnë rezervimi, mbajtja e vendeve, pagesa dhe anulimi në platformën e Hotel Pelikanit.',
+    'legal.draft': 'Skicë',
+    'legal.draft.note': 'Ky tekst është skicë dhe pret konfirmimin e hotelit dhe të një juristi. Ajo që përshkruan sajtin është e saktë; kushtet që i vendos hoteli shënohen si të tilla.',
+    'legal.updated': 'Versioni i {date}',
+    'legal.toc': 'Përmbajtja',
+    'legal.contact': 'Pyetje? Shkruani hotelit',
+    'legal.other.privacy': 'Lexoni edhe kushtet e rezervimit',
+    'legal.other.terms': 'Lexoni edhe njoftimin e privatësisë',
+  },
+  en: {
+    'legal.privacy.index': '10',
+    'legal.terms.index': '11',
+    'legal.privacy.poster': 'Privacy',
+    'legal.terms.poster': 'Terms',
+    'legal.privacy.lead': 'What this site keeps, why and for how long — written from what the site actually does.',
+    'legal.terms.lead': 'How booking, holding places, payment and cancellation work on the Hotel Pelikan platform.',
+    'legal.draft': 'Draft',
+    'legal.draft.note': 'This text is a draft awaiting confirmation by the hotel and a lawyer. What it says about the site is accurate; terms the hotel sets are marked as such.',
+    'legal.updated': 'Version of {date}',
+    'legal.toc': 'Contents',
+    'legal.contact': 'Questions? Write to the hotel',
+    'legal.other.privacy': 'Read the booking terms too',
+    'legal.other.terms': 'Read the privacy notice too',
+  },
+};

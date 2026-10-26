@@ -1,13 +1,184 @@
 ---
 /**
- * Bookings view — PLACEHOLDER from T2 (route shell). The owning feature task (PLAN §9)
- * replaces this file. Props contract: { lang, params?, data? } — data comes from
- * the view itself.
+ * Bookings (T5) — /rezervimet/ · /en/bookings/ ("Rezervimet e mia"). No accounts (PLAN §1):
+ *  1. Find a booking: order code + e-mail → the order page. JavaScript: POST /api/lookup; without
+ *     it the form posts here and the server checks (same 10-per-10-minutes limit as the API).
+ *  2. "Interesat e mia": chips that write dv-prefs (recommendations across the site follow).
+ *  3. "Parë së fundi": the product pages opened in this browser (dv-viewed), newest first — every
+ *     published product is printed once (hidden) and the script shows the viewed ones in order.
+ *  4. Clear my data: every dv-* key this site keeps in the browser, after an inline confirmation.
  */
-import PlaceholderView from '../components/site/PlaceholderView.astro';
-import type { Lang } from '../i18n/routes';
+import Base from '../layouts/Base.astro';
+import SectionHead from '../components/site/SectionHead.astro';
+import Photo from '../components/site/Photo.astro';
+import Price from '../components/site/Price.astro';
+import { listProducts, pname } from '../lib/db/repo/products';
+import { orderByCode } from '../lib/orders';
+import { orderPageUrl } from '../lib/payments/index';
+import { productUrl } from '../lib/urls';
+import { clientIp, rateLimit } from '../lib/security';
+import { INTEREST_ORDER } from '../components/shop/filters';
+import { t } from '../i18n/ui';
+import { path, type Lang } from '../i18n/routes';
 
 interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
-const { lang, params = {} } = Astro.props;
+const { lang } = Astro.props;
+
+let found: { code: string; url: string } | null = null;
+let errCode = '', errEmail = '', errForm = '';
+let typedCode = '', typedEmail = '';
+if (Astro.request.method === 'POST') {
+  try {
+    const form = await Astro.request.formData();
+    typedCode = String(form.get('code') ?? '').trim().slice(0, 24);
+    typedEmail = String(form.get('email') ?? '').trim().slice(0, 200);
+    const code = typedCode.toUpperCase().replace(/\s+/g, '').replace(/^DV(?!-)/, 'DV-');
+    if (!/^DV-[A-Z0-9]{4,12}$/.test(code)) errCode = t(lang, 'account.err.code');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(typedEmail)) errEmail = t(lang, 'account.err.email');
+    if (!errCode && !errEmail) {
+      rateLimit('lookup', clientIp({ clientAddress: Astro.clientAddress, request: Astro.request }), 10, 10 * 60_000);
+      const o = orderByCode(code);
+      if (o && o.email.toLowerCase() === typedEmail.toLowerCase()) found = { code: o.code, url: orderPageUrl(o, lang) };
+      else errForm = t(lang, 'account.err.notfound');
+    }
+  } catch {
+    errForm = t(lang, 'account.err.rate');
+  }
+}
+
+const products = listProducts();
+const interestLabel = (i: string) => (i === 'rainy' ? t(lang, 'shop.interest.rainy') : t(lang, `recommend.interest.${i}`));
 ---
-<PlaceholderView lang={lang} routeKey="account" index="08" params={params} noindex />
+<Base lang={lang} title={t(lang, 'page.account.title')} description={t(lang, 'page.account.description')} routeKey="account" clientKeys={['account.']}>
+  <section class="wrap acc-head">
+    <SectionHead as="h1" index={t(lang, 'account.index')} kicker={t(lang, 'account.kicker')} title={t(lang, 'account.title')} size="poster" />
+    <p class="acc-head__lead">{t(lang, 'account.lead')}</p>
+  </section>
+
+  <div class="acc wrap">
+    <section class="acc-block acc-find" aria-labelledby="acc-find-h">
+      <h2 id="acc-find-h" class="acc-block__h"><span class="mono">01</span>{t(lang, 'account.find')}</h2>
+      <form class="lookup" method="post" action={path('account', lang)} novalidate data-lookup>
+        <div class="f">
+          <label class="f__label mono" for="lk-code">{t(lang, 'account.code')}</label>
+          <input id="lk-code" class="f__input mono" name="code" type="text" value={typedCode} autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24" placeholder={t(lang, 'account.code.placeholder')} aria-describedby="lk-code-err" aria-invalid={errCode ? 'true' : undefined} />
+          <p id="lk-code-err" class="f__err mono" data-err="code" hidden={!errCode}>{errCode}</p>
+        </div>
+        <div class="f">
+          <label class="f__label mono" for="lk-email">{t(lang, 'account.email')}</label>
+          <input id="lk-email" class="f__input" name="email" type="email" value={typedEmail} autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off" maxlength="200" aria-describedby="lk-email-err" aria-invalid={errEmail ? 'true' : undefined} />
+          <p id="lk-email-err" class="f__err mono" data-err="email" hidden={!errEmail}>{errEmail}</p>
+        </div>
+        <div class="lookup__go">
+          <button type="submit" class="pill pill--primary"><span class="pill__main">{t(lang, 'account.submit')}<svg class="pill__arrow" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></span></button>
+        </div>
+        <p class="lookup__out mono" role="status" aria-live="polite" data-lookup-out>{errForm}</p>
+        {found && (
+          <p class="lookup__found">{t(lang, 'account.found', { code: found.code })} <a href={found.url} class="pill pill--outline pill--s"><span class="pill__main">{t(lang, 'account.open')}</span></a></p>
+        )}
+      </form>
+    </section>
+
+    <section class="acc-block" aria-labelledby="acc-int-h">
+      <h2 id="acc-int-h" class="acc-block__h"><span class="mono">02</span>{t(lang, 'account.interests')}</h2>
+      <p class="muted">{t(lang, 'account.interests.lead')}</p>
+      <div class="chips" role="group" aria-labelledby="acc-int-h">
+        {INTEREST_ORDER.map((i) => (
+          <button type="button" class="chip" aria-pressed="false" data-acc-interest={i}><span class="chip__box" aria-hidden="true"></span>{interestLabel(i)}</button>
+        ))}
+      </div>
+      <div class="chips__foot">
+        <button type="button" class="linkbtn mono" data-acc-interest-clear>{t(lang, 'recommend.prefs.clear')}</button>
+        <p class="mono chips__saved" role="status" aria-live="polite" data-acc-saved></p>
+      </div>
+      <noscript><p class="muted">{t(lang, 'cartpage.noscript')}</p></noscript>
+    </section>
+
+    <section class="acc-block acc-viewed" aria-labelledby="acc-viewed-h">
+      <h2 id="acc-viewed-h" class="acc-block__h"><span class="mono">03</span>{t(lang, 'account.viewed')}</h2>
+      <p class="muted">{t(lang, 'account.viewed.lead')}</p>
+      <p class="viewed__empty" data-viewed-empty>{t(lang, 'account.viewed.empty')}</p>
+      <ol class="viewed" data-viewed-list hidden></ol>
+      <ol hidden data-viewed-pool>
+        {products.map((p) => (
+          <li class="vrow" data-viewed={p.slug}>
+            <span class="vrow__n mono" data-viewed-n>00</span>
+            <span class="vrow__plate"><Photo slug={p.images[0]?.slug ?? null} lang={lang} ratio="1 / 1" sizes="72px" mat={false} caption={false} credit={false} crosshair={false} alt="" /></span>
+            <span class="vrow__body">
+              <a class="vrow__name" href={productUrl(p.kind, p.slug, lang)}>{pname(p, lang)}</a>
+              <span class="vrow__meta mono">{t(lang, `recommend.kind.${p.kind}`)} · <Price lek={p.price} lang={lang} from={p.kind === 'room' || p.kind === 'gift'} per={p.kind === 'room' ? 'night' : p.kind === 'experience' ? 'person' : null} /></span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section class="acc-block acc-data" aria-labelledby="acc-data-h">
+      <h2 id="acc-data-h" class="acc-block__h"><span class="mono">04</span>{t(lang, 'account.data')}</h2>
+      <p class="muted">{t(lang, 'account.data.lead')}</p>
+      <button type="button" class="pill pill--outline" aria-expanded="false" aria-controls="acc-clear-confirm" data-clear><span class="pill__main">{t(lang, 'account.data.clear')}</span></button>
+      <div id="acc-clear-confirm" class="clear-confirm" data-clear-confirm hidden>
+        <p>{t(lang, 'account.data.ask')}</p>
+        <div class="cluster">
+          <button type="button" class="pill pill--primary" data-clear-yes><span class="pill__main">{t(lang, 'account.data.confirm')}</span></button>
+          <button type="button" class="pill pill--outline" data-clear-no><span class="pill__main">{t(lang, 'account.data.cancel')}</span></button>
+        </div>
+      </div>
+      <p class="clear-done mono" tabindex="-1" role="status" data-clear-done hidden></p>
+    </section>
+  </div>
+</Base>
+
+<script>
+  import { initBookings } from '../scripts/order';
+  initBookings();
+</script>
+
+<style>
+  .acc-head { padding-block-start: clamp(12px, 2vw, 24px); display: grid; gap: 14px; }
+  .acc-head :global(.section-head--poster) { --poster-max: clamp(6rem, 20vh, 11rem); }
+  .acc-head__lead { max-inline-size: 60ch; color: var(--muted); }
+  .acc { display: grid; gap: clamp(36px, 5vw, 64px) var(--gutter); margin-block-start: clamp(28px, 4vw, 56px); }
+  @media (min-width: 1024px) { .acc { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .acc-block { display: grid; gap: 16px; align-content: start; min-inline-size: 0; }
+  .acc-block__h { display: flex; align-items: baseline; gap: 14px; font-size: var(--step-3); padding-block-end: 10px; border-block-end: 2px solid var(--ink); }
+  .acc-block__h .mono { font-size: var(--step--2); font-weight: 400; }
+  .lookup { display: grid; gap: 16px; }
+  .f { display: grid; gap: 6px; }
+  .f__label { font-size: var(--step--2); color: var(--muted); }
+  .f__input { inline-size: 100%; min-block-size: 48px; padding: 10px 12px; font-size: 16px; color: var(--ink); background: var(--salt-2); border: 0; border-block-end: 1px solid var(--ink); border-radius: 0; }
+  .f__input.mono { text-transform: uppercase; letter-spacing: .06em; }
+  .f__input:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  .f__input[aria-invalid="true"] { border-block-end: 2px solid var(--pouch); }
+  .f__err { font-size: var(--step--1); color: var(--pouch-text); text-transform: none; letter-spacing: 0; }
+  .f__err[hidden] { display: none; }
+  .lookup__out:empty { display: none; }
+  .lookup__out { font-size: var(--step--1); text-transform: none; letter-spacing: 0; }
+  .lookup__found { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 10px; min-block-size: 44px; padding: 0 18px 0 14px; border: 1px solid var(--ink); border-radius: 99px; background: transparent; color: var(--ink); font: inherit; cursor: pointer; touch-action: manipulation; transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out), transform 120ms var(--ease-out); }
+  .chip:active { transform: scale(0.97); }
+  .chip__box { inline-size: 12px; block-size: 12px; border: 1.5px solid currentColor; border-radius: 99px; flex: none; }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--salt); }
+  .chip[aria-pressed="true"] .chip__box { background: var(--pouch); border-color: var(--pouch); }
+  .chips__foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; }
+  .chips__saved { font-size: var(--step--2); color: var(--muted); }
+  .linkbtn { min-block-size: 44px; padding: 0; border: 0; background: none; color: inherit; font-size: var(--step--2); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  :global(html:not(.js)) .chips, :global(html:not(.js)) .chips__foot, :global(html:not(.js)) .acc-data .pill { display: none; }
+  .viewed { list-style: none; padding: 0; margin: 0; }
+  .viewed[hidden] { display: none; }
+  .vrow { display: grid; grid-template-columns: 2rem 64px minmax(0, 1fr); gap: 14px; align-items: center; padding-block: 10px; border-block-end: 1px solid var(--rule); }
+  .vrow__n { font-size: var(--step--2); color: var(--muted); }
+  .vrow__plate { inline-size: 64px; display: block; }
+  .vrow__body { display: grid; gap: 2px; min-inline-size: 0; }
+  .vrow__name { font-weight: 650; font-stretch: 88%; font-size: var(--step-1); text-decoration: none; overflow-wrap: anywhere; min-block-size: 32px; display: inline-flex; align-items: center; }
+  .vrow__name:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .vrow__meta { font-size: var(--step--2); color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+  .viewed__empty[hidden] { display: none; }
+  .viewed__empty { padding: 16px; border: 1px dashed var(--ink-40); color: var(--muted); }
+  .acc-data .pill { justify-self: start; }
+  .clear-confirm { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--ink); border-inline-start: 4px solid var(--pouch); }
+  .clear-confirm[hidden] { display: none; }
+  .clear-done[hidden] { display: none; }
+  .clear-done { font-size: var(--step--1); text-transform: none; letter-spacing: 0; outline: none; }
+</style>

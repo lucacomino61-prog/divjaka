@@ -1,0 +1,51 @@
+---
+/**
+ * HeritageTeaser — "05 · Trashëgimia" on the home: the Opal sentence (words lit by scroll, small
+ * photo cuts) and the first three heritage sheets as ruled rows.
+ */
+import Verse from '../heritage/Verse.astro';
+import Pill from '../site/Pill.astro';
+import { sheetsFor } from '../heritage/articles';
+import { t } from '../../i18n/ui';
+import { path, type Lang } from '../../i18n/routes';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const list = sheetsFor(lang).slice(0, 3);
+---
+<section class="her wrap sheet" aria-labelledby="her-h">
+  <p class="her__rule mono"><span>{t(lang, 'home.her.index')}</span><span>{t(lang, 'home.her.kicker')}</span></p>
+  <h2 id="her-h" class="visually-hidden">{t(lang, 'home.her.title')}</h2>
+  <Verse lang={lang} class="her__verse" />
+  <div class="her__foot">
+    <ol class="her__list">
+      {list.map((s, i) => (
+        <li>
+          <a href={path('article', lang, { slug: s.slug })} class="her__row">
+            <span class="mono her__n">{String(i + 1).padStart(2, '0')}</span>
+            <span class="her__t">{s.title}</span>
+            <span class="mono her__m">{t(lang, 'heritage.minutes', { n: String(s.minutes) })}</span>
+          </a>
+        </li>
+      ))}
+    </ol>
+    <Pill href={path('heritage', lang)} variant="outline" arrow>{t(lang, 'home.her.cta')}</Pill>
+  </div>
+</section>
+
+<style>
+  .her__rule { display: flex; gap: 14px; font-size: var(--step--2); padding-block-start: 10px; border-block-start: 2px solid var(--ink); margin-block-end: clamp(24px, 4vw, 56px); }
+  .her :global(.her__verse) { max-inline-size: 24ch; }
+  .her__foot { display: grid; gap: 24px; margin-block-start: clamp(32px, 5vw, 72px); align-items: end; }
+  .her__list { list-style: none; margin: 0; padding: 0; border-block-start: 1px solid var(--rule); }
+  .her__row { display: grid; grid-template-columns: 2.6em minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding-block: 14px; border-block-end: 1px solid var(--rule); text-decoration: none; min-block-size: 44px; }
+  .her__n, .her__m { font-size: var(--step--2); color: var(--muted); }
+  .her__t { font-size: var(--step-1); font-weight: 650; font-stretch: 88%; transition: transform 200ms var(--ease-out); }
+  @media (hover: hover) and (pointer: fine) { .her__row:hover .her__t { transform: translateX(6px); } }
+  @media (min-width: 900px) { .her__foot { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); } .her__foot > :global(.pill) { justify-self: end; } }
+</style>
+
+<script>
+  import { initVerses } from '../../scripts/heritage';
+  initVerses();
+</script>

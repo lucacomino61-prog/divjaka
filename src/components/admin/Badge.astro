@@ -1,0 +1,10 @@
+---
+/**
+ * Status reading for orders, payments, products, sessions, messages: mono caps with a small mark
+ * (DESIGN: no colour fills; state = word + glyph). tone: ink (done/ok), muted (waiting/draft),
+ * signal (cancelled/failed/new — the pouch, used sparingly).
+ */
+interface Props { tone?: 'ink' | 'muted' | 'signal' | 'outline'; class?: string }
+const { tone = 'ink', class: cls } = Astro.props;
+---
+<span class:list={['badge', `badge--${tone}`, cls]}><span class="badge__mark" aria-hidden="true"></span><slot /></span>
