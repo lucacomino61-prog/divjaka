@@ -37,10 +37,10 @@ export function monthOf(word: string): number | null {
 }
 
 const NUM_WORDS: Record<string, number> = {
-  one: 1, a: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
   nje: 1, dy: 2, tre: 3, tri: 3, kater: 4, pese: 5, gjashte: 6, shtate: 7, tete: 8, nente: 9, dhjete: 10,
 };
-const num = (s: string): number | null => (/^\d+$/.test(s) ? Number(s) : s === 'an' ? 1 : NUM_WORDS[s] ?? null);
+const num = (s: string): number | null => (/^\d+$/.test(s) ? Number(s) : NUM_WORDS[s] ?? null);
 /** a count of people: digits or a number word (sq + en, folded) */
 const NUM_ALT = '\\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|nje|dy|tre|tri|kater|pese|gjashte|shtate|tete|nente|dhjete';
 const NUMW = `(${NUM_ALT})`;
@@ -212,21 +212,28 @@ export function parseDates(text: string, today: string): ParsedDates {
   // Guests = adults (or people) + children: "2 të rritur dhe 2 fëmijë" = 4, "two adults and three
   // children" = 5; "family of 4" / "familje me 4" / "jemi 4" give the whole party. Children alone
   // ("me 2 fëmijë") give no party size: the adults are unknown, so no room is sized on them.
+  // "a" / "an" count as one only before an English singular noun ("an adult", "a kid"): in Albanian
+  // "a" opens a question ("A fëmijët paguajnë?", "a keni dhoma?") and is never a number.
   let guests: number | null = null;
   let adults: number | null = null;
-  if ((m = new RegExp(`\\b${NUMW}\\s*(?:persona|person|personat|vete|veta|njerez|njeri|people|persons|guests|guest|adults|adult|te rritur|pax)\\b`).exec(t))) adults = num(m[1]);
+  if ((m = new RegExp(`\\b(?:${NUMW}\\s*(?:persona|person|personat|vete|veta|njerez|njeri|people|persons|guests|guest|adults|adult|te rritur|pax)|an\\s+adult)\\b`).exec(t))) adults = m[1] ? num(m[1]) : 1;
   // "7-9 nëntor për 2", "room 12-14 july for 3": a bare number after për/for is people, unless a
   // unit, a month or a child word follows (nights, days, hours, km, %, "për 2 korrik", "for 2 kids")
   else if ((m = /\b(?:per|for)\s+(\d{1,2}|dy|tre|tri|kater|pese|two|three|four|five|six)\b(?!\s*(?:net|nat|night|dit|day|jav|week|or|hour|min|km|%|[./-]\d|femij|kid|child|bebe|baby))/.exec(t))) {
     const after = t.slice(m.index + m[0].length).trim().split(' ')[0] ?? '';
     if (!after || !monthOf(after)) adults = num(m[1]);
   }
+  // A count before a child word; the English article form ("a kid", "a baby", "an infant") is one,
+  // unless the noun only names a thing for children ("a baby cot", "a kid-friendly", "a child's ticket").
   let children = 0;
-  for (const x of t.matchAll(new RegExp(`\\b(${NUM_ALT}|a|an)\\s*(?:femije|femijet|femij|kids|kid|children|child|bebe|baby|babies)\\b`, 'g'))) children += num(x[1]) ?? 0;
-  const family = new RegExp(`\\b(?:family of|a family of|familje (?:me|prej|nga)|familja (?:me|prej|nga)|we are|we[’']?re|there are|jemi gjithsej|jemi)\\s+${NUMW}\\b(?!\\s*(?:net|nat|night|dit|day|jav|week|or|hour|min|km|%|[./-]\\d|femij|kid|child|te rritur|adult))`).exec(t);
-  if (family) {
-    const after = t.slice(family.index + family[0].length).trim().split(' ')[0] ?? '';
+  for (const x of t.matchAll(new RegExp(`\\b(?:(${NUM_ALT})\\s*(?:femije|femijet|femij|kids|kid|children|child|bebe|baby|babies|infants|infant)\\b|an?\\s+(?:kid|child|baby|infant)\\b(?![-'’]|\\s+(?:cot|crib|bed|seat|chair|menu|meal|food|ticket|price|rate|fee|discount|friendly|pool|area|stroller|pram|carrier|sitter|sitting|monitor|bath)))`, 'g'))) children += x[1] ? num(x[1]) ?? 0 : 1;
+  // "Jemi një familje me 4" / "we are one family of 4": "një" / "one" before a word is the article,
+  // not the party, so the next count is read instead.
+  for (const family of t.matchAll(new RegExp(`\\b(?:family of|a family of|familje (?:me|prej|nga)|familja (?:me|prej|nga)|we are|we[’']?re|there are|jemi gjithsej|jemi)\\s+${NUMW}\\b(?!\\s*(?:net|nat|night|dit|day|jav|week|or|hour|min|km|%|[./-]\\d|femij|kid|child|te rritur|adult))`, 'g'))) {
+    const after = t.slice((family.index ?? 0) + family[0].length).trim().split(' ')[0] ?? '';
+    if ((family[1] === 'nje' || family[1] === 'one') && after && !/^(?:person|persona|veta|vete|njeri|people)$/.test(after)) continue;
     if (!after || !monthOf(after)) guests = num(family[1]);
+    break;
   }
   if (guests == null && adults != null) guests = adults + children;
 

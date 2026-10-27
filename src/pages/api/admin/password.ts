@@ -11,8 +11,8 @@ const Body = z.object({ current: z.string().min(1).max(200), next: z.string().mi
  * POST /api/admin/password { current, next (≥ 12 chars) } → signs out every session and forgets
  * every remembered browser, then opens a new session on this one. Any admin (owner or staff)
  * may change their OWN password; it never touches another account.
- * The current password is checked through reauthenticate() (src/lib/auth.ts): 5 checks per user
- * and 10 per address in 15 minutes (429), failures audited, 5 wrong in a row end every session
+ * The current password is checked through reauthenticate() (src/lib/auth.ts): 429 after 5 wrong
+ * per user or 10 per address in 15 minutes, failures audited, 5 wrong in a row end every session
  * of the user (401).
  */
 export const POST: APIRoute = handle(async (ctx) => {

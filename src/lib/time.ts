@@ -1,6 +1,7 @@
 /**
  * Time helpers. The business runs on Europe/Tirane wall-clock time.
- * Server side only (Node ships full ICU, so Intl with a timeZone is safe here).
+ * Server and browser (the checkout page imports tiraneMs / firstStartBefore): Intl is only used
+ * with the 'en-CA' locale + timeZone for numeric parts, never with Albanian locale data.
  * Date strings are 'YYYY-MM-DD'; local date-times are 'YYYY-MM-DDTHH:MM'.
  */
 export const TZ = 'Europe/Tirane';
@@ -39,6 +40,44 @@ export function wallTimeExists(dt: string): boolean {
   const wall = Date.parse(dt + ':00Z');
   if (!Number.isFinite(wall)) return false;
   return [60, 120].some((off) => tirane(new Date(wall - off * 60_000)).dateTime === dt);
+}
+
+/**
+ * UTC offset of Europe/Tirane at a local wall-clock time ('YYYY-MM-DDTHH:MM', or a date = its
+ * noon), as "+01:00" (winter) / "+02:00" (summer). The repeated autumn hour takes the first
+ * (summer) one; a time in the spring gap or an unparsable string gets "+01:00".
+ */
+export function tiraneOffset(localDateTime: string): string {
+  const local = localDateTime.length === 16 ? localDateTime : `${localDateTime}T12:00`;
+  const wall = Date.parse(`${local}:00Z`);
+  if (!Number.isFinite(wall)) return '+01:00';
+  for (const off of [120, 60]) {
+    if (tirane(new Date(wall - off * 60_000)).dateTime === local) return `+0${off / 60}:00`;
+  }
+  return '+01:00';
+}
+
+/** Epoch ms of a Europe/Tirane wall-clock time ('YYYY-MM-DDTHH:MM', or a date = its noon) at that date's own offset; null when unparsable. */
+export function tiraneMs(local: string): number | null {
+  const s = local.length <= 10 ? `${local}T12:00` : local.slice(0, 16);
+  const v = Date.parse(`${s}:00${tiraneOffset(s)}`);
+  return Number.isFinite(v) ? v : null;
+}
+
+/** When a cart line's service starts (epoch ms): a stay at noon of its first night, a session at its start; null for undated lines. */
+export function serviceStartMs(l: { kind: string; date_from?: string | null; starts_at?: string | null }): number | null {
+  const s = l.kind === 'room' ? l.date_from : l.kind === 'experience' ? l.starts_at : null;
+  return s ? tiraneMs(s) : null;
+}
+
+/**
+ * The earliest line whose service starts before `limitMs` (bank transfer check: limit = now +
+ * bank_hold_hours, server orders.ts and the checkout page alike), or undefined.
+ */
+export function firstStartBefore<T extends { kind: string; date_from?: string | null; starts_at?: string | null }>(lines: T[], limitMs: number): { l: T; at: number } | undefined {
+  return lines.map((l) => ({ l, at: serviceStartMs(l) }))
+    .filter((x): x is { l: T; at: number } => x.at != null && x.at < limitMs)
+    .sort((a, b) => a.at - b.at)[0];
 }
 
 export function isDate(s: unknown): s is string {

@@ -32,6 +32,8 @@ const Body = z.object({
   website: z.string().max(200).optional().nullable(), // honeypot: must stay empty
   // One id per checkout draft (the same on every retry): a repeat is answered with the order already made.
   checkout_id: z.string().regex(/^[A-Za-z0-9]{16,64}$/).optional().nullable().catch(null),
+  // The draft's previous id after the guest edited it: its order, if a lost 201 made one, is cancelled (orders.ts cancelReplaced).
+  replaces: z.string().regex(/^[A-Za-z0-9]{16,64}$/).optional().nullable().catch(null),
 }).superRefine((b, ctx) => {
   // Pay at the hotel / by bank transfer: the hotel confirms these by phone.
   if (b.payment_method !== 'card' && !phoneKey(b.customer.phone)) {
@@ -49,6 +51,10 @@ const HOUR = 3600_000;
  * checkout_id (16–64 letters/digits, one per draft): a POST that repeats the id with the same e-mail
  * within 24 h, while that order is not cancelled, gets 201 with THAT order (header
  * X-DV-Replay: 1) — a 201 lost on a weak connection never creates and holds a second order.
+ * replaces (same format): the draft's previous checkout_id after the guest edited the cart. The
+ * order it made (lost 201) is cancelled when the new order is created — only when it has the same
+ * e-mail key and is still pending, unpaid, not held or confirmed by staff and inside its hold;
+ * otherwise `replaces` is ignored without a word.
  * Errors: 409 cart_problem {lines:[{key, problem}]}, 409 sold_out, 409 promo_invalid, 409 hold_cap
  * {lines:[{key, problem:{code:'hold_cap'}}]} (unconfirmed orders already hold half of these
  * nights / this session / this item — paying by card still works), 409 hold_cap_units {max, lines},
@@ -96,7 +102,7 @@ export const POST: APIRoute = handle(async (ctx) => {
     // with no other request in between, and a refused order spends nothing.
     created = createOrder({
       lang: b.lang, items: b.items, promo, customer: b.customer, payment_method: b.payment_method,
-      notes: b.notes, marketing_consent: b.marketing_consent, source, personHere, checkout_id: b.checkout_id,
+      notes: b.notes, marketing_consent: b.marketing_consent, source, personHere, checkout_id: b.checkout_id, replaces: b.replaces,
       client: (d, longHold) => {
         wasLong = longHold;
         for (const [k, bucket, max] of daily) if (d[k]) rateCheck(bucket, group, max, d[k]);

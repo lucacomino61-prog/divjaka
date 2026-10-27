@@ -37,6 +37,25 @@ function initRail(rail: HTMLElement) {
   let timer = 0;
   let lastQuery = '';
 
+  // Leaving the page: WebKit cancels a page's loads as soon as a navigation starts (before
+  // pagehide) and logs each cancelled fetch as an access-control error. So while a request is
+  // waiting (idle callback, debounce timer) or running, beforeunload drops it and no new one
+  // starts. The listener is attached only for that time: it never costs the back/forward cache.
+  let due = 0;
+  let left = false;
+  const leave = () => {
+    left = true;
+    if (timer) { clearTimeout(timer); timer = 0; hold(-1); }
+    ctl?.abort();
+    lastQuery = '';
+  };
+  function hold(n: 1 | -1) {
+    due = Math.max(0, due + n);
+    if (due) window.addEventListener('beforeunload', leave);
+    else window.removeEventListener('beforeunload', leave);
+  }
+  window.addEventListener('pageshow', (e) => { if (e.persisted) left = false; });
+
   const signals = () => {
     const interests = getPrefs().interests;
     const viewed = getViewed().slice(0, 12);
@@ -45,6 +64,7 @@ function initRail(rail: HTMLElement) {
   };
 
   async function refresh(announce: boolean) {
+    if (left) return;
     const s = signals();
     if (!s.interests.length && !s.viewed.length && !s.cart.length && !lastQuery) return; // server order is right
     const q = new URLSearchParams({ lang: lang(), limit: String(limit) });
@@ -58,6 +78,7 @@ function initRail(rail: HTMLElement) {
     lastQuery = query;
     ctl?.abort();
     ctl = new AbortController();
+    hold(1);
     // a spinner-free busy state, shown only if the answer takes a moment
     const busy = window.setTimeout(() => list!.setAttribute('aria-busy', 'true'), 200);
     try {
@@ -72,6 +93,7 @@ function initRail(rail: HTMLElement) {
       lastQuery = '';
       if (status) status.textContent = tc('recommend.error');
     } finally {
+      hold(-1);
       clearTimeout(busy);
       list!.removeAttribute('aria-busy');
     }
@@ -94,13 +116,16 @@ function initRail(rail: HTMLElement) {
   }
 
   const schedule = (announce: boolean) => {
-    clearTimeout(timer);
-    timer = window.setTimeout(() => { void refresh(announce); }, 280);
+    left = false; // a prefs or cart change: the page is in use (a navigation that never happened)
+    if (timer) clearTimeout(timer); else hold(1);
+    timer = window.setTimeout(() => { timer = 0; void refresh(announce); hold(-1); }, 280);
   };
 
   // first personalisation when the browser is idle (never competes with the first paint)
   const idle = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
-  if (idle) idle(() => { void refresh(false); }, { timeout: 2000 }); else window.setTimeout(() => { void refresh(false); }, 600);
+  const first = () => { void refresh(false); hold(-1); };
+  hold(1);
+  if (idle) idle(first, { timeout: 2000 }); else window.setTimeout(first, 600);
   onPrefs(() => schedule(true));
   onCartChange(() => schedule(false));
 

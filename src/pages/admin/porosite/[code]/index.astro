@@ -40,11 +40,16 @@ const th = testHold(o);
 const itemName = (it: OrderItem) => { const p = it.product_id ? getProduct(it.product_id) : undefined; return p ? (lang === 'en' ? p.name_en || p.name_sq : p.name_sq) || it.name : it.name; };
 const holding = o.hold_until && o.status === 'pending' && Date.parse(o.hold_until) > Date.now();
 const actions: { label: string; body: Record<string, unknown>; confirm?: string; ok?: string; danger?: boolean; primary?: boolean }[] = [];
+// On a cancelled slot the API refuses confirm / complete / paid (409 session_cancelled) unless the
+// body says force: true; these buttons send it only after their slot-specific warning.
+const force = slotCancelled ? { force: true } : {};
 if (o.status === 'pending' || th) actions.push(slotCancelled
-  ? { label: T('admin.order.act.confirm'), body: { status: 'confirmed' }, confirm: 'admin.order.c.confirm.slot', ok: 'admin.order.ok.confirm', danger: true }
+  ? { label: T('admin.order.act.confirm'), body: { status: 'confirmed', ...force }, confirm: 'admin.order.c.confirm.slot', ok: 'admin.order.ok.confirm', danger: true }
   : { label: T('admin.order.act.confirm'), body: { status: 'confirmed' }, confirm: th ? 'admin.order.c.confirm.test' : 'admin.order.c.confirm', ok: 'admin.order.ok.confirm', primary: true });
-if (o.status === 'confirmed' && !th) actions.push({ label: T('admin.order.act.complete'), body: { status: 'completed' }, primary: !slotCancelled });
-if (active && o.payment_status !== 'paid') actions.push({ label: T('admin.order.act.paid'), body: { payment_status: 'paid' }, confirm: slotCancelled ? 'admin.order.c.paid.slot' : 'admin.order.c.paid', ok: 'admin.order.ok.paid' });
+if (o.status === 'confirmed' && !th) actions.push(slotCancelled
+  ? { label: T('admin.order.act.complete'), body: { status: 'completed', ...force }, confirm: 'admin.order.c.complete.slot', ok: 'admin.order.ok.complete', danger: true }
+  : { label: T('admin.order.act.complete'), body: { status: 'completed' }, primary: true });
+if (active && o.payment_status !== 'paid') actions.push({ label: T('admin.order.act.paid'), body: { payment_status: 'paid', ...force }, confirm: slotCancelled ? 'admin.order.c.paid.slot' : 'admin.order.c.paid', ok: 'admin.order.ok.paid' });
 if (o.payment_status === 'paid') actions.push({ label: T('admin.order.act.refunded'), body: { payment_status: 'refunded' }, confirm: 'admin.order.c.refunded', ok: 'admin.order.ok.refunded' });
 if (o.payment_status === 'refunded' || o.payment_status === 'failed') actions.push({ label: T('admin.order.act.unpaid'), body: { payment_status: 'unpaid' } });
 if (o.consent_pending) actions.push({ label: T('admin.order.act.consent'), body: { confirm_consent: true }, confirm: 'admin.order.c.consent', ok: 'admin.order.ok.consent' });

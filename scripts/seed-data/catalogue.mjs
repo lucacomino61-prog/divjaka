@@ -445,8 +445,8 @@ export const FAQ = [
   },
   {
     q_sq: 'Si është moti tani në Divjakë?', q_en: 'What is the weather like in Divjakë now?',
-    a_sq: 'Faqja «Tani» tregon motin, erën, temperaturën e detit, lindjen dhe perëndimin e diellit, të përditësuara nga MET Norway.',
-    a_en: 'The “Now” page shows the weather, wind, sea temperature, sunrise and sunset, updated from MET Norway.',
+    a_sq: 'Faqja «Tani» tregon motin dhe erën nga MET Norway, temperaturën e detit nga NASA JPL MUR, dhe lindjen e perëndimin e diellit, të llogaritura për vendndodhjen e hotelit.',
+    a_en: 'The “Now” page shows the weather and wind from MET Norway, the sea temperature from NASA JPL MUR, and sunrise and sunset, calculated for the hotel’s location.',
     keywords: 'moti, mot, temperatura, era, deti, weather, temperature, wind, sea temperature, sunset, perendimi', links: [{ key: 'now', label_sq: 'Tani', label_en: 'Now' }], sort: 7,
   },
   {

@@ -27,7 +27,24 @@ const PAGES: { key: RouteKey; sq: string; en: string; kw: string }[] = [
   { key: 'credits', sq: 'Kreditet', en: 'Credits', kw: 'kredite credits foto photo licenca license' },
 ];
 
-interface Doc { type: SearchResult['type']; title: string; url: string; fields: { text: string; w: number }[]; snipFrom: string }
+interface Doc { type: SearchResult['type']; title: string; url: string; fields: { text: string; w: number }[]; snipFrom: string; snipLen?: number }
+
+/**
+ * Where an FAQ result leads. No public page lists the FAQ (it is the assistant's knowledge base),
+ * so the result card carries the whole answer as its snippet and the link goes to the first
+ * same-site page the row itself names ("links", as the assistant shows them), else to Contact.
+ * Never a #fragment that no page renders.
+ */
+function faqUrl(links: string | null, lang: Lang): string {
+  try {
+    for (const l of JSON.parse(links || '[]') as { key?: string; url?: string; params?: Record<string, string> }[]) {
+      let url = l.url ?? '';
+      if (!url && l.key) { try { url = path(l.key as RouteKey, lang, l.params ?? {}); } catch { url = ''; } }
+      if (/^\/(?![/\\])/.test(url)) return url;
+    }
+  } catch { /* malformed links: fall back */ }
+  return path('contact', lang);
+}
 
 function scoreDoc(doc: Doc, qt: string[], qStems: string[], phrase: string): number {
   let score = 0;
@@ -66,12 +83,12 @@ export function search(q: string, lang: Lang, limit = 20): SearchResult[] {
     });
   }
 
-  const faq = all<{ id: number; q_sq: string; q_en: string; a_sq: string; a_en: string; keywords: string | null }>('SELECT * FROM faq WHERE active = 1');
+  const faq = all<{ id: number; q_sq: string; q_en: string; a_sq: string; a_en: string; keywords: string | null; links: string | null }>('SELECT * FROM faq WHERE active = 1');
   for (const f of faq) {
     docs.push({
-      type: 'faq', title: (lang === 'en' ? f.q_en : f.q_sq) || f.q_sq || f.q_en, url: `${path('contact', lang)}#pyetje-${f.id}`,
+      type: 'faq', title: (lang === 'en' ? f.q_en : f.q_sq) || f.q_sq || f.q_en, url: faqUrl(f.links, lang),
       fields: [{ text: `${f.q_sq ?? ''} ${f.q_en ?? ''}`, w: 2.5 }, { text: f.keywords ?? '', w: 2 }, { text: faqText(lang === 'en' ? f.a_en ?? '' : f.a_sq ?? ''), w: 1 }],
-      snipFrom: faqText((lang === 'en' ? f.a_en : f.a_sq) ?? ''),
+      snipFrom: faqText((lang === 'en' ? f.a_en : f.a_sq) ?? ''), snipLen: 400,
     });
   }
 
@@ -92,5 +109,5 @@ export function search(q: string, lang: Lang, limit = 20): SearchResult[] {
     .filter((x) => x.s >= 1.5)
     .sort((a, b) => b.s - a.s || a.d.title.localeCompare(b.d.title))
     .slice(0, limit)
-    .map(({ d, s }) => ({ type: d.type, title: d.title, url: d.url, snippet: d.snipFrom ? snippet(d.snipFrom, qt) : '', score: Math.round(s * 10) / 10 }));
+    .map(({ d, s }) => ({ type: d.type, title: d.title, url: d.url, snippet: d.snipFrom ? snippet(d.snipFrom, qt, d.snipLen) : '', score: Math.round(s * 10) / 10 }));
 }

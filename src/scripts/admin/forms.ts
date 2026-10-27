@@ -3,7 +3,7 @@
  *
  *   <form data-api="/api/admin/faq/3" data-method="PATCH" data-after="reload|none|go:/admin/x/{id}"
  *         data-confirm="admin.key or text" data-danger data-success="admin.saved"
- *         data-reauth="payments.iban,payments.mode" data-field-prefix="payments.">
+ *         data-reauth="payments.iban,payments.mode" data-reauth-body="admin.key" data-field-prefix="payments.">
  *     <input name="business.phone"> <input name="units" data-type="int" data-nullable>
  *   </form>
  *   <button data-action="/api/admin/orders/9" data-method="PATCH" data-body='{"status":"cancelled"}'
@@ -178,6 +178,9 @@ const FIELD_MSG: Record<string, string> = {
   'at least 8 letters, digits, - or _': 'admin.field.e.code',
   'percent <= 100': 'admin.field.e.percent',
   url_must_be_path_or_https: 'admin.field.e.url',
+  image_must_be_on_this_site: 'admin.field.e.share_image',
+  password_too_short: 'admin.field.e.password',
+  email_taken: 'admin.field.e.email_taken',
 };
 function fieldMessage(message: string): string {
   const key = FIELD_MSG[message];
@@ -290,7 +293,7 @@ export function initForms(root: ParentNode = document): void {
         const before = initial.get(form) ?? {};
         const changed = form.dataset.reauth.split(',').some((p) => JSON.stringify(getPath(before, p.trim())) !== JSON.stringify(getPath(body, p.trim())));
         if (changed) {
-          const pw = await confirmDialog({ body: tc('admin.settings.payments.confirm'), password: true });
+          const pw = await confirmDialog({ body: tc(form.dataset.reauthBody || 'admin.settings.payments.confirm'), password: true });
           if (pw === false) {
             const st = statusEl(form);
             st.dataset.tone = 'error';

@@ -12,7 +12,9 @@
  *   compare_at, forced_draft?}, product_status {product_id, from, to}, price_options_change
  *   {product_id, keys, from, to}, rate_change {op, id, product_id, date_from, date_to, from, to},
  *   offer_update {id, code, active, changes:{field:{from,to}}}, offer_delete {id, code, type, value,
- *   active}, orders_mass_cancel {minutes, methods, count}.
+ *   active}, orders_mass_cancel {minutes, methods, count},
+ *   (staff accounts) account_create {user, role}, account_update {user, name?, role?:{from,to},
+ *   active?}, account_password_reset {user}.
  */
 import { all, get, run, toJson } from './db/index';
 import { nowIso } from './time';

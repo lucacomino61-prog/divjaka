@@ -26,7 +26,7 @@ import AssistantPanel from '../components/assistant/AssistantPanel.astro'; // T7
 import Preloader from '../components/site/Preloader.astro';
 import { t, pick } from '../i18n/ui';
 import { path, ROUTES, type Lang, type RouteKey } from '../i18n/routes';
-import { business, confirmed, eurRate, hotelSpot, siteOriginOf } from '../components/site/site-data';
+import { business, confirmed, defaultShareImage, eurRate, hotelSpot, siteOriginOf } from '../components/site/site-data';
 
 export interface Props {
   lang: Lang;
@@ -59,7 +59,12 @@ const canonical = alt ? new URL(alt[lang], origin).href : null;
 // one suffix everywhere (Room pages too): ' · Hotel Pelikan'; the site name is in og:site_name.
 // (final pass: ' · Divjaka · Hotel Pelikan' pushed 9 titles to 60–72 characters)
 const fullTitle = /hotel pelikan/i.test(title) ? title : `${title} · Hotel Pelikan`;
-const ogImage = new URL(image ?? '/og-default.png', origin).href;
+// the owner's default share image (settings.seo.default_image, validated in site-data) when set,
+// else the built-in 1200 × 630 card; a page's own image always wins
+const ownDefault = await defaultShareImage(origin);
+const defaultImage = ownDefault ?? new URL('/og-default.png', origin).href;
+const ogImage = image ? new URL(image, origin).href : defaultImage;
+const knownSize = !image && !ownDefault;
 const ogLocale = lang === 'sq' ? 'sq_AL' : 'en_GB';
 
 const spot = await hotelSpot();
@@ -72,7 +77,7 @@ const hotelLd: Record<string, unknown> = {
   name: 'Hotel Pelikan',
   url: new URL(path('home', lang), origin).href,
   description: t(lang, 'footer.about'),
-  image: new URL('/og-default.png', origin).href,
+  image: defaultImage,
   address: { '@type': 'PostalAddress', addressLocality: 'Divjakë', addressCountry: 'AL', ...(confirmed(b, 'address') ? { streetAddress: confirmed(b, 'address') } : {}) },
   ...(confirmed(b, 'phone') ? { telephone: confirmed(b, 'phone') } : {}),
   ...(confirmed(b, 'email') ? { email: confirmed(b, 'email') } : {}),
@@ -116,8 +121,8 @@ const clientStrings = pick(lang, ['cart.', 'live.', 'motion.', 'currency.', 'sta
   <meta property="og:description" content={description} />
   {canonical && <meta property="og:url" content={canonical} />}
   <meta property="og:image" content={ogImage} />
-  {!image && <meta property="og:image:width" content="1200" />}
-  {!image && <meta property="og:image:height" content="630" />}
+  {knownSize && <meta property="og:image:width" content="1200" />}
+  {knownSize && <meta property="og:image:height" content="630" />}
   <meta property="og:locale" content={ogLocale} />
   <meta property="og:locale:alternate" content={lang === 'sq' ? 'en_GB' : 'sq_AL'} />
   <meta name="twitter:card" content="summary_large_image" />

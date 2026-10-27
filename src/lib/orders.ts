@@ -44,7 +44,7 @@ import { getSetting } from './db/repo/settings';
 import { getProduct, pname, primaryImage, type Kind } from './db/repo/products';
 import { ensureNight } from './db/repo/rooms';
 import { cardMode, paymentAvailability } from './payments/mode';
-import { nights as nightList, nowIso, dayOf, addDays, today } from './time';
+import { nights as nightList, nowIso, dayOf, addDays, today, firstStartBefore } from './time';
 import { productUrl, type Lang } from './urls';
 import { formatDate } from '../i18n/format';
 import { rateFactor } from './security';
@@ -298,6 +298,8 @@ export interface CheckoutInput {
   personHere?: number;
   /** The checkout page's draft id (32 hex), stored so a repeated POST answers with this order (orderForCheckout). */
   checkout_id?: string | null;
+  /** The draft's previous checkout_id (the guest edited the cart after a send): see cancelReplaced. */
+  replaces?: string | null;
   /** seed only */
   demo?: boolean;
   at?: string;
@@ -321,24 +323,37 @@ export function orderForCheckout(checkoutId: string | null | undefined, email: s
   );
 }
 
-/** When a cart line's service starts (ms): stays at noon of the first night, sessions at their start, Tirana winter offset, as the checkout page counts it. */
-function lineStartMs(l: { kind: string; date_from?: string; starts_at?: string }): number | null {
-  const s = l.kind === 'room' ? l.date_from : l.kind === 'experience' ? l.starts_at : undefined;
-  if (!s) return null;
-  const v = Date.parse(`${s.length <= 10 ? `${s}T12:00` : s.slice(0, 16)}:00+01:00`);
-  return Number.isFinite(v) ? v : null;
+/**
+ * A lost 201 and then an edited draft: the first POST made an order the guest never saw, the
+ * edited one comes with a new checkout_id and the old one as `replaces`. The old order is
+ * cancelled through cancelOrder (rooms, seats, stock and the promo use come back, inventory_log
+ * reason 'replaced') only when it has exactly that checkout_id (128 random bits, never shown to
+ * anyone but the browser that made it) AND the same e-mail key, is still pending and unpaid, has
+ * no staff hold, its unpaid hold has not ended, and it is no demo. Anything else: nothing happens
+ * and the answer is the same as without `replaces`. Runs inside createOrder's transaction, before
+ * the new order is checked, so the seats it frees count for the new one and a refused new order
+ * cancels nothing.
+ */
+function cancelReplaced(replaces: string | null | undefined, checkoutId: string | null | undefined, eKey: string): { id: number; code: string }[] {
+  if (!replaces || replaces === checkoutId) return [];
+  const rows = all<{ id: number; code: string }>(
+    `SELECT id, code FROM orders WHERE checkout_id = ? AND email_key = ? AND status = 'pending' AND payment_status = 'unpaid'
+       AND staff_hold = 0 AND demo = 0 AND hold_until IS NOT NULL AND hold_until > ? ORDER BY id LIMIT 3`,
+    replaces, eKey, nowIso(),
+  );
+  for (const r of rows) cancelOrder(r.id, { reason: 'replaced' });
+  return rows;
 }
 
 /**
  * Bank transfer only when a transfer can arrive before the first night or session: the unpaid
  * hold (bank_hold_hours) must end before the service starts, or it would keep the rooms or seats
- * through the stay or the tour. The checkout page hides the method in this case (pay.bank.late).
+ * through the stay or the tour. Starts are Europe/Tirane wall clock at that date's own offset
+ * (+02:00 in summer), the same rule as the checkout page, which hides the method (pay.bank.late).
  */
 function assertBankInTime(priced: PricedLine[], lang: Lang): void {
   const limit = Date.now() + (getSetting('payments').bank_hold_hours || 72) * 3600_000;
-  const soon = priced.map((pl) => ({ l: pl.line, at: lineStartMs(pl.line) }))
-    .filter((x): x is { l: PricedLine['line']; at: number } => x.at != null && x.at < limit)
-    .sort((a, b) => a.at - b.at)[0];
+  const soon = firstStartBefore(priced.map((pl) => pl.line), limit);
   if (!soon) return;
   const day = (soon.l.kind === 'room' ? soon.l.date_from : soon.l.starts_at)!.slice(0, 10);
   const name = soon.l.name;
@@ -502,6 +517,7 @@ export function createOrder(input: CheckoutInput): CreatedOrder {
   return tx(() => {
     const inv = getSetting('inventory');
     const review: string[] = [];
+    const replaced = input.demo ? [] : cancelReplaced(input.replaces, input.checkout_id, eKey);
     if (!input.demo) {
       const cap = inv.max_open_orders_per_email || 3;
       const open = Number(get<{ n: number }>(
@@ -566,6 +582,12 @@ export function createOrder(input: CheckoutInput): CreatedOrder {
     for (const pl of q.priced) writeItem(pl, orderId, at);
 
     if (q.promoOffer?.code) takePromoUse(q.promoOffer.code);
+
+    // Staff see why the replaced order is cancelled (the same bracketed note style as markPaid).
+    for (const r of replaced) {
+      run("UPDATE orders SET notes = TRIM(COALESCE(notes, '') || ' [Zëvendësuar nga ' || ? || ']') WHERE id = ?", code, r.id);
+      console.info(JSON.stringify({ order_replaced: r.code, by: code, ts: at }));
+    }
 
     // No sid: an order (a named guest) is never linked to a browsing trail. The funnel's order
     // and paid steps are counted from the orders table (stats.ts).

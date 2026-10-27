@@ -176,3 +176,18 @@ export const zOrderPatch = z.object({
 
 export const zCustomerPatch = z.object({ name: optStr(120), phone: optStr(40), country: optStr(60), notes: optText(4000), marketing_consent: z.boolean().optional() });
 export const zMessagePatch = z.object({ status: z.enum(['new', 'read', 'done']) });
+
+/**
+ * Staff accounts (/api/admin/users, owner only). Passwords: 12–200 characters, like
+ * POST /api/admin/password. `current_password` is the OWNER's own password (re-authentication).
+ */
+const zNewPassword = z.string().min(12, 'password_too_short').max(200);
+export const zAccountCreate = z.object({
+  name: str(120).min(1),
+  email: z.string().trim().max(200).pipe(z.email()),
+  role: z.enum(['staff', 'owner']),
+  password: zNewPassword,
+  current_password: z.string().max(200).optional(),
+});
+export const zAccountPatch = z.object({ name: optStr(120), role: z.enum(['staff', 'owner']).optional(), active: z.boolean().optional() });
+export const zAccountPassword = z.object({ password: zNewPassword, current_password: z.string().max(200).optional() });

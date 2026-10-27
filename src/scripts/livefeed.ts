@@ -7,13 +7,15 @@
  * `loading: true` with no readings. That answer is never cached; the shared read asks again after
  * 4/5/6/8/10 s (bypassing the HTTP cache) and resolves with the first settled answer, so the
  * header temperature, the ticker and the home log fill in on the same tab without a reload.
+ * A read that still ends loading (or failed) is dropped from `pending`, so a later getLive()
+ * on the same page asks the server again instead of getting that answer back.
  */
 export interface Live {
   /** null only while nothing was ever fetched (then weather is null too) */
   updated_at: string | null; stale: boolean;
   /** true while the first download is still on its way and nothing has failed yet */
   loading?: boolean;
-  weather: { temp: number; feels: number; code: number; label_sq: string; label_en: string; wind_kmh: number; wind_dir: number; gust_kmh: number; humidity: number; uv: number | null; is_day: boolean } | null;
+  weather: { temp: number; feels: number; code: number; label_sq: string; label_en: string; wind_kmh: number; wind_dir: number; gust_kmh: number | null; humidity: number; uv: number | null; is_day: boolean } | null;
   marine: { sea_temp: number | null; wave_m: number | null } | null;
   air: { aqi: number | null; pm25: number | null } | null;
   sun: { sunrise: string; sunset: string; golden_start: string } | null;
@@ -77,8 +79,12 @@ export function getLive(opts: { fresh?: boolean } = {}): Promise<Live | null> {
     if (c) return Promise.resolve(c);
     if (pending) return pending;
   }
-  pending = read(!!opts.fresh);
-  return pending;
+  const p = read(!!opts.fresh);
+  pending = p;
+  // a read that ends without a settled answer (still loading after every retry, or failed) is
+  // not shared: the next getLive() on this page asks the server again
+  p.then((data) => { if ((!data || data.loading) && pending === p) pending = null; });
+  return p;
 }
 
 /** Usable for "now" readings: present, settled and not stale. */

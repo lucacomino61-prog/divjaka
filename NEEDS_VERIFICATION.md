@@ -127,7 +127,6 @@ All **DEMO**.
 - [ ] **MET Norway contact** (weather): set `LIVE_CONTACT` [Dev] or confirm the business e-mail [Admin]. Until then the User-Agent falls back to the site's address and the dashboard warns.
 - [ ] **Air quality, waves, actual UV**: hidden. Showing them needs Open-Meteo **API Standard** (€29/month, read 23.10.2026, VAT not checked) and `OPEN_METEO_API_KEY` [Dev]. The free tier is non-commercial only.
 - [ ] **Assistant answers the owner must give** (they say "ask reception" and offer the hand-off today): children's beds and prices, pool, transfers, invoices, cancellation and refunds, plus the rows named in §1, §2 and §4. [Admin] Asistenti → FAQ (61 rows in each language).
-- [ ] **Hand-off e-mail**: Cilësimet → Asistenti has an e-mail field, but the site sends no e-mail; hand-offs arrive only under Mesazhet. E-mail alerts would be new work [Dev].
 - [Info] Sea temperature: NASA JPL MUR satellite analysis, about a day behind, shown with its date and labelled "sea", never "lagoon".
 - [Info] Pelican numbers are given as the sources state them (200–250 pairs historically, 19 at the low point, 85 counted in 2020, "around 100" in an undated 2025 flyer). No official count after 2020 was found.
 - [Info] Amenities the knowledge base does not know (gym, spa, sauna, EV charging…) get the hand-off, never a "yes".
@@ -135,16 +134,15 @@ All **DEMO**.
 ## 10. Photos and share image
 
 - [ ] **No licensed photo of the hotel, its rooms, its restaurant or its dishes exists.** Room and dinner cards and the home "Hotel Pelikan" strip show the beach, the pine forest and fishing boats, captioned as what they show. Upload real room and restaurant photos [Admin] Produktet → Fotot; the home strip and the stay page header need [Dev].
-- [ ] **Share image** `public/og-default.png` (wordmark + hotel line) stands in until a photo is chosen. [Dev]: the admin field Cilësimet → SEO → "Fotoja e parazgjedhur për ndarje" is saved but the pages do not read it yet (`src/layouts/Base.astro` uses `/og-default.png`).
+- [ ] **Share image** `public/og-default.png` (wordmark + hotel line) stands in until a photo is chosen. [Admin] Cilësimet → SEO → "Fotoja e parazgjedhur për ndarje": once set, every page shares it (`src/layouts/Base.astro`). It must be on this site: a path starting with `/` or an `https://` address on the site's own domain; anything else is ignored and `/og-default.png` stays.
 - [Info] Every photo comes from Wikimedia Commons under its own licence and is credited on `/kreditet/` (`research/ASSETS.md`).
 
 ## 11. Server, data and repository · [Dev]
 
 - [ ] **Public address**: `settings.seo.site_url` [Admin, Cilësimet → SEO] (or `site` in `astro.config.mjs`, today the placeholder `https://divjaka.example`). The sitemap, product feed, robots.txt and POK need it; card stays off without it.
-- [ ] **Fresh production database without demo data**: run `npm run db:seed` (no `--demo`) on a new file. The development database `data/divjaka.db` holds 64 demo orders and customers, demo browsing events and a leftover test account `apitest-staff-…@example.com` (staff): never use it as the live database, or first run `DELETE FROM admin_users WHERE email LIKE 'apitest-staff-%';`.
-- [ ] **Uploads**: `data/uploads/2026` holds files from upload tests. Start production with an empty `DIVJAKA_DATA` folder.
+- [ ] **Fresh production database without demo data**: run `npm run db:seed` (no `--demo`) on a new file. The development database `data/divjaka.db` holds 64 demo orders and customers and demo browsing events: never use it as the live database. Before launch, list `admin_users` and delete any account you do not recognise (README → Before launch).
+- [ ] **Uploads**: start production with an empty `DIVJAKA_DATA` folder (the upload-test files were cleared from `data/uploads/2026` on 27.10.2026).
 - [ ] **Environment**: `ALLOW_TEST_PAYMENTS` and `RATE_LIMIT_FACTOR` unset; `TRUST_PROXY=1` behind the reverse proxy; `ADMIN_PASSWORD` deleted from `.env` after the owner's first sign-in (README → Deployment contract).
-- [ ] **Staff accounts**: the admin has no screen to add them; created by hand.
 - [ ] **Backups**: daily, encrypted, off the server (`OWNER.md` §7).
 - [ ] **Licence**: no LICENSE file yet. Choose one (or "all rights reserved") before the repository goes public. Photos, fonts, map data and GSAP keep their own licences (README → Licences).
 - [ ] **Research folder**: `research/` holds the client's application pages (`spec-page-1.webp`, `spec-page-2.webp`) and business research. Decide whether they belong in a public repository.

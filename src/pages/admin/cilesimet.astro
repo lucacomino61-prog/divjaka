@@ -170,7 +170,7 @@ const humanKey = (k: string) => k.replace(/_/g, ' ');
         <form data-api="/api/admin/settings" data-method="PUT" data-field-prefix="seo.">
           <fieldset class="group" disabled={dis} style="gap:16px">
             <div class="fld"><label class="fld__label mono" for="se-url">{T('admin.settings.seo.site_url')}{!s.seo.site_url && <span class="unconf mono">{T('admin.settings.unconfirmed')}</span>}</label><input id="se-url" class="fld__input" type="url" name="seo.site_url" value={s.seo.site_url} placeholder="https://" /><p class="fld__help">{T('admin.settings.seo.site_url.help')}</p></div>
-            <div class="fld"><label class="fld__label mono" for="se-img">{T('admin.settings.seo.default_image')}</label><input id="se-img" class="fld__input" name="seo.default_image" value={s.seo.default_image} placeholder="/og-default.png" /></div>
+            <div class="fld"><label class="fld__label mono" for="se-img">{T('admin.settings.seo.default_image')}</label><input id="se-img" class="fld__input" name="seo.default_image" value={s.seo.default_image} placeholder="/og-default.png" aria-describedby="se-img-help" /><p class="fld__help" id="se-img-help">{T('admin.settings.seo.default_image.help')}</p></div>
             {owner && <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.save')}</button></div>}
           </fieldset>
         </form>
@@ -200,8 +200,9 @@ const humanKey = (k: string) => k.replace(/_/g, ' ');
             <label class="fld fld--check"><input class="check" type="checkbox" name="assistant.use_claude" data-type="bool" checked={s.assistant.use_claude} /><span class="fld__label">{T('admin.settings.a.use_claude')}</span></label>
             <div class="fields">
               <div class="fld"><label class="fld__label mono" for="as-cap">{T('admin.settings.a.daily_cap')}</label><input id="as-cap" class="fld__input" type="number" min="0" name="assistant.daily_cap" data-type="int" value={s.assistant.daily_cap} /></div>
-              <div class="fld"><label class="fld__label mono" for="as-mail">{T('admin.settings.a.handoff_email')}</label><input id="as-mail" class="fld__input" type="email" name="assistant.handoff_email" value={s.assistant.handoff_email} /></div>
             </div>
+            {/* The site sends no e-mail: hand-offs are messages. settings.assistant.handoff_email stays stored but nothing reads it. */}
+            <p class="fld__help">{T('admin.settings.a.handoff')} <a href="/admin/mesazhet/">{T('admin.nav.messages')}</a>.</p>
             {owner && <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.save')}</button></div>}
           </fieldset>
         </form>

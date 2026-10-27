@@ -300,7 +300,7 @@ try {
 
   // ---------- admin ----------
   const admin = ensureAdminEnv();
-  const existing = get('SELECT id, password_hash FROM admin_users WHERE email = ? COLLATE NOCASE', admin.email);
+  const existing = get('SELECT id, password_hash, role, disabled_at FROM admin_users WHERE email = ? COLLATE NOCASE', admin.email);
   if (!existing) {
     run('INSERT INTO admin_users (email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)', admin.email.toLowerCase(), 'Hotel Pelikan', hashPassword(admin.password), 'owner', nowIso());
     log(`admin user ${admin.email} created (password in .env${admin.generated ? ', newly generated' : ''})`);
@@ -311,6 +311,11 @@ try {
     if (!verifyPassword(admin.password, existing.password_hash)) {
       run('UPDATE admin_users SET password_hash = ? WHERE id = ?', hashPassword(admin.password), existing.id);
       log(`admin user ${admin.email}: password set from .env (--sync-admin)`);
+    }
+    // An owner disabled or demoted on /admin/stafi/ gets the account back as an active owner.
+    if (existing.disabled_at || existing.role !== 'owner') {
+      run("UPDATE admin_users SET disabled_at = NULL, role = 'owner' WHERE id = ?", existing.id);
+      log(`admin user ${admin.email}: enabled again as owner (--sync-admin)`);
     }
     run('DELETE FROM admin_sessions WHERE user_id = ?', existing.id);
     run('DELETE FROM admin_devices WHERE user_id = ?', existing.id);

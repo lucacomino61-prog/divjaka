@@ -1,10 +1,12 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
-import { handle, json, readJson, validate } from '../../../lib/http';
+import { E, handle, json, readJson, validate } from '../../../lib/http';
 import { reauthenticate, requireAdmin, requireOwner } from '../../../lib/auth';
 import { getAllSettings, getSetting, setSetting, SETTING_KEYS, type SettingKey } from '../../../lib/db/repo/settings';
 import { audit } from '../../../lib/audit';
 import { clientIp } from '../../../lib/security';
+import { siteOrigin } from '../../../lib/urls';
+import { safeShareImage } from '../../../components/site/site-data';
 
 const s = (n: number) => z.string().trim().max(n);
 
@@ -107,8 +109,10 @@ export const GET: APIRoute = handle(async ({ locals }) => {
  * PUT /api/admin/settings { business?: {...}, payments?: {...}, …, current_password? } (owner
  * only) — each key is merged into the stored object. Saving a business field removes it from
  * business.placeholders. Changing payments.iban / beneficiary / bank_name / swift / mode /
- * methods needs current_password (400 password_required / bad_password, 429 after 5 tries in
- * 15 minutes, 401 and every session ended after 5 wrong in a row). Every save is audited.
+ * methods needs current_password (400 password_required / bad_password, 429 after 5 wrong in
+ * 15 minutes, 401 and every session ended after 5 wrong in a row). seo.default_image must be a
+ * path on this site ("/…") or an https URL on the site's own origin — the rule the share-image
+ * renderer applies (safeShareImage) — else 400 with field default_image. Every save is audited.
  */
 export const PUT: APIRoute = handle(async (ctx) => {
   const admin = requireOwner(ctx.locals);
@@ -133,6 +137,14 @@ export const PUT: APIRoute = handle(async (ctx) => {
     if (k === 'business' && !('placeholders' in v)) {
       const filled = Object.keys(v).filter((f) => v[f] !== '' && v[f] !== null);
       next = { ...next, placeholders: ((cur.placeholders as string[]) ?? []).filter((f) => !filled.includes(f)) };
+    }
+    // The share image is used only when it is on this site (site-data safeShareImage): refuse
+    // anything else here instead of saving a value the pages silently ignore.
+    if (k === 'seo' && ('default_image' in v || 'site_url' in v) && typeof next.default_image === 'string' && next.default_image.trim()) {
+      const origin = (typeof next.site_url === 'string' && next.site_url) || siteOrigin(ctx.url); // as Base.astro resolves it
+      if (!safeShareImage(next.default_image, origin)) {
+        throw E.bad('Disa fusha nuk janë të sakta.', 'Some fields are not valid.', { fields: [{ path: 'default_image', message: 'image_must_be_on_this_site' }] });
+      }
     }
     for (const f of Object.keys(next)) {
       if (JSON.stringify(next[f]) !== JSON.stringify(cur[f])) {

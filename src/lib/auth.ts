@@ -10,15 +10,19 @@
  *    /api/admin/login, only sha256 stored in admin_devices); attempts carrying it for the same
  *    account skip the account lock, so guessers cannot lock the owner out.
  *  - Roles: requireAdmin (owner or staff), requireOwner (settings, payment details, prices,
- *    offers, customer export/erasure).
+ *    offers, customer export/erasure, staff accounts).
+ *  - Accounts: the owner adds, disables / enables, re-roles and sets passwords on /admin/stafi/
+ *    (addAccount, updateAccount, resetAccountPassword at the end of this file). A disabled
+ *    account (admin_users.disabled_at) fails sign-in like a wrong password and has no session.
  */
 import crypto from 'node:crypto';
 import type { AstroCookies } from 'astro';
-import { all, get, run } from './db/index';
+import { all, get, run, tx } from './db/index';
 import { nowIso } from './time';
 import { ApiError, E } from './http';
-import { rateLimit } from './security';
+import { rateCheck, rateLimit } from './security';
 import { audit } from './audit';
+import { emailTaken, getAccount, otherActiveOwners, type Account } from './db/repo/users';
 
 export const COOKIE = 'dv_admin';
 const TTL_MS = 14 * 24 * 3600 * 1000;
@@ -45,12 +49,15 @@ export function verifyPassword(password: string, stored: string): boolean {
 const DUMMY_HASH = hashPassword(crypto.randomBytes(12).toString('hex'));
 const sha256 = (s: string) => crypto.createHash('sha256').update(s).digest('hex');
 
-/** Check credentials; constant work whether or not the e-mail exists. */
+/**
+ * Check credentials; constant work whether or not the e-mail exists. A disabled account
+ * (disabled_at, migration 006) fails exactly like a wrong password.
+ */
 export function checkCredentials(email: string, password: string): AdminUser | null {
-  const row = get<AdminUser & { password_hash: string }>('SELECT * FROM admin_users WHERE email = ? COLLATE NOCASE', email.trim());
+  const row = get<AdminUser & { password_hash: string; disabled_at: string | null }>('SELECT id, email, name, role, created_at, password_hash, disabled_at FROM admin_users WHERE email = ? COLLATE NOCASE', email.trim());
   const ok = verifyPassword(password, row?.password_hash ?? DUMMY_HASH);
-  if (!row || !ok) return null;
-  const { password_hash: _h, ...user } = row;
+  if (!row || !ok || row.disabled_at) return null;
+  const { password_hash: _h, disabled_at: _d, ...user } = row;
   return user;
 }
 
@@ -94,7 +101,7 @@ export function sessionUser(cookies: AstroCookies, secure: boolean): AdminUser |
     run('DELETE FROM admin_sessions WHERE token_hash = ?', h);
     return null;
   }
-  const user = get<AdminUser>('SELECT id, email, name, role, created_at FROM admin_users WHERE id = ?', s.user_id);
+  const user = get<AdminUser>('SELECT id, email, name, role, created_at FROM admin_users WHERE id = ? AND disabled_at IS NULL', s.user_id);
   if (!user) return null;
   if (now - Date.parse(s.last_seen) > RENEW_AFTER_MS) {
     const exp = new Date(Math.min(now + TTL_MS, hardEnd));
@@ -153,7 +160,7 @@ export function isKnownDevice(cookies: AstroCookies, email: string): boolean {
   const token = cookies.get(DEVICE_COOKIE)?.value;
   if (!token || token.length > 100) return false;
   const row = get<{ expires_at: string }>(
-    'SELECT d.expires_at FROM admin_devices d JOIN admin_users u ON u.id = d.user_id WHERE d.token_hash = ? AND u.email = ? COLLATE NOCASE',
+    'SELECT d.expires_at FROM admin_devices d JOIN admin_users u ON u.id = d.user_id WHERE d.token_hash = ? AND u.email = ? COLLATE NOCASE AND u.disabled_at IS NULL',
     sha256(token), email.trim(),
   );
   return !!row && Date.parse(row.expires_at) > Date.now();
@@ -162,22 +169,27 @@ export function isKnownDevice(cookies: AstroCookies, email: string): boolean {
 /**
  * Re-authentication for sensitive actions (password change, payment details): the signed-in
  * user types their password again. A stolen session cookie alone is not enough, and guessing
- * through this door is throttled like the login: 5 checks per user and 10 per address in 15
- * minutes (429 before any hashing), every failure audited, and after 5 failures in a row every
- * session of that user is ended (the owner signs in again; the guesser's cookie is dead).
+ * through this door is throttled like the login: 5 wrong passwords per user and 10 per address
+ * in 15 minutes (then 429 before any hashing), every failure audited, and after 5 failures in a
+ * row every session of that user is ended (the owner signs in again; the guesser's cookie is
+ * dead). Only failures count: an owner adding several staff accounts or resetting passwords in
+ * one sitting (each asks for their password) is never throttled by their own correct answers.
  */
 const REAUTH_WINDOW = 15 * 60_000;
 const reauthFails = new Map<number, number>();
 
 export function reauthenticate(user: AdminUser, password: string | undefined | null, ip: string, action: string): void {
   if (!password) throw new ApiError(400, 'password_required', 'Shkruani fjalëkalimin tuaj për ta konfirmuar.', 'Type your password to confirm.');
-  rateLimit('reauth', String(user.id), 5, REAUTH_WINDOW);
-  rateLimit('reauth-ip', ip, 10, REAUTH_WINDOW);
+  rateCheck('reauth', String(user.id), 5);
+  rateCheck('reauth-ip', ip, 10);
   const row = get<{ password_hash: string }>('SELECT password_hash FROM admin_users WHERE id = ?', user.id);
   if (row && verifyPassword(password, row.password_hash)) {
     reauthFails.delete(user.id);
     return;
   }
+  // spend the failure (scryptSync is synchronous, so no other check ran between rateCheck and here)
+  rateLimit('reauth', String(user.id), 5, REAUTH_WINDOW);
+  rateLimit('reauth-ip', ip, 10, REAUTH_WINDOW);
   const n = (reauthFails.get(user.id) ?? 0) + 1;
   reauthFails.set(user.id, n);
   audit('reauth_fail', { adminId: user.id, ip, detail: { action, failures: n } });
@@ -190,16 +202,85 @@ export function reauthenticate(user: AdminUser, password: string | undefined | n
   throw new ApiError(400, 'bad_password', 'Fjalëkalimi aktual është i gabuar.', 'The current password is wrong.');
 }
 
+/** Sign a user out everywhere: every session and every remembered browser (dv_device). */
+export function endSessions(userId: number): void {
+  run('DELETE FROM admin_sessions WHERE user_id = ?', userId);
+  run('DELETE FROM admin_devices WHERE user_id = ?', userId);
+}
+
 export function changePassword(userId: number, current: string, next: string): boolean {
   const row = get<{ password_hash: string }>('SELECT password_hash FROM admin_users WHERE id = ?', userId);
   if (!row || !verifyPassword(current, row.password_hash)) return false;
   run('UPDATE admin_users SET password_hash = ? WHERE id = ?', hashPassword(next), userId);
-  run('DELETE FROM admin_sessions WHERE user_id = ?', userId);
   // A password change forgets every remembered browser too (a stolen device cookie dies with it).
-  run('DELETE FROM admin_devices WHERE user_id = ?', userId);
+  endSessions(userId);
   return true;
 }
 
 export const listAdmins = () => all<AdminUser>('SELECT id, email, name, role, created_at FROM admin_users ORDER BY id');
 export const createAdmin = (email: string, password: string, name: string | null, role: 'owner' | 'staff' = 'owner') =>
   run('INSERT INTO admin_users (email, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)', email.trim().toLowerCase(), name, hashPassword(password), role, nowIso()).id;
+
+/* ---------------- staff accounts (owner only: /admin/stafi/, /api/admin/users) ----------------
+ * The API routes call requireOwner and reauthenticate (adding an account and setting someone's
+ * password need the owner's own password again) before these. Rules held here:
+ *  - e-mail unique, case-insensitive (the column is COLLATE NOCASE too);
+ *  - nobody disables or demotes their own account, and the last active owner is never disabled
+ *    or demoted (checked inside one transaction);
+ *  - disabling, demoting and setting a new password end that user's sessions and remembered
+ *    browsers at once; the owner never sets their own password here (Cilësimet → Fjalëkalimi
+ *    juaj asks for the current one).
+ */
+
+const accountGone = () => E.notFound('Llogaria nuk u gjet.', 'Account not found.');
+
+export function addAccount(actor: AdminUser, a: { name: string; email: string; role: 'owner' | 'staff'; password: string }, ip: string): Account {
+  const email = a.email.trim().toLowerCase();
+  const id = tx(() => {
+    if (emailTaken(email)) {
+      throw E.conflict('email_taken', 'Ky email ka tashmë një llogari.', 'This e-mail already has an account.', { fields: [{ path: 'email', message: 'email_taken' }] });
+    }
+    return createAdmin(email, a.password, a.name.trim() || null, a.role);
+  });
+  audit('account_create', { adminId: actor.id, ip, detail: { user: id, role: a.role } });
+  return getAccount(id)!;
+}
+
+export function updateAccount(actor: AdminUser, id: number, p: { name?: string | null; role?: 'owner' | 'staff'; active?: boolean }, ip: string): Account {
+  const changes = tx(() => {
+    const cur = getAccount(id);
+    if (!cur) throw accountGone();
+    const demote = p.role === 'staff' && cur.role === 'owner';
+    const promote = p.role === 'owner' && cur.role === 'staff';
+    const disable = p.active === false && !cur.disabled_at;
+    const enable = p.active === true && !!cur.disabled_at;
+    if (cur.role === 'owner' && !cur.disabled_at && (demote || disable) && otherActiveOwners(cur.id) === 0) {
+      throw E.conflict('last_owner', 'Kjo është llogaria e vetme aktive e pronarit. Bëni më parë një pronar tjetër.', 'This is the only active owner account. Make another owner first.');
+    }
+    if (cur.id === actor.id && (demote || disable)) {
+      throw E.conflict('own_account', 'Nuk mund ta çaktivizoni apo ta bëni staf llogarinë tuaj.', 'You cannot disable or demote your own account.');
+    }
+    const out: Record<string, unknown> = {};
+    if (p.name !== undefined && (p.name?.trim() || null) !== cur.name) { run('UPDATE admin_users SET name = ? WHERE id = ?', p.name?.trim() || null, id); out.name = true; }
+    if (demote || promote) { run('UPDATE admin_users SET role = ? WHERE id = ?', p.role!, id); out.role = { from: cur.role, to: p.role }; }
+    if (disable) { run('UPDATE admin_users SET disabled_at = ? WHERE id = ?', nowIso(), id); out.active = false; }
+    if (enable) { run('UPDATE admin_users SET disabled_at = NULL WHERE id = ?', id); out.active = true; }
+    // Losing rights takes effect now, not at the next sign-in.
+    if (demote || disable) endSessions(id);
+    return out;
+  });
+  if (Object.keys(changes).length) audit('account_update', { adminId: actor.id, ip, detail: { user: id, ...changes } });
+  return getAccount(id)!;
+}
+
+export function resetAccountPassword(actor: AdminUser, id: number, password: string, ip: string): void {
+  if (id === actor.id) {
+    throw E.conflict('own_account', 'Fjalëkalimin tuaj e ndryshoni te Cilësimet → Fjalëkalimi juaj.', 'Change your own password under Settings → Your password.');
+  }
+  tx(() => {
+    if (!getAccount(id)) throw accountGone();
+    run('UPDATE admin_users SET password_hash = ? WHERE id = ?', hashPassword(password), id);
+    endSessions(id);
+  });
+  audit('account_password_reset', { adminId: actor.id, ip, detail: { user: id } });
+}

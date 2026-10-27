@@ -2,7 +2,8 @@
 /**
  * Admin legend — the numbered section list (DESIGN §9: "ink sidebar with the legend-style
  * numbered sections"). Rendered twice by Admin.astro: in the desktop sidebar and in the phone
- * menu dialog. Counts (pending orders, unread messages) are live from the DB.
+ * menu dialog. Counts (pending orders, unread messages) are live from the DB. Sections marked
+ * owner (Stafi) are listed for owners only.
  */
 import type { Lang } from '../../i18n/routes';
 import { t } from '../../i18n/ui';
@@ -20,16 +21,20 @@ export const SECTIONS = [
   { key: 'analytics', href: '/admin/analitika/' },
   { key: 'assistant', href: '/admin/asistenti/' },
   { key: 'settings', href: '/admin/cilesimet/' },
+  // owner only (accounts); last, so the other sections keep their numbers for staff too
+  { key: 'staff', href: '/admin/stafi/', owner: true },
 ] as const;
 
 interface Props { lang: Lang; current: string; pending: number; unread: number; id?: string }
 const { lang, current, pending, unread, id } = Astro.props;
+const isOwner = (Astro.locals.admin as { role: string } | null)?.role === 'owner';
+const shown = SECTIONS.filter((s) => !('owner' in s) || isOwner);
 const count = (key: string) => (key === 'orders' ? pending : key === 'messages' ? unread : 0);
 const countLabel = (key: string, n: number) => t(lang, key === 'orders' ? 'admin.nav.pending' : 'admin.nav.unread', { n });
 ---
 <nav class="adm-nav" aria-label={t(lang, 'admin.nav.label')} id={id}>
   <ol class="adm-nav__list">
-    {SECTIONS.map((s, i) => {
+    {shown.map((s, i) => {
       const n = count(s.key);
       const here = s.key === current;
       return (

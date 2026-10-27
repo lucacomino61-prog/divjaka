@@ -16,8 +16,8 @@ Lista e plotë e vlerave që duhen konfirmuar para hapjes është te `NEEDS_VERI
 - Paneli hapet në shqip. Butoni **English** lart e kalon në anglisht.
 - Seanca zgjat 14 ditë nga përdorimi i fundit (30 ditë më së shumti). Pastaj hyni përsëri.
 - Shfletuesi ku keni hyrë një herë mbahet mend 180 ditë. Edhe kur dikush provon fjalëkalime të gabuara mbi llogarinë tuaj, nga ky shfletues hyni pa u bllokuar.
-- Keni harruar fjalëkalimin? **[Zhvilluesi]** vendos një `ADMIN_PASSWORD` të ri në `.env` dhe nis `node scripts/seed.mjs --sync-admin`. Kjo mbyll çdo seancë të hapur.
-- **Rolet.** *Pronari* bën gjithçka. *Stafi* punon me porositë, rezervimet, oraret, mesazhet, FAQ-në dhe tekstet e produkteve, por nuk ndryshon çmimet, publikimin, ofertat dhe cilësimet, as nuk shkarkon apo fshin klientë. Produktet që krijon stafi ruhen si skicë. Llogaritë e stafit i krijon **[Zhvilluesi]**: paneli nuk ka ende një ekran për to.
+- Keni harruar fjalëkalimin? Një anëtar i stafit: pronari i vendos një të ri te **Stafi**. Pronari: **[Zhvilluesi]** vendos një `ADMIN_PASSWORD` të ri në `.env` dhe nis `node scripts/seed.mjs --sync-admin`. Kjo mbyll çdo seancë të hapur dhe, nëse llogaria e pronarit ishte çaktivizuar apo bërë staf, e kthen aktive si pronar.
+- **Rolet.** *Pronari* bën gjithçka. *Stafi* punon me porositë, rezervimet, oraret, mesazhet, FAQ-në dhe tekstet e produkteve, por nuk ndryshon çmimet, publikimin, ofertat dhe cilësimet, as nuk shkarkon apo fshin klientë. Produktet që krijon stafi ruhen si skicë. Llogaritë e stafit i krijon pronari te **Stafi** (shih 2.12).
 
 ## 2. Puna e përditshme
 
@@ -99,7 +99,7 @@ Rrjeta e netëve tregon për çdo lloj dhome sa njësi janë të zëna, të mbyl
 
 - Vijnë nga **Formulari i kontaktit**, nga **Asistenti** (kur klienti kërkon një njeri) dhe si **Kërkesë për telefonatë**.
 - **Përgjigju me email** hap programin tuaj të email-it; **Telefono** thërret numrin. Kur mbaroni, **Shëno si të trajtuar**.
-- Fusha **Email-i për pyetjet që i kalojnë stafit** (Cilësimet → Asistenti) ruhet, por sot sajti nuk dërgon asnjë email: çdo kërkesë mbërrin vetëm këtu.
+- Sajti nuk dërgon email: çdo kërkesë mbërrin vetëm këtu, edhe ato që asistenti ia kalon stafit. Kontrollojeni këtë faqe çdo ditë.
 
 ### 2.8 Asistenti dhe FAQ
 
@@ -136,6 +136,15 @@ Rrjeta e netëve tregon për çdo lloj dhome sa njësi janë të zëna, të mbyl
 Te **Hoteli**, një fushë me shenjën **E pakonfirmuar** nuk shfaqet në sajt. Shkruani vlerën e saktë, ose, nëse vlera që shihni është e saktë, shënoni **Është e saktë: shfaqe në sajt**; pastaj **Ruaj**.
 
 **Rezervimi direkt:** shënojeni vetëm pasi të keni kontrolluar që çmimet tuaja nuk janë më të larta se në Booking.com apo faqe të tjera.
+
+### 2.12 Stafi (pronari)
+
+- Lista tregon çdo llogari të panelit: emrin, email-in, rolin (**Pronar** ose **Staf**), nëse është aktive dhe hyrjen e fundit.
+- **Shto një llogari:** emri, email-i, roli dhe një fjalëkalim i parë me të paktën 12 shenja që e shkruani ju. Sajti nuk dërgon email: jepjani fjalëkalimin personit vetë, ballë për ballë, jo me mesazh, dhe kërkojini ta ndryshojë te **Cilësimet → Fjalëkalimi juaj** pas hyrjes së parë. Paneli kërkon edhe fjalëkalimin tuaj.
+- **Fjalëkalim i ri** (kur dikush e ka harruar): e shkruani ju, me fjalëkalimin tuaj edhe një herë. Seancat e asaj llogarie mbyllen menjëherë.
+- **Çaktivizo** kur dikush largohet: nuk mund të hyjë më dhe seancat e tij mbyllen menjëherë. **Aktivizo** e kthen. Llogaritë nuk fshihen, që historiku të mbetet.
+- **Bëje pronar / Bëje staf** ndryshon rolin. Llogarinë tuaj nuk mund ta çaktivizoni apo ta bëni staf, dhe paneli mbetet gjithmonë me të paktën një pronar aktiv.
+- Stafi nuk e sheh këtë faqe. Fjalëkalimin e vet secili e ndryshon te **Cilësimet → Fjalëkalimi juaj**.
 
 ## 3. Shenjat DEMO dhe TEST
 
@@ -235,8 +244,8 @@ The full list of values to confirm before launch is in `NEEDS_VERIFICATION.md`.
 - The panel opens in Albanian. The **English** button at the top switches it. Labels below are given in Albanian first, as you see them by default.
 - A session lasts 14 days from your last use (30 days at most). Then sign in again.
 - A browser you have signed in from is remembered for 180 days. Even while someone tries wrong passwords on your account, you get in from that browser.
-- Forgot the password? **[Developer]** puts a new `ADMIN_PASSWORD` in `.env` and runs `node scripts/seed.mjs --sync-admin`. This ends every open session.
-- **Roles.** The *owner* can do everything. *Staff* handle orders, bookings, schedules, messages, the FAQ and product texts, but cannot change prices, publishing, offers or settings, or export and erase customers. Products created by staff are saved as drafts. Staff accounts are created by the **[Developer]**: the panel has no screen for them yet.
+- Forgot the password? A staff member: the owner sets a new one under **Stafi** (Staff). The owner: **[Developer]** puts a new `ADMIN_PASSWORD` in `.env` and runs `node scripts/seed.mjs --sync-admin`. This ends every open session and, if the owner account had been disabled or made staff, makes it an active owner again.
+- **Roles.** The *owner* can do everything. *Staff* handle orders, bookings, schedules, messages, the FAQ and product texts, but cannot change prices, publishing, offers or settings, or export and erase customers. Products created by staff are saved as drafts. The owner creates staff accounts under **Stafi** (Staff, see 2.12).
 
 ## 2. Daily tasks
 
@@ -318,7 +327,7 @@ The night grid shows, for each room type, how many units are booked, closed and 
 
 - They come from the **contact form**, from the **assistant** (when a guest asks for a person) and as **callback requests**.
 - **Përgjigju me email** opens your e-mail program; **Telefono** dials the number. When done, **Shëno si të trajtuar** (Mark as handled).
-- The field **Email-i për pyetjet që i kalojnë stafit** (Settings → Assistant) is saved, but today the site sends no e-mail: every request arrives only here.
+- The site sends no e-mail: every request arrives only here, including the ones the assistant hands to staff. Check this page every day.
 
 ### 2.8 Assistant and FAQ (Asistenti)
 
@@ -355,6 +364,15 @@ The night grid shows, for each room type, how many units are booked, closed and 
 Under **Hoteli**, a field marked **E pakonfirmuar** (unconfirmed) is not shown on the site. Type the correct value, or, if the value you see is right, tick **Është e saktë: shfaqe në sajt**; then **Ruaj** (Save).
 
 **Rezervimi direkt** (best direct price): tick it only after checking that your prices are not higher than on Booking.com or other sites.
+
+### 2.12 Staff (Stafi, owner)
+
+- The list shows every admin account: name, e-mail, role (**Pronar** owner or **Staf** staff), whether it is active, and the last sign-in.
+- **Shto një llogari** (Add an account): name, e-mail, role and a first password of at least 12 characters that you type. The site sends no e-mail: hand the password to the person yourself, face to face, never in a message, and ask them to change it under **Cilësimet → Fjalëkalimi juaj** after their first sign-in. The panel asks for your own password too.
+- **Fjalëkalim i ri** (New password, when someone forgot theirs): you type it, with your own password once more. That account's sessions end at once.
+- **Çaktivizo** (Disable) when someone leaves: they can no longer sign in and their sessions end at once. **Aktivizo** (Enable) brings the account back. Accounts are not deleted, so the history stays.
+- **Bëje pronar / Bëje staf** (Make owner / Make staff) changes the role. You cannot disable or demote your own account, and the panel always keeps at least one active owner.
+- Staff do not see this page. Everyone changes their own password under **Cilësimet → Fjalëkalimi juaj**.
 
 ## 3. DEMO and TEST stamps
 

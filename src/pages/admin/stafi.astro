@@ -1,0 +1,101 @@
+---
+/**
+ * /admin/stafi/ — Stafi (owner only): the admin accounts. Lists name, e-mail, role, active or
+ * disabled, last sign-in; adds an account (the owner types the first password and hands it over
+ * in person: the site sends no e-mail), changes the role, disables / enables, sets a new
+ * password. Adding and setting a password ask for the owner's own password again. Rules live in
+ * src/lib/auth.ts (addAccount, updateAccount, resetAccountPassword); staff get a 403 page that
+ * points to their own password form (Cilësimet → Fjalëkalimi juaj).
+ */
+import Admin from '../../layouts/Admin.astro';
+import Badge from '../../components/admin/Badge.astro';
+import { adminLang, tr, when } from '../../components/admin/admin-data';
+import { listAccounts } from '../../lib/db/repo/users';
+
+const lang = adminLang(Astro);
+const T = tr(lang);
+const me = Astro.locals.admin as { id: number; role: string } | null;
+const owner = me?.role === 'owner';
+if (!owner) Astro.response.status = 403;
+const accounts = owner ? listAccounts() : [];
+const OWN = '/admin/cilesimet/#fjalekalimi';
+---
+<Admin lang={lang} title={T('admin.staff.title')} section="staff" kicker={T('admin.staff.kicker')}>
+  {!owner ? (
+    <p class="note-box note-box--ink">{T('admin.staff.owner.only')} {T('admin.staff.own')} <a href={OWN}>{T('admin.staff.own.link')}</a>.</p>
+  ) : (
+    <>
+      <p class="note-box" role="note" style="margin-block-end:32px">{T('admin.staff.handover')}</p>
+
+      <section class="blk" aria-labelledby="st-t">
+        <div class="blk__head"><h2 class="blk__title" id="st-t">{T('admin.staff.list')}</h2><span class="blk__meta mono">{accounts.length}</span></div>
+        <div>
+          {accounts.map((u) => {
+            const self = u.id === me!.id;
+            const off = !!u.disabled_at;
+            return (
+              <details class="rec" data-account={u.email}>
+                <summary>
+                  <span class="rec__title">{u.name || u.email}</span>
+                  <span class="rec__meta mono">
+                    <span class="break">{u.email}</span>
+                    <Badge tone={u.role === 'owner' ? 'ink' : 'outline'}>{T(`admin.user.role.${u.role}`)}</Badge>
+                    {off ? <Badge tone="signal">{T('admin.staff.disabled')}</Badge> : <Badge tone="muted">{T('admin.staff.active')}</Badge>}
+                    {self && <Badge>{T('admin.staff.you')}</Badge>}
+                    <span>{T('admin.staff.col.last')}: {u.last_sign_in ? when(u.last_sign_in, lang) : T('admin.staff.never')}</span>
+                  </span>
+                </summary>
+                <div class="rec__body">
+                  <form class="fields" data-api={`/api/admin/users/${u.id}`} data-method="PATCH" data-success="admin.staff.done">
+                    <div class="fld"><label class="fld__label mono" for={`st-name-${u.id}`}>{T('admin.staff.add.name')}</label><input id={`st-name-${u.id}`} class="fld__input" name="name" value={u.name ?? ''} required maxlength="120" autocomplete="off" /></div>
+                    <div class="form-actions" style="align-self:end"><button class="pill pill--outline pill--s" type="submit">{T('admin.save')}</button></div>
+                  </form>
+                  {self ? (
+                    <p class="fld__help">{T('admin.staff.own')} <a href={OWN}>{T('admin.staff.own.link')}</a>.</p>
+                  ) : (
+                    <>
+                      <div class="row" data-action-scope>
+                        {u.role === 'staff'
+                          ? <button type="button" class="pill pill--outline pill--s" data-action={`/api/admin/users/${u.id}`} data-method="PATCH" data-body={JSON.stringify({ role: 'owner' })} data-confirm="admin.staff.c.owner" data-confirm-ok="admin.staff.ok.owner" data-success="admin.staff.done">{T('admin.staff.act.owner')}</button>
+                          : <button type="button" class="pill pill--outline pill--s" data-action={`/api/admin/users/${u.id}`} data-method="PATCH" data-body={JSON.stringify({ role: 'staff' })} data-confirm="admin.staff.c.staff" data-confirm-ok="admin.staff.ok.staff" data-success="admin.staff.done" data-danger>{T('admin.staff.act.staff')}</button>}
+                        {off
+                          ? <button type="button" class="pill pill--outline pill--s" data-action={`/api/admin/users/${u.id}`} data-method="PATCH" data-body={JSON.stringify({ active: true })} data-confirm="admin.staff.c.enable" data-confirm-ok="admin.staff.ok.enable" data-success="admin.staff.done">{T('admin.staff.act.enable')}</button>
+                          : <button type="button" class="pill pill--danger pill--s" data-action={`/api/admin/users/${u.id}`} data-method="PATCH" data-body={JSON.stringify({ active: false })} data-confirm="admin.staff.c.disable" data-confirm-ok="admin.staff.ok.disable" data-success="admin.staff.done" data-danger>{T('admin.staff.act.disable')}</button>}
+                      </div>
+                      <form class="fields" data-api={`/api/admin/users/${u.id}/password`} data-method="POST" data-reauth="password" data-reauth-body="admin.staff.reauth" data-success="admin.staff.reset.done">
+                        <input type="text" autocomplete="username" value={u.email} hidden readonly aria-hidden="true" tabindex="-1" />
+                        <div class="fld"><label class="fld__label mono" for={`st-pw-${u.id}`}>{T('admin.staff.reset.label')}</label><input id={`st-pw-${u.id}`} class="fld__input" type="password" name="password" autocomplete="new-password" minlength="12" required data-pattern="^.{12,}$" data-pattern-msg="admin.field.e.password" /></div>
+                        <div class="form-actions" style="align-self:end"><button class="pill pill--outline pill--s" type="submit">{T('admin.staff.reset.save')}</button></div>
+                      </form>
+                    </>
+                  )}
+                </div>
+              </details>
+            );
+          })}
+        </div>
+      </section>
+
+      <section class="blk" aria-labelledby="sa-t">
+        <div class="blk__head"><h2 class="blk__title" id="sa-t">{T('admin.staff.add')}</h2></div>
+        <form class="vstack" style="gap:16px;max-inline-size:640px" data-api="/api/admin/users" data-method="POST" data-reauth="password" data-reauth-body="admin.staff.reauth" data-success="admin.staff.add.done">
+          <div class="fields">
+            <div class="fld"><label class="fld__label mono" for="sa-name">{T('admin.staff.add.name')}</label><input id="sa-name" class="fld__input" name="name" required maxlength="120" autocomplete="off" /></div>
+            <div class="fld"><label class="fld__label mono" for="sa-email">{T('admin.staff.add.email')}</label><input id="sa-email" class="fld__input" type="email" name="email" required maxlength="200" autocomplete="off" spellcheck="false" autocapitalize="none" /></div>
+          </div>
+          <fieldset class="group">
+            <legend>{T('admin.staff.add.role')}</legend>
+            <label class="fld fld--check"><input class="check" type="radio" name="role" value="staff" checked /><span class="fld__label">{T('admin.staff.add.role.staff')}</span></label>
+            <label class="fld fld--check"><input class="check" type="radio" name="role" value="owner" /><span class="fld__label">{T('admin.staff.add.role.owner')}</span></label>
+          </fieldset>
+          <div class="fld">
+            <label class="fld__label mono" for="sa-pw">{T('admin.staff.add.password')}</label>
+            <input id="sa-pw" class="fld__input" type="password" name="password" autocomplete="new-password" minlength="12" required data-pattern="^.{12,}$" data-pattern-msg="admin.field.e.password" aria-describedby="sa-pw-help" />
+            <p class="fld__help" id="sa-pw-help">{T('admin.staff.add.password.help')}</p>
+          </div>
+          <div class="form-actions"><button class="pill pill--primary pill--s" type="submit">{T('admin.staff.add.save')}</button></div>
+        </form>
+      </section>
+    </>
+  )}
+</Admin>

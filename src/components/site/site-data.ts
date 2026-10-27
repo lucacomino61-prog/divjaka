@@ -188,6 +188,36 @@ export async function social(): Promise<Record<string, string>> {
   } catch { return {}; }
 }
 
+/**
+ * settings.seo.default_image ("Fotoja e parazgjedhur për ndarje") as an absolute URL, or null
+ * when unset or unsafe. Validated here, at read time: only a same-origin path with a single
+ * leading "/" or an https URL on the site's own origin; no "//", backslash or control characters.
+ */
+export function safeShareImage(v: unknown, origin: string): string | null {
+  if (typeof v !== 'string') return null;
+  const s = v.trim();
+  if (!s || s.length > 300 || /[\u0000-\u001f\u007f\\]/.test(s)) return null;
+  try {
+    const site = new URL(origin);
+    let u: URL;
+    if (s.startsWith('/')) {
+      if (s.startsWith('//')) return null;
+      u = new URL(s, site);
+    } else if (/^https:\/\//i.test(s)) {
+      u = new URL(s);
+      if (u.protocol !== 'https:' || u.username || u.password) return null;
+    } else return null;
+    return u.origin === site.origin ? u.href : null;
+  } catch { return null; }
+}
+
+export async function defaultShareImage(origin: string): Promise<string | null> {
+  try {
+    const mod = await import('../../lib/db/repo/settings');
+    return safeShareImage(mod.getSetting('seo').default_image, origin);
+  } catch { return null; }
+}
+
 /** Canonical origin: T1's siteOrigin() (settings.seo.site_url → Astro site → request). */
 export async function siteOriginOf(url: URL, site?: URL): Promise<string> {
   try {

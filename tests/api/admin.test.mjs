@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { adminCookie, call, BASE } from './_lib.mjs';
+import { admin, adminCookie, call, BASE } from './_lib.mjs';
 
 test('admin endpoints require a session (401)', async () => {
   for (const p of ['/api/admin/me', '/api/admin/orders', '/api/admin/stats', '/api/admin/customers/export', '/api/admin/settings']) {
@@ -96,4 +96,34 @@ test('stats and CSV export work for a signed-in admin', async () => {
   assert.match(csv.headers.get('content-type'), /text\/csv/);
   const text = await csv.text();
   assert.match(text.split('\n')[0], /email,name,phone/);
+});
+
+// WRITES settings.seo (restored at the end): run against a server on a database copy.
+test('seo.default_image: only a path on this site or https on the site origin is saved (what the pages use)', async () => {
+  const a = admin(await adminCookie());
+  const cur = (await a.get('/api/admin/settings')).data.settings.seo;
+  const refused = async (seo, why) => {
+    const r = await a.patch('/api/admin/settings', { seo });
+    assert.equal(r.status, 400, `${why}: ${JSON.stringify(r.data)}`);
+    assert.deepEqual(r.data.error.fields, [{ path: 'default_image', message: 'image_must_be_on_this_site' }], why);
+  };
+  try {
+    await refused({ default_image: 'https://cdn.example/x.jpg' }, 'another host');
+    await refused({ default_image: 'photos/x.jpg' }, 'relative path');
+    await refused({ default_image: '//evil.example/x.jpg' }, 'protocol-relative');
+    await refused({ default_image: 'http://www.hotel.example/x.jpg', site_url: 'https://www.hotel.example' }, 'http');
+    await refused({ default_image: 'https://www.hotel.example/x.jpg', site_url: 'https://hotel.example' }, 'www vs apex');
+    // a stored image the new site_url would orphan is refused too (the form sends both fields)
+    const both = await a.patch('/api/admin/settings', { seo: { site_url: 'https://www.hotel.example', default_image: 'https://www.hotel.example/x.jpg' } });
+    assert.equal(both.status, 200, JSON.stringify(both.data));
+    await refused({ site_url: 'https://hotel.example' }, 'site_url moved away from the stored image');
+    const path = await a.patch('/api/admin/settings', { seo: { default_image: '/photos/x.jpg' } });
+    assert.equal(path.status, 200, JSON.stringify(path.data));
+    assert.equal(path.data.settings.seo.default_image, '/photos/x.jpg');
+    const cleared = await a.patch('/api/admin/settings', { seo: { default_image: '' } });
+    assert.equal(cleared.status, 200, 'an empty field is always allowed');
+  } finally {
+    const back = await a.patch('/api/admin/settings', { seo: { site_url: cur.site_url ?? '', default_image: cur.default_image ?? '' } });
+    assert.equal(back.status, 200, JSON.stringify(back.data));
+  }
 });

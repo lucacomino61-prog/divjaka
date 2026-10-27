@@ -26,6 +26,7 @@ import { track } from './track';
 import { tc, lang } from '../i18n/client';
 import { money, number, formatRange, formatDate, time, nights as fmtNights, guests as fmtGuests, pad2 } from '../i18n/format';
 import { photoSrc } from '../components/site/photo-url';
+import { firstStartBefore } from '../lib/time';
 import { path } from '../i18n/routes';
 
 /* ------------------------------------------------------------------ shared */
@@ -417,15 +418,6 @@ const DRAFT = 'dv-checkout';
 
 interface Cfg { hotel: boolean; bank: boolean; card: boolean; card_mode: string; hold: { card: number; hotel: number; bank: number }; tracked?: string[] }
 
-/** A session / arrival as epoch ms ("YYYY-MM-DD" or "YYYY-MM-DDTHH:MM", Albania time, +01:00 is
- *  close enough for a days-ahead check). */
-const startMs = (l: QuoteLine): number | null => {
-  const s = l.kind === 'room' ? l.date_from : l.starts_at;
-  if (!s) return null;
-  const v = Date.parse(`${s.length <= 10 ? `${s}T12:00` : s.slice(0, 16)}:00+01:00`);
-  return Number.isFinite(v) ? v : null;
-};
-
 export function initCheckout(): void {
   const root = document.querySelector<HTMLElement>('[data-checkout-root]');
   const form = document.querySelector<HTMLFormElement>('[data-checkout]');
@@ -677,12 +669,8 @@ export function initCheckout(): void {
   const bankLate = form.querySelector<HTMLElement>('[data-bank-late]');
   function paintBank(q: Quote) {
     if (!bankLabel || !bankLate) return;
-    const limit = Date.now() + cfg.hold.bank * 3_600_000;
-    const soon = q.lines
-      .filter((l) => !l.problem)
-      .map((l) => ({ l, at: startMs(l) }))
-      .filter((x): x is { l: QuoteLine; at: number } => x.at != null && x.at < limit)
-      .sort((a, b) => a.at - b.at)[0];
+    // the server's rule (orders.ts assertBankInTime): starts in Tirana time at that date's offset
+    const soon = firstStartBefore(q.lines.filter((l) => !l.problem), Date.now() + cfg.hold.bank * 3_600_000);
     bankLabel.hidden = !!soon;
     bankLate.hidden = !soon;
     if (soon) {
@@ -789,6 +777,11 @@ export function initCheckout(): void {
     spin = window.setTimeout(() => { busy.hidden = false; busy.textContent = tc('review.submitting'); }, 200);
     const promo = getPromo();
     const { utm, ref } = readSource();
+    // the same id for every attempt of the SAME draft: a resend after a lost 201 is answered with
+    // the order already made (POST /api/checkout replays on checkout_id + e-mail). Any change to
+    // the lines, quantities, dates, payment method or promo code gets a new id, so an edited
+    // order is never answered with the earlier one; the earlier id goes along as `replaces`.
+    const draft = checkoutId(draftPrint(items, method(), promo));
     const body = {
       lang: L, items,
       ...(promo ? { promo } : {}),
@@ -800,11 +793,8 @@ export function initCheckout(): void {
       website: val('hp_url_x'),
       ...(utm ? { utm } : {}),
       ...(ref ? { ref } : {}),
-      // the same id for every attempt of the SAME draft: a resend after a lost 201 is answered with
-      // the order already made (POST /api/checkout replays on checkout_id + e-mail). Any change to
-      // the lines, quantities, dates, payment method or promo code gets a new id, so an edited
-      // order is never answered with the earlier one.
-      checkout_id: checkoutId(draftPrint(items, method(), promo)),
+      checkout_id: draft.id,
+      ...(draft.replaces ? { replaces: draft.replaces } : {}),
     };
     let res: Response;
     try {
@@ -926,15 +916,21 @@ function draftPrint(items: CartItem[], m: string, promo: string): string {
   for (let k = 0; k < s.length; k++) { h ^= s.charCodeAt(k); h = Math.imul(h, 0x01000193); }
   return (h >>> 0).toString(36);
 }
-/** One random id per checkout draft (sessionStorage `{id, fp}`), sent with every attempt to place
- *  that same draft; a different print (the guest changed the order after a failed send) → new id. */
-function checkoutId(fp: string): string {
+/** One random id per checkout draft (sessionStorage `{id, fp, prev}`), sent with every attempt to
+ *  place that same draft; a different print (the guest changed the order after a failed send) → new
+ *  id, and the previous one goes along as `replaces`: if that earlier attempt did make an order
+ *  (its 201 was lost), the server cancels it instead of leaving it holding rooms, seats or stock.
+ *  Ids are 128 random bits (getRandomValues also works off HTTPS, unlike randomUUID). */
+function checkoutId(fp: string): { id: string; replaces: string | null } {
+  const ID_RE = /^[A-Za-z0-9]{16,64}$/;
   try {
-    let saved: { id?: unknown; fp?: unknown } | null = null;
+    let saved: { id?: unknown; fp?: unknown; prev?: unknown } | null = null;
     try { saved = JSON.parse(sessionStorage.getItem(CHECKOUT_ID) || 'null'); } catch { saved = null; }
-    if (saved && typeof saved.id === 'string' && /^[A-Za-z0-9]{16,64}$/.test(saved.id) && saved.fp === fp) return saved.id;
-    const id = (crypto.randomUUID?.() ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9]/g, '').slice(0, 32);
-    sessionStorage.setItem(CHECKOUT_ID, JSON.stringify({ id, fp }));
-    return id;
-  } catch { return ''; }
+    const savedId = saved && typeof saved.id === 'string' && ID_RE.test(saved.id) ? saved.id : null;
+    const prev = saved && typeof saved.prev === 'string' && ID_RE.test(saved.prev) ? saved.prev : null;
+    if (savedId && saved!.fp === fp) return { id: savedId, replaces: prev };
+    const id = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
+    sessionStorage.setItem(CHECKOUT_ID, JSON.stringify({ id, fp, prev: savedId }));
+    return { id, replaces: savedId };
+  } catch { return { id: '', replaces: null }; }
 }

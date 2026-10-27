@@ -155,15 +155,8 @@ export function bestRateConfirmed(): boolean {
 /** Published room types in sort order. */
 export const publishedRooms = (): Product[] => listProducts({ kind: 'room' });
 
-/** UTC offset of Europe/Tirane at a local wall-clock time, as "+01:00" / "+02:00" (JSON-LD). */
-export function tiraneOffset(localDateTime: string): string {
-  const wall = Date.parse(localDateTime.length === 16 ? `${localDateTime}:00Z` : `${localDateTime}T12:00:00Z`);
-  for (const off of [120, 60]) {
-    const t = tirane(new Date(wall - off * 60_000));
-    if (`${t.date}T${t.time}` === (localDateTime.length === 16 ? localDateTime : `${localDateTime}T12:00`)) return `+0${off / 60}:00`;
-  }
-  return '+01:00';
-}
+/** UTC offset of Europe/Tirane at a local wall-clock time, as "+01:00" / "+02:00" (JSON-LD; shared with checkout, lib/time.ts). */
+export { tiraneOffset } from '../../lib/time';
 
 /**
  * Why a ?nga=&deri= link cannot be used, as a dict key + values, or null when it can (or when

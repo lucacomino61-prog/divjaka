@@ -61,6 +61,33 @@ test('search folds accents (pelikanet = pelikanëve)', async () => {
   for (const x of r.data.results) assert.ok(['product', 'article', 'faq', 'page'].includes(x.type));
 });
 
+test('search results lead to pages that exist, and every #fragment is on its page (FAQ rows included)', async () => {
+  const pages = new Map();
+  const html = async (p) => {
+    if (!pages.has(p)) { const res = await call('GET', p, { headers: { accept: 'text/html' } }); pages.set(p, res); }
+    return pages.get(p);
+  };
+  for (const [lang, q] of [['sq', 'moti tani'], ['en', 'weather now'], ['sq', 'wifi'], ['en', 'parking'], ['sq', 'pagesa me karte'], ['en', 'getting here']]) {
+    const r = await call('GET', `/api/search?q=${encodeURIComponent(q)}&lang=${lang}`);
+    assert.equal(r.status, 200);
+    const faqs = r.data.results.filter((x) => x.type === 'faq');
+    assert.ok(faqs.length > 0, `FAQ results for "${q}"`);
+    for (const x of r.data.results) {
+      assert.match(x.url, /^\/(?![/\\])/, `same-site url: ${x.url}`);
+      const [p, frag] = x.url.split('#');
+      const page = await html(p);
+      assert.equal(page.status, 200, `${x.type} "${x.title}" → ${p} answers ${page.status}`);
+      if (frag) assert.ok(new RegExp(`\\sid="${frag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`).test(page.data), `${x.type} "${x.title}" → #${frag} is not on ${p}`);
+    }
+  }
+  // the weather question leads to the live page, in each language, with the whole answer on the card
+  const sq = (await call('GET', `/api/search?q=${encodeURIComponent('Si është moti tani në Divjakë?')}&lang=sq`)).data.results.find((x) => x.type === 'faq');
+  const en = (await call('GET', `/api/search?q=${encodeURIComponent('weather now in Divjake')}&lang=en`)).data.results.find((x) => x.type === 'faq');
+  assert.equal(sq?.url, '/tani/');
+  assert.equal(en?.url, '/en/now/');
+  assert.ok(sq.snippet.length > 0 && !sq.snippet.endsWith('…'), 'whole FAQ answer as the snippet');
+});
+
 test('assistant: FAQ, date availability in both languages, miss → hand-off', async () => {
   const ask = (lang, message, extra = {}) => call('POST', '/api/assistant', { body: { lang, message, ...extra } });
   const faq = await ask('en', 'How can I pay?');
@@ -78,6 +105,35 @@ test('assistant: FAQ, date availability in both languages, miss → hand-off', a
   assert.ok(['miss', 'llm'].includes(miss.data.intent));
   const contact = await ask('en', 'Please call me', { contact: { name: 'API Test', email: 'api-test@example.com', question: 'API test hand-off', elapsed_ms: 4000 } });
   assert.equal(contact.data.intent, 'contact');
+});
+
+test('assistant: party size — Albanian question "a" is not a child, English "a kid" / "a baby" is', async () => {
+  const ask = (lang, message) => call('POST', '/api/assistant', { headers: { Origin: BASE }, body: { lang, message } });
+  const from = addDays(tiraneToday(), 60);
+  const d = new Date(from + 'T00:00:00Z');
+  const monthsEn = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthsSq = ['janar', 'shkurt', 'mars', 'prill', 'maj', 'qershor', 'korrik', 'gusht', 'shtator', 'tetor', 'nëntor', 'dhjetor'];
+  const day = d.getUTCDate();
+  const end = day + 2 > 28 ? day + 1 : day + 2;
+  const en = `${monthsEn[d.getUTCMonth()]} ${day}-${end}`;
+  const sq = `${day}–${end} ${monthsSq[d.getUTCMonth()]}`;
+  for (const [lang, message, guests] of [
+    // "A" opens the question: 2 adults, no child (was 3, so a two-person room needed two units)
+    ['sq', 'A fëmijët paguajnë? Jemi 2 të rritur, 12–14 korrik', 2],
+    ['sq', `A fëmijët paguajnë? Jemi 2 të rritur, ${sq}`, 2],
+    ['en', `a kid and 2 adults, ${en}`, 3],
+    ['en', `2 adults and a baby, ${en}`, 3],
+    ['en', `Do you have a baby cot? 2 adults, ${en}`, 2],
+    ['sq', `A keni dhomë për 2 persona ${sq}?`, 2],
+    ['sq', `A keni dhoma të lira ${sq}?`, null],
+    ['sq', `Jemi një familje me 4, ${sq}`, 4],
+  ]) {
+    const r = await ask(lang, message);
+    assert.equal(r.data.intent, 'availability', message);
+    assert.equal(r.data.dates.guests, guests, message);
+    // every published room sleeps 2 or more: a party of 2 never needs two units of one
+    if (guests === 2) assert.ok(!r.data.products.some((p) => p.rooms), message);
+  }
 });
 
 test('analytics beacon: 204 for json and text/plain, also when invalid', async () => {
