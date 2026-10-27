@@ -180,15 +180,17 @@ const fmtKm = (k: number) => `${k} km`;
       <div class="chart__nodata mono">{t(lang, 'chart.nodata')}</div>
     )}
     <div class="chart__layer" data-chart-layer aria-hidden="true">
-      {/* a place name is drawn only when its dot is inside the crop (else its text hangs cut at the edge: "DIVJA") */}
-      {L && showLetters && L.lettering.filter((l) => l.kind !== 'place' || (l.x >= cx + 4 && l.x <= cx + cw - 4 && l.y >= cy + 4 && l.y <= cy + ch - 4)).map((l) => (
+      {/* a name is drawn only when its anchor is inside the crop (else its text hangs cut at the edge:
+          "DIVJA", ")eti Adriatik"); water and river names are centred on their anchor, so CSS also
+          keeps their whole width inside the box (--lw = an em estimate of the text's width) */}
+      {L && showLetters && L.lettering.filter((l) => l.x >= cx + 4 && l.x <= cx + cw - 4 && l.y >= cy + 4 && l.y <= cy + ch - 4).map((l) => (
         <span
           class:list={['chart__letter', `chart__letter--${l.kind}`, l.size && `chart__letter--${l.size}`, l.kind === 'place' && l.x > cx + cw * 0.72 && 'chart__letter--end']}
           data-letter={l.key}
           data-x={l.x.toFixed(1)}
           data-y={l.y.toFixed(1)}
           data-w={l.w ? l.w.toFixed(1) : undefined}
-          style={`left:${pct(l.x, cx, cw)};top:${pct(l.y, cy, ch)}`}
+          style={`--lx:${pct(l.x, cx, cw)};--ly:${pct(l.y, cy, ch)};--lw:${(l.text[lang].length * (l.kind === 'water' ? 0.42 : 0.72)).toFixed(2)}em`}
         ><span class="chart__letter-in" data-letter-text>{l.text[lang]}</span></span>
       ))}
       {placed.map((p) => (
@@ -260,7 +262,13 @@ const fmtKm = (k: number) => `${k} km`;
 
   /* the HTML layer: same box as the SVG viewBox */
   .chart__layer { position: absolute; inset: 0; pointer-events: none; }
-  .chart__letter { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; line-height: 1; }
+  .chart__letter { position: absolute; left: var(--lx); top: var(--ly); transform: translate(-50%, -50%); white-space: nowrap; line-height: 1; }
+  /* a still chart: a centred name near the crop's edge slides in until its whole width is inside
+     (the live signature moves letters with its camera from the plain anchor, so it keeps that) */
+  .chart:not(.is-live) :is(.chart__letter--water, .chart__letter--river) {
+    left: clamp(calc(var(--lw) / 2 + 6px), var(--lx), calc(100% - var(--lw) / 2 - 6px));
+    top: clamp(calc(0.5em + 4px), var(--ly), calc(100% - 0.5em - 4px));
+  }
   .chart__letter-in { display: inline-block; }
   .chart__letter--water { font-family: var(--font-serif); font-style: italic; font-size: clamp(1rem, 0.7rem + 1.2vw, 1.6rem); color: var(--ink); }
   .chart__letter--water.chart__letter--l { font-size: clamp(1.05rem, 0.75rem + 1.3vw, 1.75rem); }

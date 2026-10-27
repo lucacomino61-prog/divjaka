@@ -16,8 +16,17 @@ import { hotelSpot } from '../../components/site/site-data';
 
 const lang = adminLang(Astro);
 const raw = Astro.url.searchParams.get('next') ?? '';
-// Only same-site admin paths: no scheme, no protocol-relative //host, no backslashes.
-const next = /^\/admin(?:[/?#]|$)/.test(raw) && !/^\/\/|\\/.test(raw) && !raw.startsWith('/admin/login') ? raw : '/admin/';
+// Only same-site admin paths: no scheme, no protocol-relative //host, no backslashes, no control
+// characters (a CR/LF would make the Location header invalid → 500). The kept value is the URL
+// re-serialised (percent-encoded ASCII, dot segments resolved), so it is always a valid header.
+const safeNext = (s: string): string => {
+  if (!/^\/admin(?:[/?#]|$)/.test(s) || /^\/\/|\\|[\x00-\x1f\x7f]/.test(s)) return '/admin/';
+  let u: URL;
+  try { u = new URL(s, Astro.url); } catch { return '/admin/'; }
+  if (u.origin !== Astro.url.origin || !/^\/admin(?:\/|$)/.test(u.pathname) || u.pathname.startsWith('/admin/login')) return '/admin/';
+  return u.pathname + u.search + u.hash;
+};
+const next = safeNext(raw);
 if (Astro.locals.admin && Astro.request.method !== 'POST') return Astro.redirect(next, 303);
 
 let error = '';

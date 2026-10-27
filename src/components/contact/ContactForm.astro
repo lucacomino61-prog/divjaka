@@ -90,8 +90,9 @@ const v = (k: keyof ContactValues) => values[k] ?? '';
   .cfield__err:empty { display: none; }
   .cfield__hint { font-size: var(--step--2); color: var(--muted); margin-block-start: -8px; }
   .cform__consent { font-size: var(--step--1); color: var(--muted); max-inline-size: 60ch; }
-  .cform__consent a { display: inline-flex; align-items: center; min-block-size: 24px; }
-  @media (pointer: coarse) { .cform__consent a { min-block-size: 44px; } }
+  .cform__consent a { display: inline-flex; align-items: center; justify-content: center; min-block-size: 24px; min-inline-size: 24px; }
+  /* phones: a full 44 px square even for the short English "Privacy" (42 px wide on its own) */
+  @media (pointer: coarse) { .cform__consent a { min-block-size: 44px; min-inline-size: 44px; } }
   .cform__send { justify-self: start; }
   .cform__sent { display: grid; gap: 12px; justify-items: start; padding: 24px; border: 1px solid var(--ink); border-block-start: 3px double var(--ink); }
   .cform__sent[hidden] { display: none; }

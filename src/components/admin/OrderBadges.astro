@@ -1,18 +1,24 @@
 ---
-/** Order status + payment status (+ TEST / DEMO stamps) as readings. */
+/**
+ * Order status + payment status (+ TEST / DEMO stamps) as readings.
+ * `testHold` (admin-data testHold()): a TEST-paid order still on its automatic hold reads
+ * "Provë", never "Konfirmuar" — the sweep releases it unless staff confirm it by hand.
+ * `slotCancelled`: a line sits on a time slot staff cancelled.
+ */
 import Badge from './Badge.astro';
 import Stamp from '../site/Stamp.astro';
 import type { Lang } from '../../i18n/routes';
 import { t } from '../../i18n/ui';
 
-interface Props { lang: Lang; status: string; payment_status: string; test?: number | boolean; demo?: number | boolean; compact?: boolean }
-const { lang, status, payment_status, test, demo, compact = false } = Astro.props;
-const st = status === 'cancelled' ? 'signal' : status === 'pending' ? 'muted' : 'ink';
+interface Props { lang: Lang; status: string; payment_status: string; test?: number | boolean; demo?: number | boolean; compact?: boolean; testHold?: string | null; slotCancelled?: boolean }
+const { lang, status, payment_status, test, demo, compact = false, testHold = null, slotCancelled = false } = Astro.props;
+const st = status === 'cancelled' ? 'signal' : status === 'pending' || testHold ? 'muted' : 'ink';
 const pt = payment_status === 'paid' ? 'ink' : payment_status === 'failed' ? 'signal' : 'outline';
 ---
 <span class:list={['badges', compact && 'badges--compact']}>
-  <Badge tone={st}>{t(lang, `admin.order.status.${status}`)}</Badge>
+  <Badge tone={st}>{testHold ? t(lang, 'admin.order.status.testhold') : t(lang, `admin.order.status.${status}`)}</Badge>
   <Badge tone={pt}>{t(lang, `admin.pay.status.${payment_status}`)}</Badge>
+  {slotCancelled && status !== 'cancelled' && <Badge tone="signal">{t(lang, 'admin.order.slot.cancelled')}</Badge>}
   {!!test && <Stamp kind="test" lang={lang} tilt={false} />}
   {!!demo && <Stamp kind="demo" lang={lang} tone="ink" tilt={false} />}
 </span>

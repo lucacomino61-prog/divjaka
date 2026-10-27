@@ -5,7 +5,7 @@
  */
 export default {
   sq: {
-    'cartpage.index': '05',
+    'cartpage.index': '04.2',
     'cartpage.kicker': 'Regjistri i porosisë suaj',
     'cartpage.lead': 'Çmimet, ofertat dhe vendet e lira i llogarit hoteli në çast. Asgjë nuk rezervohet derisa të konfirmoni porosinë.',
     'cartpage.lines': 'Artikujt',
@@ -31,7 +31,7 @@ export default {
     'cartpage.last.view': 'Hap porosinë',
     'cartpage.count': '{n} artikuj',
     'cartpage.count.one': '1 artikull',
-    'cartpage.empty.title': 'Ende asnjë fletë në regjistër.',
+    'cartpage.empty.title': 'Shporta juaj është bosh.',
     'cartpage.empty.body': 'Zgjidhni një dhomë, një dalje në lagunë ose diçka nga dyqani — do të shfaqet këtu.',
     'cartpage.removed': 'U hoq · {name}',
     'cartpage.undo': 'Zhbëj',
@@ -45,7 +45,7 @@ export default {
     'promo.applied': 'Kodi {code} u aplikua.',
     'promo.empty': 'Shkruani kodin përpara se ta aplikoni.',
 
-    'checkout.index': '06',
+    'checkout.index': '04.3',
     'checkout.kicker': 'Tre hapa, një faqe',
     'checkout.title': 'Arka',
     'checkout.steps': 'Hapat e porosisë',
@@ -102,7 +102,7 @@ export default {
     'err.hold.orCard': 'Me pagesë me kartë ky kufi nuk vlen.',
     'err.hold_cap_units': 'Pa pagesë menjëherë mund të rezervohen deri në {max} copë të të njëjtit artikull. Ulni sasinë ose shkruajini hotelit.',
     'err.too_many_open_orders': 'Keni tashmë disa porosi që presin konfirmim. Prisni konfirmimin e tyre ose shkruajini hotelit.',
-    'err.rate_limited': 'Shumë porosi nga kjo lidhje sot. Provoni më vonë ose shkruajini hotelit.',
+    'err.rate_limited': 'Nga ky rrjet kanë ardhur shumë porosi për momentin. Provoni më vonë ose shkruajini hotelit.',
     'err.unavailable': 'Pagesa me kartë nuk është e disponueshme tani.',
     'err.unavailable.pick': 'Zgjidhni pagesën {methods}.',
     'err.unavailable.contact': 'Shkruajini hotelit për ta rezervuar.',
@@ -149,7 +149,7 @@ export default {
     'review.fine': 'Kur konfirmoni, porosia regjistrohet te Hotel Pelikan dhe hapet faqja e saj (për pagesën me kartë, faqja e pagesës).',
   },
   en: {
-    'cartpage.index': '05',
+    'cartpage.index': '04.2',
     'cartpage.kicker': 'The log of your order',
     'cartpage.lead': 'The hotel works out prices, offers and free places as you go. Nothing is booked until you confirm the order.',
     'cartpage.lines': 'Items',
@@ -175,7 +175,7 @@ export default {
     'cartpage.last.view': 'Open the order',
     'cartpage.count': '{n} items',
     'cartpage.count.one': '1 item',
-    'cartpage.empty.title': 'No sheets in the log yet.',
+    'cartpage.empty.title': 'Your cart is empty.',
     'cartpage.empty.body': 'Pick a room, a day out on the lagoon or something from the shop — it will show here.',
     'cartpage.removed': 'Removed · {name}',
     'cartpage.undo': 'Undo',
@@ -189,7 +189,7 @@ export default {
     'promo.applied': 'Code {code} applied.',
     'promo.empty': 'Type the code before applying it.',
 
-    'checkout.index': '06',
+    'checkout.index': '04.3',
     'checkout.kicker': 'Three steps, one page',
     'checkout.title': 'Checkout',
     'checkout.steps': 'Checkout steps',
@@ -246,7 +246,7 @@ export default {
     'err.hold.orCard': 'Paying by card is not subject to this limit.',
     'err.hold_cap_units': 'Without paying now you can book up to {max} of the same item. Lower the quantity or write to the hotel.',
     'err.too_many_open_orders': 'You already have several orders waiting for confirmation. Wait until they are confirmed, or write to the hotel.',
-    'err.rate_limited': 'Too many orders from this connection today. Try again later, or write to the hotel.',
+    'err.rate_limited': 'Too many orders have come from this network for now. Try again later, or write to the hotel.',
     'err.unavailable': 'Card payment is not available right now.',
     'err.unavailable.pick': 'Choose to pay {methods}.',
     'err.unavailable.contact': 'Write to the hotel to book.',

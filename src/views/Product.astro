@@ -2,17 +2,20 @@
 /**
  * Product (T5) — /dyqani/<slug>/ for goods, gift cards and bundles (rooms and experiences answer
  * 301 to their own pages: product.load.ts + the route shell).
- * iyO split (DESIGN §5): the plates fill the left, the order lives in ONE floating permit card on
- * the right — kind, name, price (strike-through when an offer applies), the offer's name, gift
- * amount presets + a custom amount within the owner's limits, the quantity stepper, live stock,
- * Add to cart and Buy now — all visible together at 1440×900. Phones: the card follows the plate
- * and a Moooor pill (name · price · Add) floats at the bottom while the card is off screen.
+ * iyO split (DESIGN §5/§6), the same template as rooms and experiences: crumbs, the index and kind
+ * on a rule, the name as h1 at the heading-poster size, the summary and the plates on the left; ONE
+ * floating permit card on the right holds only the order — price (strike-through when an offer
+ * applies), the offer's name, gift amount presets + a custom amount within the owner's limits, the
+ * quantity stepper (the booking stepper's form), live stock, Add to cart and Buy now — all visible
+ * together at 1440×900. Phones: head, first plate, card, other plates; a Moooor pill
+ * (name · price · Add) is docked at the bottom from the start, as the booking pill is.
  * Below: the description, what is (not) included, the bundle's contents (linked), sources, the
  * share row and "Shkon mirë me" (T3's RecommendRail). Product JSON-LD with the offer in lek
  * (no rating: none exists).
  */
 import Base from '../layouts/Base.astro';
 import Breadcrumbs from '../components/site/Breadcrumbs.astro';
+import SectionHead from '../components/site/SectionHead.astro';
 import Price from '../components/site/Price.astro';
 import Stamp from '../components/site/Stamp.astro';
 import PermitCard from '../components/site/PermitCard.astro';
@@ -124,53 +127,51 @@ const ogImage = imgAbs[0];
   <script type="application/json" data-dv-i18n set:html={JSON.stringify(island).replace(/</g, '\\u003c')} />
   <script type="application/json" data-product set:html={JSON.stringify(clientData).replace(/</g, '\\u003c')} />
 
-  <div class="wrap pdp-crumbs">
-    <Breadcrumbs lang={lang} items={[{ label: t(lang, 'nav.shop'), href: path('shop', lang) }, { label: d.name }]} />
-  </div>
-
   <section class="pdp wrap" aria-labelledby="pdp-title">
-    <div class="pdp__media">
-      {isChart && (
-        <figure class="pdp__chart">
-          <Chart lang={lang} mode="mini" scale={false} pins={[{ id: 'hotel-pelikan', tag: 'none' }]} title={t(lang, 'product.chart')} />
-        </figure>
-      )}
-      {images.map((im, i) => (
-        <ProductPhoto
-          slug={im.slug ?? null}
-          src={im.src ?? null}
-          lang={lang}
-          ratio={i === 0 && !isChart ? '4 / 3' : '3 / 2'}
-          sizes="(min-width: 1024px) 60vw, 100vw"
-          priority={i === 0}
-          alt={lang === 'en' ? im.alt_en : im.alt_sq}
-          caption
-          class="pdp__plate"
-        />
-      ))}
+    <div class="pdp__main">
+      <Breadcrumbs lang={lang} items={[{ label: t(lang, 'nav.shop'), href: path('shop', lang) }, { label: d.name }]} class="pdp-crumbs" />
+      <SectionHead as="h1" id="pdp-title" index={t(lang, 'product.nr', { n: nr })} kicker={kindLabel} title={d.name} size="heading" class="pdp-head" />
+      {d.summary && <p class="pdp__sum">{d.summary}</p>}
+      <div class="pdp__media">
+        {isChart && (
+          <figure class="pdp__chart">
+            <Chart lang={lang} mode="mini" scale={false} pins={[{ id: 'hotel-pelikan', tag: 'none' }]} title={t(lang, 'product.chart')} />
+          </figure>
+        )}
+        {images.map((im, i) => (
+          <ProductPhoto
+            slug={im.slug ?? null}
+            src={im.src ?? null}
+            lang={lang}
+            ratio={i === 0 && !isChart ? '4 / 3' : '3 / 2'}
+            sizes="(min-width: 1024px) 60vw, 100vw"
+            priority={i === 0}
+            alt={lang === 'en' ? im.alt_en : im.alt_sq}
+            caption
+            class="pdp__plate"
+          />
+        ))}
+      </div>
     </div>
 
     <div class="pdp__side">
-      <PermitCard as="form" floating label={t(lang, 'product.permit', { n: nr })} class="buy" data-buy method="get" action={path('cart', lang)} novalidate>
-        <p class="buy__kind mono"><span>{kindLabel}</span></p>
-        <h1 id="pdp-title" class="buy__name">{d.name}</h1>
+      <PermitCard as="form" floating label={t(lang, 'product.permit', { n: nr })} class="buy" data-buy method="get" action={path('cart', lang)} novalidate aria-labelledby="pdp-title">
         <div class="buy__price">
           <Price lek={lek} compare={compare} lang={lang} from={p.kind === 'gift'} size="title" />
           {offerNames.length > 0 && !soldOut && <Stamp kind="offer" lang={lang} />}
           {soldOut && <Stamp kind="soldout" lang={lang} />}
         </div>
         {offerNames.map((n) => <p class="buy__offer mono">{t(lang, 'product.offer', { name: n })}</p>)}
-        {d.summary && <p class="buy__sum">{d.summary}</p>}
 
         <input type="hidden" name="shto" value={p.slug} />
         {gift && (
           <fieldset class="amount">
             <legend class="buy__label mono">{t(lang, 'product.amount')}</legend>
-            <div class="amount__row">
+            <div class="amount__row filter-chips">
               {presets.map((v) => (
-                <label class="apill"><input type="radio" name="amount" value={v} checked={v === defaultAmount} /><span>{money(v, lang)}</span></label>
+                <label class="filter-chip filter-chip--money"><input type="radio" name="amount" value={v} checked={v === defaultAmount} /><span>{money(v, lang)}</span></label>
               ))}
-              <label class="apill"><input type="radio" name="amount" value="custom" /><span>{t(lang, 'product.amount.custom')}</span></label>
+              <label class="filter-chip"><input type="radio" name="amount" value="custom" /><span>{t(lang, 'product.amount.custom')}</span></label>
             </div>
             <div class="amount__custom" data-amount-custom-wrap hidden>
               <label class="buy__label mono" for="amount-custom">{t(lang, 'product.amount.customLabel')}</label>
@@ -183,10 +184,15 @@ const ogImage = imgAbs[0];
         {!soldOut && (
           <div class="qty">
             <label class="buy__label mono" for="buy-qty">{t(lang, 'product.qty')}</label>
-            <div class="stepper qty__stepper">
-              <button type="button" class="stepper__btn" data-qty-less aria-label={t(lang, 'product.less')}>−</button>
-              <input id="buy-qty" class="qty__input mono" type="number" inputmode="numeric" name="sasia" min="1" max={stock != null ? Math.max(1, Math.min(99, stock)) : 99} value="1" data-qty />
-              <button type="button" class="stepper__btn" data-qty-more aria-label={t(lang, 'product.more')}>+</button>
+            {/* the same stepper as the booking cards (GuestStepper / .bk-step): round outline buttons on a ruled line */}
+            <div class="qty__ctl">
+              <button type="button" class="qty__btn" data-qty-less aria-label={t(lang, 'product.less')} aria-controls="buy-qty">
+                <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 8h10" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
+              </button>
+              <input id="buy-qty" class="qty__input" type="number" inputmode="numeric" name="sasia" min="1" max={stock != null ? Math.max(1, Math.min(99, stock)) : 99} step="1" value="1" data-qty />
+              <button type="button" class="qty__btn" data-qty-more aria-label={t(lang, 'product.more')} aria-controls="buy-qty">
+                <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 8h10M8 3v10" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
+              </button>
             </div>
             {reads.list.length > 0 && <p class="qty__read mono">{reads.list.map((r) => r.text).join(' · ')}</p>}
           </div>
@@ -273,16 +279,22 @@ const ogImage = imgAbs[0];
 </script>
 
 <style>
-  .pdp-crumbs { padding-block: 14px 10px; }
-  .pdp { display: grid; gap: clamp(20px, 3vw, 40px); align-items: start; }
+  /* the same head as rooms and experiences (Room.astro / Experience.astro): crumbs, the index
+     and kind on a rule, the name at the heading-poster size, then the plate; the card on the right */
+  .pdp { display: grid; gap: clamp(22px, 3vw, 40px); align-items: start; padding-block: clamp(14px, 2vw, 24px) 0; }
+  .pdp__main { display: grid; gap: clamp(22px, 3vw, 40px); align-content: start; min-inline-size: 0; }
+  .pdp__main :global(.pdp-crumbs) { margin-block-end: -12px; }
+  .pdp__main :global(.pdp-head .section-head__title) { font-family: var(--font-poster); font-weight: 800; font-stretch: 75%; font-variation-settings: "opsz" 96; text-transform: uppercase; letter-spacing: -0.03em; line-height: 0.86; font-size: clamp(3rem, 1.2rem + 6.4vw, 8.5rem); text-wrap: balance; padding-block-start: 0.06em; overflow-wrap: anywhere; hyphens: manual; }
+  .pdp__sum { font-size: var(--step-0); line-height: 1.5; max-inline-size: 60ch; }
   .pdp__media { display: grid; gap: clamp(16px, 2vw, 28px); min-inline-size: 0; }
   .pdp__chart { margin: 0; border: 1px solid var(--ink); background: var(--salt); padding: 6px; aspect-ratio: 4 / 3; display: grid; place-items: center; overflow: hidden; }
   .pdp__chart :global(.chart) { block-size: 100%; inline-size: auto; }
   .pdp__chart :global(.chart__box) { block-size: 100%; inline-size: auto; }
   .pdp__side { min-inline-size: 0; }
-  /* phones: the first plate, then the order card, then the other plates */
+  /* phones: the head, the first plate, then the order card, then the other plates */
   @media (max-width: 1023px) {
-    .pdp__media { display: contents; }
+    .pdp__main, .pdp__media { display: contents; }
+    .pdp__main > :global(*) { order: 0; }
     .pdp__media > :global(*) { order: 2; }
     .pdp__media > :global(:first-child) { order: 0; }
     .pdp__side { order: 1; }
@@ -295,28 +307,28 @@ const ogImage = imgAbs[0];
 
   /* the order card */
   .buy :global(.permit__body) { display: grid; gap: 14px; }
-  .buy__kind { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 14px; font-size: var(--step--2); color: var(--muted); }
-  .buy__name { font-size: var(--step-4); font-weight: 800; font-stretch: 75%; font-variation-settings: "opsz" 72; line-height: 0.92; letter-spacing: -0.035em; text-transform: uppercase; overflow-wrap: anywhere; hyphens: manual; text-wrap: balance; }
   .buy__price { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
   .buy__offer { font-size: var(--step--2); color: var(--pouch-text); }
-  .buy__sum { color: var(--muted); font-size: var(--step--1); line-height: 1.5; }
   .buy__label { display: block; font-size: var(--step--2); color: var(--muted); margin-block-end: 6px; }
   .amount { border: 0; padding: 0; margin: 0; min-inline-size: 0; }
-  .amount__row { display: flex; flex-wrap: wrap; gap: 8px; }
-  .apill { position: relative; display: inline-flex; align-items: center; min-block-size: 46px; padding: 0 14px; border: 1px solid var(--ink); border-radius: var(--radius-pill); cursor: pointer; font-family: var(--font-mono); font-size: var(--step--1); touch-action: manipulation; transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out); }
-  .apill input { position: absolute; inset: -1px; opacity: 0; margin: 0; cursor: pointer; border-radius: inherit; }
-  .apill:has(input:checked) { background: var(--ink); color: var(--salt); }
-  .apill:has(input:focus-visible) { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  /* the amounts are the shared .filter-chip (chrome.css); a money chip keeps the unit's case
+     (site rule: price units are never uppercased) */
+  .amount__row :global(.filter-chip--money) { text-transform: none; letter-spacing: 0; }
   .amount__custom { margin-block-start: 12px; }
   .amount__custom[hidden] { display: none; }
   .amount__input { inline-size: 100%; min-block-size: 48px; font-size: 16px; font-family: var(--font-mono); padding: 0 12px; border: 0; border-block-end: 1px solid var(--ink); background: transparent; color: var(--ink); border-radius: 0; }
   .amount__input:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
   .amount__hint { font-size: var(--step--2); color: var(--muted); margin-block-start: 6px; }
+  /* the booking stepper's form (booking.css .bk-step): − value + on a ruled line, 44 px round buttons */
   .qty { display: grid; gap: 0; }
-  .qty__stepper { justify-self: start; }
-  .qty__input { inline-size: 44px; min-block-size: 44px; border: 0; background: transparent; text-align: center; font-size: 16px; color: var(--ink); -moz-appearance: textfield; appearance: textfield; }
+  .qty__ctl { display: grid; grid-template-columns: 44px minmax(44px, 1fr) 44px; align-items: center; border-block-end: 1px solid var(--rule-strong); }
+  .qty__btn { inline-size: 44px; block-size: 44px; display: grid; place-items: center; padding: 0; border-radius: var(--radius-pill); border: 1px solid var(--rule-strong); background: transparent; color: var(--fg); cursor: pointer; touch-action: manipulation; margin-block: 4px; transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
+  .qty__btn:active { transform: scale(0.97); }
+  .qty__btn:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  @media (hover: hover) and (pointer: fine) { .qty__btn:hover { background: var(--fg); color: var(--bg); } }
+  .qty__input { inline-size: 100%; min-inline-size: 0; block-size: 48px; border: 0; background: transparent; text-align: center; font-family: var(--font-mono); font-size: 18px; font-variant-numeric: tabular-nums; color: var(--fg); -moz-appearance: textfield; appearance: textfield; }
   .qty__input::-webkit-outer-spin-button, .qty__input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  .qty__input:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
+  .qty__input:focus-visible { outline: 2px solid var(--pouch); outline-offset: -2px; }
   .qty__read { font-size: var(--step--2); margin-block-start: 8px; }
   .buy__error { font-size: var(--step--1); color: var(--pouch-text); text-decoration: underline; text-decoration-color: var(--pouch); text-underline-offset: 3px; }
   .buy__error[hidden] { display: none; }
@@ -361,11 +373,20 @@ const ogImage = imgAbs[0];
   .buy-pill__add:active { transform: scale(0.97); }
   .buy-pill__add:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
   @media (min-width: 1024px) { .buy-pill { display: none; } }
-  /* while the pill is up, the assistant pill waits above it */
+  /* while the pill is up (phones: always, once the script runs) the assistant folds into a round
+     button at its end (chrome.css); the footer ends above it and a focused control scrolls clear */
   @media (max-width: 1023px) {
-    :global(html:has(.buy-pill[data-show="on"]) .assistant-pill) { inset-block-end: calc(max(12px, env(safe-area-inset-bottom)) + 72px); }
     :global(html:has(.buy-pill[data-show="on"]) .site-footer) { padding-block-end: 84px; }
+    :global(html:has(.buy-pill[data-show="on"])) { scroll-padding-block-end: calc(88px + env(safe-area-inset-bottom)); }
   }
-  @media (prefers-reduced-motion: reduce) { .buy-pill, .buy-pill[data-show="off"] { transition-duration: 0s; } }
+  /* while the card's own Add / Buy now buttons are on screen (or within a pill's height below it),
+     the pill steps aside (scripts/shop.ts, IntersectionObserver), and so does the folded "Pyet"
+     button beside it: nothing floats over a button a thumb can already reach. data-show stays "on",
+     so the assistant keeps its folded place and never unfolds over the card. */
+  .buy-pill[data-show="on"][data-tuck] { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 120ms var(--ease-out), visibility 0s linear 120ms; }
+  @media (max-width: 1023px) {
+    :global(html:has(.buy-pill[data-show="on"][data-tuck]) .assistant-pill) { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 120ms var(--ease-out), visibility 0s linear 120ms; }
+  }
+  @media (prefers-reduced-motion: reduce) { .buy-pill, .buy-pill[data-show="off"], .buy-pill[data-tuck] { transition-duration: 0s; } }
   @media print { .buy-pill, .pdp-more :global(.share) { display: none !important; } }
 </style>

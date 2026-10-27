@@ -2,7 +2,9 @@
 /** /admin/porosite/:code/ — one order (T6): items, totals, guest, notes, timeline, status/payment actions with confirms. */
 import Admin from '../../../../layouts/Admin.astro';
 import OrderBadges from '../../../../components/admin/OrderBadges.astro';
-import { adminLang, tr, lek, when, callApi } from '../../../../components/admin/admin-data';
+import Badge from '../../../../components/admin/Badge.astro';
+import { adminLang, tr, lek, when, callApi, testHold } from '../../../../components/admin/admin-data';
+import { getSession } from '../../../../lib/db/repo/sessions';
 import { GET as orderGET } from '../../../api/admin/orders/[id]';
 import type { Order, OrderItem } from '../../../../lib/db/repo/orders';
 import type { Customer } from '../../../../lib/db/repo/customers';
@@ -29,13 +31,20 @@ const itemMeta = (it: OrderItem) => {
   return `× ${it.qty}`;
 };
 const active = o.status !== 'cancelled';
+// Lines on a time slot staff cancelled: the order stays as it is (staff cancel it or move the guest).
+const slotGone = new Set(items.filter((it) => it.session_id && getSession(it.session_id)?.status === 'cancelled').map((it) => it.id));
+const slotCancelled = active && slotGone.size > 0;
+// A TEST-paid order reads 'confirmed' but is still released by the sweep unless staff confirm it.
+const th = testHold(o);
 // Line names in the admin's language (the order keeps the name in the guest's language).
 const itemName = (it: OrderItem) => { const p = it.product_id ? getProduct(it.product_id) : undefined; return p ? (lang === 'en' ? p.name_en || p.name_sq : p.name_sq) || it.name : it.name; };
 const holding = o.hold_until && o.status === 'pending' && Date.parse(o.hold_until) > Date.now();
 const actions: { label: string; body: Record<string, unknown>; confirm?: string; ok?: string; danger?: boolean; primary?: boolean }[] = [];
-if (o.status === 'pending') actions.push({ label: T('admin.order.act.confirm'), body: { status: 'confirmed' }, confirm: 'admin.order.c.confirm', ok: 'admin.order.ok.confirm', primary: true });
-if (o.status === 'confirmed') actions.push({ label: T('admin.order.act.complete'), body: { status: 'completed' }, primary: true });
-if (active && o.payment_status !== 'paid') actions.push({ label: T('admin.order.act.paid'), body: { payment_status: 'paid' }, confirm: 'admin.order.c.paid', ok: 'admin.order.ok.paid' });
+if (o.status === 'pending' || th) actions.push(slotCancelled
+  ? { label: T('admin.order.act.confirm'), body: { status: 'confirmed' }, confirm: 'admin.order.c.confirm.slot', ok: 'admin.order.ok.confirm', danger: true }
+  : { label: T('admin.order.act.confirm'), body: { status: 'confirmed' }, confirm: th ? 'admin.order.c.confirm.test' : 'admin.order.c.confirm', ok: 'admin.order.ok.confirm', primary: true });
+if (o.status === 'confirmed' && !th) actions.push({ label: T('admin.order.act.complete'), body: { status: 'completed' }, primary: !slotCancelled });
+if (active && o.payment_status !== 'paid') actions.push({ label: T('admin.order.act.paid'), body: { payment_status: 'paid' }, confirm: slotCancelled ? 'admin.order.c.paid.slot' : 'admin.order.c.paid', ok: 'admin.order.ok.paid' });
 if (o.payment_status === 'paid') actions.push({ label: T('admin.order.act.refunded'), body: { payment_status: 'refunded' }, confirm: 'admin.order.c.refunded', ok: 'admin.order.ok.refunded' });
 if (o.payment_status === 'refunded' || o.payment_status === 'failed') actions.push({ label: T('admin.order.act.unpaid'), body: { payment_status: 'unpaid' } });
 if (o.consent_pending) actions.push({ label: T('admin.order.act.consent'), body: { confirm_consent: true }, confirm: 'admin.order.c.consent', ok: 'admin.order.ok.consent' });
@@ -46,7 +55,7 @@ const timeline = [
   o.paid_at && { label: T('admin.order.tl.paid'), at: o.paid_at },
   o.cancelled_at && { label: T('admin.order.tl.cancelled'), at: o.cancelled_at, signal: true },
   o.updated_at !== o.created_at && { label: T('admin.order.tl.updated'), at: o.updated_at },
-  holding && { label: T('admin.order.tl.hold'), at: o.hold_until!, signal: true },
+  (holding || th) && { label: T('admin.order.tl.hold'), at: o.hold_until!, signal: true },
 ].filter(Boolean) as { label: string; at: string; signal?: boolean }[];
 timeline.sort((a, b) => a.at.localeCompare(b.at));
 const reasonLabel = (r: string) => { const k = `admin.inv.${r}`; const s = T(k); return s === k ? r : s; };
@@ -57,8 +66,9 @@ const reasonLabel = (r: string) => { const k = `admin.inv.${r}`; const s = T(k);
     <a class="pill pill--outline pill--s" href={`/admin/porosite/${o.code}/printo/`}>{T('admin.print')}</a>
   </Fragment>
 
-  <p class="row" style="margin-block-end:20px"><OrderBadges lang={lang} status={o.status} payment_status={o.payment_status} test={o.test} demo={o.demo} /><span class="mono muted" style="font-size:11px">{T(`admin.pay.method.${o.payment_method}`)} · {when(o.created_at, lang, 'medium')}</span></p>
-  {!!o.test && <p class="note-box" style="margin-block-end:20px">{T('admin.order.test')}</p>}
+  <p class="row" style="margin-block-end:20px"><OrderBadges lang={lang} status={o.status} payment_status={o.payment_status} test={o.test} demo={o.demo} testHold={th} slotCancelled={slotCancelled} /><span class="mono muted" style="font-size:11px">{T(`admin.pay.method.${o.payment_method}`)} · {when(o.created_at, lang, 'medium')}</span></p>
+  {slotCancelled && <p class="note-box" role="note" style="margin-block-end:20px">{T('admin.order.slot.note')} <a href="/admin/oraret/">{T('admin.nav.sessions')}</a>.</p>}
+  {!!o.test && <p class="note-box" style="margin-block-end:20px">{T('admin.order.test')}{th && <> {T('admin.order.test.hold', { time: when(th, lang, 'medium') })}</>}</p>}
   {holding && <p class="note-box note-box--ink" style="margin-block-end:20px">{T('admin.orders.hold', { time: when(o.hold_until, lang, 'medium') })}{reviewText && <> — {T('admin.orders.hold.short', { why: reviewText })}</>}</p>}
 
   <div class="cols cols--main">
@@ -71,6 +81,7 @@ const reasonLabel = (r: string) => { const k = `admin.inv.${r}`; const s = T(k);
               <span class="lines__name">{it.product_id ? <a href={`/admin/produktet/${it.product_id}/`}>{itemName(it)}</a> : it.name} <span class="mono muted" style="font-size:10.5px">{T(`admin.kind.${it.kind}`)}</span>{itemName(it) !== it.name && <span class="cell-sub muted" lang={o.lang === 'en' ? 'en' : 'sq'}>{it.name}</span>}</span>
               <span class="mono">{lek(it.line_total, lang)}</span>
               <span class="lines__meta mono">{itemMeta(it)} · {lek(it.unit_price, lang)}</span>
+              {slotGone.has(it.id) && <span class="lines__meta"><Badge tone="signal">{T('admin.order.slot.cancelled')}</Badge></span>}
             </li>
           ))}
         </ul>

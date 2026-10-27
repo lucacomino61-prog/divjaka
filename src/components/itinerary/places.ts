@@ -5,7 +5,8 @@
  * a catalogue slug (prices, seats and times come from the database at render time).
  *
  * Never routed: pelican-island (closed to the public, park-23) and pelican-tower (the bird hide
- * on the barrier, tagged destroyed in OSM). Opening hours: none of the facilities has an official
+ * on the barrier, tagged destroyed in OSM); the Godulla bird hide is held back (`unconfirmed`)
+ * until the owner confirms public access. Opening hours: none of the facilities has an official
  * schedule (visit-08), so `hours: 'check'` prints "kontrolloni oraret".
  */
 export type Interest = 'birds' | 'nature' | 'beach' | 'culture' | 'food' | 'active';
@@ -26,6 +27,8 @@ export interface Activity {
   product?: string;
   /** off the chart: road distance and minutes from Divjakë town (research), plus the hotel → town leg */
   far?: { km: number; min: number; fact: string };
+  /** public access not confirmed by the owner: never planned until the flag is removed */
+  unconfirmed?: boolean;
   /** can be done without booking the product (the place is open to everyone) */
   selfOk?: boolean;
   /** the activity itself moves you there (a tour with transport from the hotel) */
@@ -52,7 +55,8 @@ const NESTING = [1, 2, 3, 4, 5, 6];
 
 export const ACTIVITIES: Activity[] = [
   {
-    id: 'dawn-birds', daylight: 'sunset', poi: 'bird-hide-godulla', product: 'shpendet-e-lagunes-ne-agim',
+    // the product's own poi (catalogue: Kulla 360°), so the plan's map and the product page agree
+    id: 'dawn-birds', daylight: 'sunset', poi: 'tower-360', product: 'shpendet-e-lagunes-ne-agim',
     name: { sq: 'Shpendët e lagunës në agim', en: 'Lagoon birds at dawn' },
     slots: ['dawn'], minutes: 150, interests: ['birds', 'nature'], months: [1, 2, 3, 4, 5, 6, 9, 10, 11, 12],
     hours: 'session', kids: false, base: 3,
@@ -64,7 +68,9 @@ export const ACTIVITIES: Activity[] = [
     monthNote: { months: NESTING, sq: 'Janar–qershor pelikanët folezojnë në Ishullin e Pelikanit; shihen vetëm nga larg, ishulli është i mbyllur.', en: 'January–June the pelicans nest on Pelican Island; you watch them from a distance only, the island is closed.', facts: ['birds-10', 'park-23'] },
   },
   {
-    id: 'bird-hide', poi: 'bird-hide-godulla',
+    // Held back: nothing verified says the hide is open to the public, and the catalogue does not
+    // name it either. Remove `unconfirmed` once the owner confirms access (NEEDS_VERIFICATION).
+    id: 'bird-hide', poi: 'bird-hide-godulla', unconfirmed: true,
     name: { sq: 'Vendvëzhgimi i zogjve te Godulla', en: 'The bird hide at Godulla' },
     slots: ['dawn', 'morning', 'afternoon'], minutes: 75, interests: ['birds'], months: ALL,
     hours: 'check', daylight: 'sunset', kids: true, base: 2,

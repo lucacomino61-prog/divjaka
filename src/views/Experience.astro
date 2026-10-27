@@ -78,6 +78,10 @@ const ruleIds = rulesFor(p);
 const others = lines(lang, lineup.filter((x) => x.id !== p.id));
 const img = p.images[0] ?? null;
 const img2 = p.images[1] ?? null;
+// The SPEC sentence on the dedicated people is about the Visitor Centre: it shows only where the
+// experience goes to the centre or meets there, never under a tour that starts at reception and
+// may not pass it (dawn birds, the boat), where it would read as that tour's guides.
+const atVisitorCentre = meeting?.poi === 'visitor-centre' || p.poi === 'visitor-centre';
 const tame = (slug?: string | null) => slug === 'pelicans-visitor-centre' || slug === 'pelican-xhimi';
 
 const sources: Source[] = [];
@@ -159,7 +163,7 @@ const jsonld = [
               )}
             </div>
           </div>
-          {(p.tags.includes('nature') || p.tags.includes('birds')) && <figure class="xp-guide">
+          {atVisitorCentre && <figure class="xp-guide">
             <p class="label">{t(lang, 'xp.guide.kicker')}</p>
             <blockquote><p>{t(lang, 'exp.guide')}</p></blockquote>
             <figcaption class="mono">{t(lang, 'exp.guide.src')}</figcaption>
@@ -260,7 +264,7 @@ const jsonld = [
 </script>
 
 <style>
-  .xp-split { display: grid; gap: clamp(28px, 4vw, 56px); padding-block: clamp(14px, 2vw, 24px) var(--section-gap); }
+  .xp-split { display: grid; gap: clamp(28px, 4vw, 56px); padding-block: clamp(14px, 2vw, 24px) 0; }
   .xp-main { display: grid; gap: clamp(22px, 3vw, 40px); align-content: start; min-inline-size: 0; }
   .xp-main :global(.xp-crumbs) { margin-block-end: -12px; }
   .xp-spec { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); border-block: 1px solid var(--ink); }
@@ -326,7 +330,8 @@ const jsonld = [
   .xp-rules li:last-child { border-block-end: 1px solid var(--rule); }
   .xp-rules__n { color: var(--muted); font-size: var(--step--2); padding-block-start: 4px; }
   .xp-others { display: grid; gap: 22px; }
-  .xp-sources { padding-block-end: var(--section-gap); }
+  /* the footer's margin owns the last gap (chrome.css .site-footer) */
+  .xp-sources { padding-block-end: 0; }
   @media (min-width: 1000px) {
     .xp-split { grid-template-columns: minmax(0, 1fr) minmax(380px, 440px); }
     .xp-card { align-self: start; padding: 0 6px 6px 0; margin-block-start: -12px; }
@@ -337,7 +342,6 @@ const jsonld = [
   @media (min-width: 1000px) and (min-height: 850px) {
     .xp-card { position: sticky; inset-block-start: calc(var(--header-h) + 12px); }
   }
-  @media (max-width: 999px) { .xp-page { padding-block-end: 84px; } }
   /* the fixed Pyet pill never hides a focused control */
   :global(html:has(.xp-page)) { scroll-padding-block-end: 88px; }
 </style>

@@ -48,7 +48,7 @@ const moves = [['makine', 'car'], ['biciklete', 'bike'], ['kembe', 'foot']] as c
     <legend class="pf__legend mono"><span>04</span>{t(lang, 'itinerary.interests')}</legend>
     <div class="pf__chips">
       {interests.map((i) => (
-        <label class="chip"><input type="checkbox" name="interesa" value={INTEREST_VALUE[i]} checked={input.interests.includes(i)} /><span>{t(lang, `itinerary.i.${i}`)}</span></label>
+        <label class="filter-chip"><input type="checkbox" name="interesa" value={INTEREST_VALUE[i]} checked={input.interests.includes(i)} /><span>{t(lang, `itinerary.i.${i}`)}</span></label>
       ))}
     </div>
     <p class="pf__hint">{t(lang, 'itinerary.interests.hint')}</p>
@@ -67,7 +67,7 @@ const moves = [['makine', 'car'], ['biciklete', 'bike'], ['kembe', 'foot']] as c
     <legend class="pf__legend mono"><span>06</span>{t(lang, 'itinerary.move')}</legend>
     <div class="pf__chips pf__chips--3">
       {moves.map(([v, k]) => (
-        <label class="chip"><input type="radio" name="levizja" value={v} checked={input.transport === k} /><span>{t(lang, `itinerary.move.${k}`)}</span></label>
+        <label class="filter-chip"><input type="radio" name="levizja" value={v} checked={input.transport === k} /><span>{t(lang, `itinerary.move.${k}`)}</span></label>
       ))}
     </div>
   </fieldset>

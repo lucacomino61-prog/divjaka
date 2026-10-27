@@ -4,7 +4,7 @@
  */
 export default {
   sq: {
-    'itinerary.index': '06',
+    'itinerary.index': '05',
     'itinerary.kicker': 'Rruga mbi hartë',
     'itinerary.title': 'Itinerari juaj',
     'itinerary.lead': 'Tregoni sa ditë keni dhe çfarë ju pëlqen. Plani ndërtohet nga vende të vërteta të parkut, sipas stinës, lindjes dhe perëndimit të diellit, dhe vizatohet si rrugë mbi hartë.',
@@ -41,6 +41,7 @@ export default {
     'itinerary.problem.date_past': 'Ajo datë ka kaluar; plani u bë pa datë.',
     'itinerary.problem.date_far': 'Rezervimet online hapen deri në {n} ditë përpara; plani u bë pa datë.',
     'itinerary.problem.days': 'Planifikojmë 1 deri në 4 ditë.',
+    'itinerary.problem.date_today_late': 'Për sot nuk ka mbetur kohë; plani nis nesër.',
     'itinerary.chart.empty': 'Harta pret rrugën tuaj',
     'itinerary.chart.empty.sub': 'Hoteli është pika e nisjes',
     'itinerary.chart.title': 'Rruga e itinerarit mbi hartën e lagunës',
@@ -73,7 +74,7 @@ export default {
     'itinerary.book.session': 'Ora {time} · {left} vende të lira',
     'itinerary.book.session.one': 'Ora {time} · 1 vend i lirë',
     'itinerary.book.session.free': 'Ora {time} · ka vende',
-    'itinerary.book.next': 'Orari i radhës: {date}, ora {time}',
+    'itinerary.book.next': 'Data e radhës: {date}, ora {time}',
     'itinerary.book.none': 'Për këtë datë nuk ka orar me {n} vende të lira online.',
     'itinerary.book.self': 'Mund ta vizitoni edhe vetë.',
     'itinerary.book.add': 'Shto në shportë',
@@ -93,7 +94,7 @@ export default {
     'itinerary.refs': 'burimet {n}',
   },
   en: {
-    'itinerary.index': '06',
+    'itinerary.index': '05',
     'itinerary.kicker': 'The route on the chart',
     'itinerary.title': 'Your itinerary',
     'itinerary.lead': 'Tell us how many days you have and what you enjoy. The plan is built from real places in the park, by season, sunrise and sunset, and drawn as a route on the chart.',
@@ -130,6 +131,7 @@ export default {
     'itinerary.problem.date_past': 'That date has passed; the plan was made without a date.',
     'itinerary.problem.date_far': 'Online bookings open up to {n} days ahead; the plan was made without a date.',
     'itinerary.problem.days': 'We plan 1 to 4 days.',
+    'itinerary.problem.date_today_late': 'There is no time left today; the plan starts tomorrow.',
     'itinerary.chart.empty': 'The chart is waiting for your route',
     'itinerary.chart.empty.sub': 'The hotel is where you start',
     'itinerary.chart.title': 'The itinerary’s route on the lagoon chart',

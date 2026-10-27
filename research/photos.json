@@ -1152,19 +1152,19 @@
       "path": "/photos/beach-shelters-640.avif",
       "width": 640,
       "height": 480,
-      "bytes": 16485
+      "bytes": 14849
      },
      {
       "path": "/photos/beach-shelters-1280.avif",
       "width": 1280,
       "height": 960,
-      "bytes": 55620
+      "bytes": 51524
      },
      {
       "path": "/photos/beach-shelters-1920.avif",
       "width": 1920,
       "height": 1440,
-      "bytes": 117371
+      "bytes": 106799
      }
     ],
     "webp": [
@@ -1172,28 +1172,28 @@
       "path": "/photos/beach-shelters-640.webp",
       "width": 640,
       "height": 480,
-      "bytes": 30796
+      "bytes": 32048
      },
      {
       "path": "/photos/beach-shelters-1280.webp",
       "width": 1280,
       "height": 960,
-      "bytes": 101964
+      "bytes": 108782
      },
      {
       "path": "/photos/beach-shelters-1920.webp",
       "width": 1920,
       "height": 1440,
-      "bytes": 213062
+      "bytes": 224444
      }
     ]
    },
-   "lqip": "data:image/webp;base64,UklGRpAAAABXRUJQVlA4IIQAAABQBQCdASoYABIAPu1qrlCppaQiqAqpMB2JZQDG9A9q4ZAMnO5dmFhsh3JVnM9Yuifws4AA/o04BDgoj719jw9BCRSG9PivGnvm3s4ixUVuMQNvKzKikibsi6QXWbVmcOWwN6q2t0tOSb7XyIGLu1kqrx8YQXnkgu67CmtMXdRhurSrkAA=",
+   "lqip": "data:image/webp;base64,UklGRooAAABXRUJQVlA4IH4AAAAQBQCdASoYABIAPu1qr1CppaSiqAqpMB2JZQC3uA/JeFPLSsgsE/awo3uF/dhVPgYAAP6xkmfOCfiGmAuxNWXZdIF1UBZMslKaXbJWISjh0fe4/dL8bZJ3Y1q5ALdH0K1cM5DAQKQ6Br/lgXVWbIh8/fdiIXm3CB+1QggQwAA=",
    "dominant": "#75644e",
    "focal": "40% 60%",
    "hero_rating": 3,
    "notes": "Hero suitability 3/5. Sand ripples, shade huts, sea on the right. Phone wide-angle: dark lens vignette on the right edge, so crop right ~8% or use focal left.",
-   "changes": "Resized and re-encoded to AVIF/WebP, metadata removed; no crop or retouch.",
+   "changes": "Cropped to the left 93 % (3035 × 2276 px from x 0, y 140; 4:3 kept) to remove a wooden pole along the right edge and a wire at the top; resized and re-encoded to AVIF/WebP, metadata removed; no retouch.",
    "verified": true,
    "verified_on": "2026-10-23",
    "verification_note": "Source page re-opened 2026-10-23: author, licence and description match; licence allows commercial use; 1280 WebP viewed: sharp enough, no watermark; all 6-8 files exist, sizes and dimensions match, no EXIF/GPS/XMP."

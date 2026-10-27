@@ -198,7 +198,11 @@ export function initDrawer() {
         step.append(less, out, more);
         row.append(step);
       } else {
-        row.append(h('span', 'mono drawer-line__qty', l.qty > 1 ? `× ${l.qty}` : ''));
+        // an experience's quantity IS its party ("2 persona" is already in the meta line), so no
+        // "× 2" that reads as 2 people × 2; a room's quantity is counted in rooms ("× 2 dhoma")
+        const qty = l.kind === 'experience' || l.qty <= 1 ? ''
+          : l.kind === 'room' ? `× ${tc('booking.rooms.n', { n: l.qty })}` : `× ${l.qty}`;
+        row.append(h('span', 'mono drawer-line__qty', qty));
       }
       const price = h('p', 'drawer-line__price');
       if (l.compare_total && l.compare_total > l.line_total) {

@@ -50,7 +50,8 @@ export function number(n: number, lang: Lang, decimals = 0): string {
 export interface MoneyOpts { currency?: 'ALL' | 'EUR'; rate?: number; approx?: boolean }
 
 /**
- * Lek amounts (whole lek). sq "6 500 lekë" · en "ALL 6,500".
+ * Lek amounts (whole lek). sq "6 500 lekë" · en "6,500 lek" (the word the currency switch and
+ * the copy use; the ISO code "ALL" read as the English word "all" — final pass).
  * currency 'EUR' with a rate (lek per euro): sq "≈ 65 €" · en "≈ €65".
  */
 export function money(lek: number, lang: Lang, opts: MoneyOpts = {}): string {
@@ -60,12 +61,12 @@ export function money(lek: number, lang: Lang, opts: MoneyOpts = {}): string {
     return lang === 'sq' ? `≈${NBSP}${number(eur, lang)}${NBSP}€` : `≈${NBSP}€${number(eur, lang)}`;
   }
   if (lang === 'sq') return `${number(lek, 'sq')}${NBSP}lekë`;
-  return `ALL${NBSP}${number(lek, 'en')}`;
+  return `${number(lek, 'en')}${NBSP}lek`;
 }
 
-/** Short lek for tight mono readouts: "6 500 L" / "ALL 6,500". */
+/** Short lek for tight mono readouts: "6 500 L" / "6,500 L". */
 export function moneyShort(lek: number, lang: Lang): string {
-  return lang === 'sq' ? `${number(lek, 'sq')}${NBSP}L` : `ALL${NBSP}${number(lek, 'en')}`;
+  return lang === 'sq' ? `${number(lek, 'sq')}${NBSP}L` : `${number(lek, 'en')}${NBSP}L`;
 }
 
 export function percent(n: number, lang: Lang): string {

@@ -40,6 +40,8 @@ export const GET: APIRoute = async (ctx) => {
     const html = `<!doctype html>
 <html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
 <title>${esc(t.title)} · ${esc(o.code)}</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>@view-transition{navigation:auto}@media (prefers-reduced-motion:reduce){@view-transition{navigation:none}}</style>
 <style>
 :root{--ink:#14211f;--salt:#f3efe6;--pouch:#a83c15;color-scheme:light}
 *{box-sizing:border-box}body{margin:0;background:var(--salt);color:var(--ink);font:16px/1.5 system-ui,sans-serif;padding:16px}

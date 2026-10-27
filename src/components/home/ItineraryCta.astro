@@ -1,27 +1,21 @@
 ---
 /**
- * ItineraryCta — "08 · Itinerari": the way into the planner (T7) as a salt sheet with the
- * poster word (the footer below is the ink sheet). No sample route is drawn: a route on the chart is only ever
- * one the visitor plans.
+ * ItineraryCta — "08 · Itinerari": the way into the planner (T7) as a quiet salt sheet (the
+ * footer below is the ink sheet). No poster word: on the home only the wordmark and the chart are
+ * loud (DESIGN §4). No sample route is drawn: a route on the chart is only ever one the visitor plans.
  */
 import Pill from '../site/Pill.astro';
 import { t } from '../../i18n/ui';
 import { path, type Lang } from '../../i18n/routes';
-import { posterLayout } from '../../assets/poster-metrics';
 
 interface Props { lang: Lang }
 const { lang } = Astro.props;
-const word = lang === 'sq' ? 'Itinerari' : 'Itinerary';
-const poster = posterLayout(word);
 ---
 <section class="itin" aria-labelledby="itin-h">
   <div class="wrap itin__inner">
     <p class="itin__rule mono"><span>{t(lang, 'home.itin.index')}</span><span>{t(lang, 'home.itin.kicker')}</span></p>
-    <div class="poster-wrap itin__poster" aria-hidden="true">
-      <p class="poster" style={`--fit-em:${poster.fitEm.toFixed(3)};--poster-fb:"Poster Fallback ${poster.fallback}"`}>{poster.lines.map((l) => <span class="poster__line">{l}</span>)}</p>
-    </div>
     <div class="itin__row">
-      <h2 id="itin-h" class="itin__title">{t(lang, 'home.itin.title')}</h2>
+      <h2 id="itin-h" class="itin__title heading">{t(lang, 'home.itin.title')}</h2>
       <p class="itin__body">{t(lang, 'home.itin.body')}</p>
       <div class="itin__cta"><Pill href={path('itinerary', lang)} arrow>{t(lang, 'home.itin.cta')}</Pill></div>
     </div>
@@ -29,12 +23,11 @@ const poster = posterLayout(word);
 </section>
 
 <style>
-  .itin { padding-block: var(--section-gap); position: relative; }
+  .itin { padding-block: 0; position: relative; }
   .itin__inner { position: relative; }
   .itin__rule { display: flex; gap: 14px; font-size: var(--step--2); padding-block-start: 10px; border-block-start: 3px double var(--ink); }
-  .itin__poster { margin-block: clamp(18px, 3vw, 36px); }
-  .itin__row { display: grid; gap: 18px; align-items: end; }
-  .itin__title { font-size: var(--step-3); }
+  .itin__row { display: grid; gap: 18px; align-items: end; margin-block-start: clamp(20px, 3vw, 40px); }
+  .itin__title { text-wrap: balance; }
   .itin__body { max-inline-size: 46ch; color: var(--muted); }
   @media (min-width: 900px) { .itin__row { grid-template-columns: minmax(0, 4fr) minmax(0, 5fr) minmax(0, 3fr); } .itin__cta { justify-self: end; } }
 </style>

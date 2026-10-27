@@ -1,7 +1,7 @@
 /**
  * The site's navigation in one place: the header's four links, the menu legend (01–09) and the
  * footer columns. `poi` ties a legend entry to a pin on the mini chart — one distinct place per
- * entry (MiniChart: hotel, tower = pelican-tower, island = pelican-island, heritage =
+ * entry (MiniChart: hotel, tower = tower-360, island = pelican-island, heritage =
  * st-cosmas-monastery, lagoon = the lagoon's centre); entries without a place drop no pin.
  */
 import type { RouteKey } from '../../i18n/routes';

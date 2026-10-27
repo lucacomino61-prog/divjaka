@@ -108,7 +108,7 @@ export default {
     'booking.err.dates': 'Zgjidhni datën e mbërritjes dhe të largimit.',
     'booking.err.session': 'Zgjidhni një ditë dhe një orë.',
     'booking.err.changed': 'Disponueshmëria sapo ndryshoi:',
-    'booking.note.hold': 'Shporta nuk e mban dhomën: vendi ruhet për ju kur përfundoni porosinë.',
+    'booking.note.hold': 'Shporta nuk e mban dhomën: dhoma ruhet për ju kur përfundoni porosinë.',
     'booking.note.holdExp': 'Shporta nuk i mban vendet: ato ruhen për ju kur përfundoni porosinë.',
     'booking.note.direct': 'Rezervoni direkt me hotelin, pa ndërmjetës.',
     'booking.note.directBest': 'Rezervoni direkt me hotelin: këtu gjeni çmimin më të mirë.',

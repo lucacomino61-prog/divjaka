@@ -4,6 +4,7 @@ import Photo from '../site/Photo.astro';
 import Price from '../site/Price.astro';
 import { pname, psummary, type Product } from '../../lib/db/repo/products';
 import { productUrl } from '../../lib/urls';
+import { giftLimits } from '../shop/shop-data'; // a gift card is priced from its lowest allowed amount, as in the shop
 import { t } from '../../i18n/ui';
 import type { Lang } from '../../i18n/routes';
 
@@ -18,7 +19,7 @@ const { lang, items } = Astro.props;
         <p class="rel__kind mono">{t(lang, `home.kind.${p.kind}`)}</p>
         <h3 class="rel__name"><a href={productUrl(p.kind, p.slug, lang)} class="rel__a"><span class="rel__nm">{pname(p, lang)}</span></a></h3>
         <p class="rel__sum">{psummary(p, lang)}</p>
-        <p class="rel__price"><Price lek={p.price} lang={lang} from={p.kind === 'room' || p.kind === 'gift'} per={p.kind === 'room' ? 'night' : p.kind === 'experience' ? 'person' : null} /></p>
+        <p class="rel__price"><Price lek={p.kind === 'gift' ? giftLimits(p.slug).min : p.price} lang={lang} from={p.kind === 'room' || p.kind === 'gift'} per={p.kind === 'room' ? 'night' : p.kind === 'experience' ? 'person' : null} /></p>
       </li>
     ))}
   </ul>

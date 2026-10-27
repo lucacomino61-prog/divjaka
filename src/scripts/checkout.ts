@@ -527,7 +527,10 @@ export function initCheckout(): void {
       errBox.append(ul);
     }
     errBox.hidden = false;
-    errBox.focus();
+    // scroll first, then focus without scrolling: WebKit's focus() alone left the summary 600–850 px
+    // above the viewport (the visitor saw the bottom of the form, not the list of errors)
+    errBox.scrollIntoView({ block: 'start', behavior: 'instant' as ScrollBehavior });
+    errBox.focus({ preventScroll: true });
   };
   /** Show the step that holds the first error, mark the fields, list them on top. */
   const report = (errs: Err[]) => {
@@ -797,9 +800,11 @@ export function initCheckout(): void {
       website: val('hp_url_x'),
       ...(utm ? { utm } : {}),
       ...(ref ? { ref } : {}),
-      // the same id for every attempt of this draft: a resend after a lost 201 can be answered
-      // with the order already made (needs T1, HANDOFF 2026-10-26 · T5 fix round 1)
-      checkout_id: checkoutId(),
+      // the same id for every attempt of the SAME draft: a resend after a lost 201 is answered with
+      // the order already made (POST /api/checkout replays on checkout_id + e-mail). Any change to
+      // the lines, quantities, dates, payment method or promo code gets a new id, so an edited
+      // order is never answered with the earlier one.
+      checkout_id: checkoutId(draftPrint(items, method(), promo)),
     };
     let res: Response;
     try {
@@ -910,14 +915,26 @@ function readSource(): { utm: { source?: string; medium?: string; campaign?: str
 }
 
 const CHECKOUT_ID = 'dv-checkout-id';
-/** One random id per checkout draft (sessionStorage), sent with every attempt to place it. */
-function checkoutId(): string {
+/** A short print of what the order would be: every line (key, quantity, dates, guests, amount —
+ *  the whole cart item, order-free), the payment method and the promo code. */
+function draftPrint(items: CartItem[], m: string, promo: string): string {
+  const canon = (v: unknown): string => Array.isArray(v) ? `[${v.map(canon).join(',')}]`
+    : v && typeof v === 'object' ? `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canon((v as Record<string, unknown>)[k])}`).join(',')}}`
+    : JSON.stringify(v) ?? 'null';
+  const s = JSON.stringify({ i: items.map(canon).sort(), m, p: (promo || '').toUpperCase() });
+  let h = 0x811c9dc5; // FNV-1a 32
+  for (let k = 0; k < s.length; k++) { h ^= s.charCodeAt(k); h = Math.imul(h, 0x01000193); }
+  return (h >>> 0).toString(36);
+}
+/** One random id per checkout draft (sessionStorage `{id, fp}`), sent with every attempt to place
+ *  that same draft; a different print (the guest changed the order after a failed send) → new id. */
+function checkoutId(fp: string): string {
   try {
-    let id = sessionStorage.getItem(CHECKOUT_ID);
-    if (!id) {
-      id = (crypto.randomUUID?.() ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`).replace(/-/g, '').slice(0, 32);
-      sessionStorage.setItem(CHECKOUT_ID, id);
-    }
+    let saved: { id?: unknown; fp?: unknown } | null = null;
+    try { saved = JSON.parse(sessionStorage.getItem(CHECKOUT_ID) || 'null'); } catch { saved = null; }
+    if (saved && typeof saved.id === 'string' && /^[A-Za-z0-9]{16,64}$/.test(saved.id) && saved.fp === fp) return saved.id;
+    const id = (crypto.randomUUID?.() ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9]/g, '').slice(0, 32);
+    sessionStorage.setItem(CHECKOUT_ID, JSON.stringify({ id, fp }));
     return id;
   } catch { return ''; }
 }

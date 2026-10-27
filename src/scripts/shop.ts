@@ -10,8 +10,8 @@
  *
  * initProduct(): the floating order card — gift amount presets + custom amount (validated on
  * add, never pre-disabled), quantity stepper, Add to cart (cart.ts store + toast with Undo),
- * Buy now (add, then the checkout), the phone pill (Moooor) that mirrors the card while the card
- * is off screen, addViewed() for recommendations and the product_view beacon.
+ * Buy now (add, then the checkout), the phone pill (Moooor, docked from the start) that adds with
+ * what the card says, addViewed() for recommendations and the product_view beacon.
  */
 import { readState, writeState, matches, compare, queryTokens, type ShopState, type ItemFacts, type Kind } from '../components/shop/filters';
 import { addItem, getCart, itemKey, setQty as setLineQty } from './cart';
@@ -34,8 +34,16 @@ export function initShop(): void {
   const emptyBody = results.querySelector<HTMLElement>('[data-shop-empty-body]');
   const clearLinks = results.querySelectorAll<HTMLAnchorElement>('[data-shop-clear], [data-shop-clear-2]');
   const L = lang();
+  // phones (< 640 px, CSS): kind, interest, search and sort fold behind one button
+  const toggle = form.querySelector<HTMLButtonElement>('[data-filter-toggle]');
+  const toggleCount = toggle?.querySelector<HTMLElement>('[data-filter-count]') ?? null;
+  toggle?.addEventListener('click', () => {
+    const open = form.dataset.open === undefined;
+    if (open) form.dataset.open = ''; else delete form.dataset.open;
+    toggle.setAttribute('aria-expanded', String(open));
+  });
 
-  const cards = [...grid.querySelectorAll<HTMLElement>('[data-spec]')];
+  const cards =[...grid.querySelectorAll<HTMLElement>('[data-spec]')];
   const rowBySlug = new Map([...rows.querySelectorAll<HTMLElement>('[data-row]')].map((r) => [r.dataset.row!, r]));
   const facts = new Map<string, ItemFacts>(cards.map((c) => [c.dataset.spec!, {
     kind: c.dataset.kind as Kind,
@@ -85,6 +93,8 @@ export function initShop(): void {
     status.textContent = !filtered ? tc('shop.showing.all', { total }) : n === 1 ? tc('shop.showing.one', { total }) : tc('shop.showing', { n, total });
     empty.hidden = n > 0;
     if (emptyBody) emptyBody.textContent = s.q && n === 0 ? `${tc('shop.empty.query', { q: s.q })} ${tc('shop.empty.body')}` : tc('shop.empty.body');
+    const active = (s.kind ? 1 : 0) + (s.interest ? 1 : 0) + (s.q ? 1 : 0);
+    if (toggleCount) { toggleCount.textContent = String(active); toggleCount.hidden = active === 0; }
     const qs = writeState(s);
     clearLinks.forEach((a) => {
       // "clear" keeps the chosen view (cards or list) and drops the filters
@@ -134,7 +144,9 @@ export function initShop(): void {
     const s = readState(new URL(a.href).searchParams);
     syncForm(form, s);
     apply(s, 'push');
-    form.querySelector<HTMLInputElement>('input[name="lloji"]')?.focus();
+    // the kind pills, or the phone's folded "Filtrat" button when they are hidden
+    const first = form.querySelector<HTMLInputElement>('input[name="lloji"]');
+    if (first && first.getClientRects().length) first.focus(); else toggle?.focus();
   }));
   window.addEventListener('popstate', () => {
     const s = readState(new URLSearchParams(location.search));
@@ -266,10 +278,22 @@ export function initProduct(): void {
     add();
   });
 
-  // the pill shows only while the order card is out of view (phones; CSS hides it ≥ 1024 px)
+  // the pill is docked from the start on phones (as the room/experience .bk-pill; CSS hides it
+  // ≥ 1024 px): while it is up, the assistant folds into a round button beside it (chrome.css), so
+  // the "Pyet" pill never lies over the card's Add to cart. It waits for this script: without
+  // JavaScript the card's own buttons submit the GET form and nothing floats over them.
+  if (pill) pill.dataset.show = 'on';
+  // The pill steps aside (data-tuck) while any of the card's own buy buttons is on screen or within
+  // a pill's height below it, so a tap on the visible "Bli tani" / "Shto" never lands on the pill.
+  // The bottom root margin makes it go before a button reaches the band the pill covers.
   if (pill && 'IntersectionObserver' in window) {
-    const io = new IntersectionObserver(([en]) => { pill.dataset.show = en.isIntersecting ? 'off' : 'on'; }, { rootMargin: '0px 0px -10% 0px' });
-    io.observe(card);
+    const btns = [...card.querySelectorAll<HTMLElement>('.buy__actions button')];
+    const seen = new Set<Element>();
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) { if (e.isIntersecting) seen.add(e.target); else seen.delete(e.target); }
+      if (seen.size) pill.dataset.tuck = ''; else delete pill.dataset.tuck;
+    }, { rootMargin: '0px 0px 96px 0px', threshold: 0 });
+    btns.forEach((b) => io.observe(b));
   }
   paintPill();
 }

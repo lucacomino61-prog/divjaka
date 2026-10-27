@@ -10,6 +10,7 @@ import Price from '../site/Price.astro';
 import { pname, type Product } from '../../lib/db/repo/products';
 import type { Reason } from '../../lib/recommend';
 import { productUrl } from '../../lib/urls';
+import { giftLimits } from '../shop/shop-data';
 import { t } from '../../i18n/ui';
 import type { Lang } from '../../i18n/routes';
 
@@ -19,6 +20,9 @@ const img = p.images[0]?.slug ?? null;
 const alt = (lang === 'en' ? p.images[0]?.alt_en : p.images[0]?.alt_sq) ?? undefined;
 const href = productUrl(p.kind, p.slug, lang);
 const from = p.kind === 'room' || p.kind === 'gift';
+// a gift card's "from" price is the lowest amount the owner allows (the shop card and the product
+// page read the same helper), not products.price, which is only the default amount
+const lek = p.kind === 'gift' ? giftLimits(p.slug).min : p.price;
 const per = p.kind === 'room' ? 'night' : p.kind === 'experience' ? 'person' : null;
 const why = reason ? t(lang, `recommend.reason.${reason}`) : '';
 ---
@@ -31,7 +35,7 @@ const why = reason ? t(lang, `recommend.reason.${reason}`) : '';
     </div>
     <p class="rec-row__meta mono">
       <span>{t(lang, `recommend.kind.${p.kind}`)}</span>
-      <Price lek={p.price} lang={lang} from={from} per={per} />
+      <Price lek={lek} lang={lang} from={from} per={per} />
     </p>
     <svg class="rec-row__arrow" viewBox="0 0 16 16" width="20" height="20" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.3" /></svg>
   </li>
@@ -43,7 +47,7 @@ const why = reason ? t(lang, `recommend.reason.${reason}`) : '';
       <h3 class="rec-card__name"><a href={href} class="rec-card__a"><span class="rec-card__nm">{pname(p, lang)}</span></a></h3>
       <p class="rec-card__row mono">
         <span>{t(lang, `recommend.kind.${p.kind}`)}</span>
-        <Price lek={p.price} lang={lang} from={from} per={per} />
+        <Price lek={lek} lang={lang} from={from} per={per} />
       </p>
     </div>
   </li>
@@ -58,8 +62,8 @@ const why = reason ? t(lang, `recommend.reason.${reason}`) : '';
   .rec-card__a:focus-visible { outline: none; box-shadow: none; }
   .rec-card__a:focus-visible::after { outline: 2px solid var(--pouch); outline-offset: 3px; }
   .rec-card__reason, .rec-row__reason { display: flex; align-items: center; gap: 8px; font-size: var(--step--2); min-block-size: 1.4em; }
+  /* every reason dot is ink: pouch is kept for live, selected, error, stamps and the route (DESIGN §2) */
   .rec-card__dot { inline-size: 7px; block-size: 7px; border-radius: 99px; background: var(--ink); flex: none; }
-  :is(.rec-card, .rec-row):is([data-reason="interests"], [data-reason="together"], [data-reason="history"]) .rec-card__dot { background: var(--pouch); }
   .rec-card__name { font-size: var(--step-1); font-weight: 700; font-stretch: 85%; line-height: 1.08; text-wrap: balance; }
   .rec-card__nm { display: inline-block; transition: transform 200ms var(--ease-out); }
   .rec-card__row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; font-size: var(--step--2); padding-block-start: 8px; border-block-start: 1px solid var(--rule); }

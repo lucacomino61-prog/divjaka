@@ -5,7 +5,7 @@ import { listProducts, createProduct, getProduct, setBundleItems, getProductBySl
 import { zProduct } from '../../../../lib/admin-schemas';
 import { tx } from '../../../../lib/db/index';
 import { fold } from '../../../../lib/text';
-import { BUNDLE_STOCK, checkGiftPresets } from '../../../../lib/admin-schemas';
+import { BUNDLE_STOCK, checkGiftPresets, checkProductRefs } from '../../../../lib/admin-schemas';
 import { audit } from '../../../../lib/audit';
 import { clientIp } from '../../../../lib/security';
 
@@ -38,6 +38,7 @@ export const POST: APIRoute = handle(async (ctx) => {
   if (getProductBySlug(b.slug)) throw E.conflict('slug_taken', 'Ky slug ekziston.', 'This slug already exists.');
   if (b.kind === 'bundle' && (b.stock === null || b.stock === undefined)) throw BUNDLE_STOCK();
   checkGiftPresets(b.options as Record<string, unknown> | undefined);
+  checkProductRefs(b);
   const { bundle_items, ...data } = b;
   const id = tx(() => {
     const newId = createProduct({ ...data, demo: false, status: data.status ?? 'draft' });

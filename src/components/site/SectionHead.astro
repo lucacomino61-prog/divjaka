@@ -5,9 +5,15 @@
  * (posterLayout): the longest word fills the line, each line is printed nowrap and carries a
  * fallback face sized never wider than the real one — a late web font cannot reflow it (no CLS);
  * "heading" is the normal section head. `as` picks the heading level (h1 once per page).
+ * scale (posters only): "editorial" (up to --poster-max, 480 px) or "task" (--poster-max-task,
+ * 112–208 px). It follows the route table: an h1 poster on a TASK_ROUTES page (shop, product, cart,
+ * checkout, order, bookings, article) is "task", every other poster "editorial". The prop only
+ * overrides that for an exception. Views never set their own cap (the .section-head--task rule sits
+ * on the title, so a cap left on a view's wrapper has no effect).
  *   <SectionHead as="h1" index="02" kicker="Hotel Pelikan" title="Qëndrimi" size="poster" />
  */
 import { posterLayout } from '../../assets/poster-metrics';
+import { match, TASK_ROUTES, type RouteKey } from '../../i18n/routes';
 
 interface Props {
   title: string;
@@ -15,17 +21,21 @@ interface Props {
   index?: string;
   kicker?: string;
   size?: 'poster' | 'heading' | 'title';
+  scale?: 'editorial' | 'task';
   id?: string;
   class?: string;
   reveal?: boolean;
   lead?: string;
 }
 const { title, as: Tag = 'h2', index, kicker, size = 'heading', id, class: cls, reveal = false, lead } = Astro.props;
+let routeKey: RouteKey | undefined;
+try { routeKey = match(Astro.url.pathname)?.key; } catch { routeKey = undefined; } // malformed %-escapes
+const scale = Astro.props.scale ?? (Tag === 'h1' && routeKey && TASK_ROUTES.has(routeKey) ? 'task' : 'editorial');
 // Poster fit (server side, from the font's own advance widths): the longest word fills the
 // line; a short title is capped at --poster-max. Long Albanian words never overflow.
 const poster = size === 'poster' ? posterLayout(title) : null;
 ---
-<header class:list={['section-head', `section-head--${size}`, cls]}>
+<header class:list={['section-head', `section-head--${size}`, size === 'poster' && scale === 'task' && 'section-head--task', cls]}>
   {(index || kicker) && (
     <p class="section-head__rule mono">
       {index && <span class="section-head__index">{index}</span>}

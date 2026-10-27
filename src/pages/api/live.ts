@@ -10,5 +10,6 @@ import { getLive } from '../../lib/live';
  */
 export const GET: APIRoute = handle(async () => {
   const data = await getLive();
-  return json(data, { cache: 'public, max-age=60' });
+  // A "loading" answer (first download still running) must not stick in the browser for a minute.
+  return json(data, { cache: data.loading ? 'no-store' : 'public, max-age=60' });
 });

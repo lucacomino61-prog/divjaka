@@ -11,6 +11,7 @@ import Chart from '../chart/Chart.astro';
 import { findPublished } from '../../lib/catalog';
 import { pname, psummary, type Product } from '../../lib/db/repo/products';
 import { productUrl } from '../../lib/urls';
+import { giftLimits } from '../shop/shop-data'; // a gift card is priced from its lowest allowed amount, as in the shop
 import { t } from '../../i18n/ui';
 import { path, type Lang } from '../../i18n/routes';
 
@@ -32,7 +33,7 @@ const items = ['karte-dhurate', 'harta-e-lagunes'].map((s) => findPublished(s)).
           )}
           <h3 class="spec__name"><a href={productUrl(p.kind, p.slug, lang)} class="spec__a"><span class="spec__nm">{pname(p, lang)}</span></a></h3>
           <p class="spec__sum">{psummary(p, lang)}</p>
-          <p class="spec__price mono"><Price lek={p.price} lang={lang} from={p.kind === 'gift'} size="title" /></p>
+          <p class="spec__price"><Price lek={p.kind === 'gift' ? giftLimits(p.slug).min : p.price} lang={lang} from={p.kind === 'gift'} /></p>
         </div>
       ))}
       <div class="shop__cta">

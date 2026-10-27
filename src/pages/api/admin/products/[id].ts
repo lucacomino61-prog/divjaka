@@ -4,7 +4,7 @@ import { requireAdmin } from '../../../../lib/auth';
 import { getProduct, updateProduct, bundleItems, setBundleItems, getProductBySlug } from '../../../../lib/db/repo/products';
 import { listRates } from '../../../../lib/db/repo/rooms';
 import { nextSessions } from '../../../../lib/availability';
-import { zProductPatch, BUNDLE_STOCK, checkGiftPresets } from '../../../../lib/admin-schemas';
+import { zProductPatch, BUNDLE_STOCK, checkGiftPresets, checkProductRefs } from '../../../../lib/admin-schemas';
 import { tx, get, all } from '../../../../lib/db/index';
 import { logInventory } from '../../../../lib/db/repo/misc';
 import { audit } from '../../../../lib/audit';
@@ -57,6 +57,7 @@ const save: APIRoute = handle(async (ctx) => {
   if (b.kind && b.kind !== p.kind) throw E.bad('Lloji i produktit nuk mund të ndryshohet.', 'The product kind cannot be changed.');
   if (p.kind === 'bundle' && b.stock === null) throw BUNDLE_STOCK();
   if (b.options !== undefined) checkGiftPresets(b.options as Record<string, unknown>);
+  checkProductRefs(b, p.id);
   const priceChange = (b.price !== undefined && b.price !== p.price) || (b.compare_at !== undefined && b.compare_at !== p.compare_at);
   const optChanged = b.options !== undefined
     ? PRICE_OPTIONS.filter((k) => JSON.stringify((b.options as Record<string, unknown>)[k]) !== JSON.stringify((p.options as Record<string, unknown>)[k]))

@@ -199,7 +199,7 @@ const jsonld = {
   .xl__meta { display: flex; flex-wrap: wrap; gap: 2px 12px; margin: 0; font-size: var(--step--2); color: var(--muted); }
   .xl__seats { color: var(--fg); }
   .xl__hint { margin: 0; font-size: var(--step--2); }
-  .xl__hint::before { content: ""; display: inline-block; inline-size: 6px; block-size: 6px; border-radius: var(--radius-pill); background: var(--pouch); margin-inline-end: 8px; vertical-align: 1px; }
+  .xl__hint::before { content: ""; display: inline-block; inline-size: 6px; block-size: 6px; border-radius: var(--radius-pill); background: var(--fg); margin-inline-end: 8px; vertical-align: 1px; }
   @media (min-width: 700px) { .xl { display: none; } }
   @media (max-width: 699px) { .xi-table { display: none; } }
   .xi-tools__k { font-size: var(--step--2); color: var(--muted); margin-inline-end: 4px; }
@@ -220,5 +220,6 @@ const jsonld = {
   .xt td.mono { font-size: var(--step--1); white-space: nowrap; }
   .xt__hint { display: block; font-size: var(--step--2); color: var(--muted); font-weight: 450; }
   .xt__num { text-align: end !important; }
-  .xi-sources { padding-block-end: var(--section-gap); }
+  /* the footer's margin owns the last gap (chrome.css .site-footer) */
+  .xi-sources { padding-block-end: 0; }
 </style>

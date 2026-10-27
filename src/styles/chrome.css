@@ -28,8 +28,17 @@ html.scroll-locked { overflow: clip; }
 /* ---------- layout ---------- */
 .wrap { inline-size: 100%; max-inline-size: var(--page-max); margin-inline: auto; padding-inline: var(--page-pad); }
 .wrap--bleed { max-inline-size: none; }
-.sheet { padding-block: var(--section-gap); }
-.sheet + .sheet { padding-block-start: 0; }
+/* one gap between sections (final pass): every sheet owns the gap ABOVE it and the footer owns the
+   last one (.site-footer margin), so two sheets in a row, or the last sheet and the footer, are one
+   --section-gap apart — never top + bottom padding added up. An ink sheet is a band of its own
+   colour, so it keeps its bottom padding inside the band. */
+.sheet { padding-block: var(--section-gap) 0; }
+.sheet.on-ink { padding-block-end: var(--section-gap); }
+/* a block that is not a sheet but follows one (sources lists, a page foot) gets the same one gap;
+   specificity (0,0,1): it beats base.css's *:not(dialog){margin:0} (same weight, later) and loses to
+   any class rule, so a view that sets its own margin keeps it */
+:where(.sheet:not(.on-ink)) + :where(:not(.sheet, script, style, template, noscript)):not(dialog),
+:where(.sheet:not(.on-ink)) + :where(script, style, template, noscript) + :where(:not(.sheet, script, style, template, noscript)):not(dialog) { margin-block-start: var(--section-gap); }
 .double-rule { border-block-start: 3px solid var(--rule-strong); position: relative; }
 .double-rule::before { content: ""; position: absolute; inset-inline: 0; inset-block-start: 3px; block-size: 1px; background: var(--rule-strong); margin-block-start: 3px; }
 .hair { border-block-start: var(--hair); }
@@ -160,6 +169,34 @@ html:not(.js) :is(.motion-switch, .currency-switch) { display: none; }
 .currency-switch__opt { min-block-size: var(--tap); min-inline-size: 52px; padding: 0 12px; border-radius: var(--radius-pill); border: 0; background: transparent; color: inherit; cursor: pointer; font-size: var(--step--1); }
 .currency-switch__opt[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
 
+/* ---------- filter chips ----------
+   The shared filter/toggle chip, used today by the recommendation rail (interests) and the
+   itinerary planner (interests, transport): mono caps, 44 px tall, 1 px rule, filled when on. No
+   check box, no pouch fill. New filters use it; the shop facets, experiences filter, bookings
+   interests and gift amounts still carry their own scoped chips (HANDOFF, chrome final pass).
+   Works on all three markups:
+     <a class="filter-chip" aria-current="true">        (a filter that is a link: state in the URL)
+     <button class="filter-chip" aria-pressed="true">   (a toggle that writes prefs)
+     <label class="filter-chip"><input type="radio|checkbox"><span>…</span></label>   (a GET form)
+   An optional count: <span class="filter-chip__n">07</span>. Group them in .filter-chips.
+   The planner's day count and pace are questions, not filters: they keep their own large choices. */
+.filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.filter-chip {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-block-size: var(--tap); padding: 0 16px; border: 1px solid var(--rule-strong); border-radius: var(--radius-pill);
+  background: transparent; color: var(--fg); font-family: var(--font-mono); font-size: var(--step--2); font-weight: 500;
+  text-transform: uppercase; letter-spacing: .06em; line-height: 1.1; text-decoration: none; white-space: nowrap;
+  cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+.filter-chip:active { transform: scale(0.97); }
+.filter-chip input { position: absolute; inset: -1px; inline-size: calc(100% + 2px); block-size: calc(100% + 2px); margin: 0; opacity: 0; cursor: pointer; border-radius: inherit; }
+.filter-chip:has(input:focus-visible) { outline: 2px solid var(--pouch); outline-offset: 3px; }
+.filter-chip__n { opacity: .7; }
+.filter-chip:is([aria-current]:not([aria-current="false"]), [aria-pressed="true"], :has(input:checked)) { background: var(--fg); color: var(--bg); }
+@media (hover: hover) and (pointer: fine) {
+  .filter-chip:not([aria-current]:not([aria-current="false"]), [aria-pressed="true"], :has(input:checked)):hover { background: color-mix(in oklch, var(--fg) 8%, transparent); }
+}
 /* ---------- section head ---------- */
 .section-head { display: grid; gap: clamp(14px, 1.6vw, 24px); }
 .section-head__rule { display: flex; align-items: baseline; gap: 16px; padding-block-start: 10px; border-block-start: var(--rule-2); color: var(--fg); }
@@ -168,14 +205,19 @@ html:not(.js) :is(.motion-switch, .currency-switch) { display: none; }
 .section-head__rule > :last-child:not(:first-child) { margin-inline-start: auto; }
 .section-head__index + .section-head__kicker { margin-inline-start: 0; }
 .section-head--poster .poster { margin-inline-start: -0.04em; }
+/* the task scale (SectionHead on a TASK_ROUTES page): set on the title itself, so it wins over
+   any --poster-max a view leaves on the header */
+.section-head--task .poster { --poster-max: var(--poster-max-task); }
 .section-head__lead { color: var(--fg); }
 
 /* ---------- breadcrumbs ---------- */
 .crumbs ol { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 0; font-size: var(--step--2); }
 .crumbs li { display: inline-flex; align-items: center; }
 .crumbs li + li::before { content: "/"; margin-inline: 10px; color: var(--faint); }
-.crumbs a { text-decoration: none; color: var(--muted); display: inline-flex; min-block-size: 24px; align-items: center; }
-@media (pointer: coarse) { .crumbs a { min-block-size: var(--tap); } }
+.crumbs a { text-decoration: none; color: var(--muted); display: inline-flex; min-block-size: 24px; min-inline-size: 24px; align-items: center; }
+/* touch: 44 × 44 even for a short word ("Home" is 29 px wide); the text stays flush left, the
+   extra width is paper on its right before the "/" */
+@media (pointer: coarse) { .crumbs a { min-block-size: var(--tap); min-inline-size: var(--tap); } }
 .crumbs a:hover { color: var(--fg); text-decoration: underline; }
 .crumbs [aria-current] { color: var(--fg); }
 
@@ -204,6 +246,10 @@ html:not(.js) :is(.motion-switch, .currency-switch) { display: none; }
 .price--display .price__main { font-size: var(--step-5); font-weight: 800; font-stretch: 75%; letter-spacing: -.035em; line-height: .9; }
 .price__from, .price__per, .price__alt { color: var(--muted); font-size: var(--step--2); }
 .price__was { color: var(--muted); font-size: var(--step--2); text-decoration-thickness: 1px; }
+/* the unit is a word, never a code: "1 500 lekë" keeps its case inside an uppercase mono line
+   (final pass: the home shop teaser printed "1 500 LEKË" next to the shop's "1 500 lekë") */
+.price :is(.price__main, .price__was, .price__alt),
+[data-price-lek] :is([data-price-main], [data-price-alt]) { text-transform: none; }
 /* both currencies are in the HTML; html[data-cur] (set by the head script before first paint)
    picks one, so an EUR visitor never sees lek first and nothing re-flows after load */
 html:not([data-cur="EUR"]) [data-cur-eur], html[data-cur="EUR"] [data-cur-all] { display: none; }
@@ -422,7 +468,7 @@ span.drawer-line__name:hover { text-decoration: none; }
 .drawer-line__offer { font-size: var(--step--2); color: var(--pouch-text); }
 .drawer-line__problem { font-size: var(--step--2); color: var(--pouch-text); text-decoration: underline; text-decoration-color: var(--pouch); text-underline-offset: 3px; }
 .drawer-line__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-block-start: 4px; }
-.drawer-line__price { font-family: var(--font-mono); font-size: var(--step--1); text-align: end; font-variant-numeric: tabular-nums; text-transform: uppercase; letter-spacing: .06em; margin-inline-start: auto; min-inline-size: 0; overflow-wrap: anywhere; }
+.drawer-line__price { font-family: var(--font-mono); font-size: var(--step--1); text-align: end; font-variant-numeric: tabular-nums; letter-spacing: .04em; margin-inline-start: auto; min-inline-size: 0; overflow-wrap: anywhere; }
 .drawer-line--gone .drawer-line__name { color: var(--muted); }
 .drawer-line__was { color: var(--muted); margin-inline-end: 6px; }
 .drawer-line__remove { position: relative; z-index: 1; inline-size: 44px; block-size: 44px; display: grid; place-items: center; border: 0; background: none; color: var(--muted); cursor: pointer; border-radius: var(--radius-pill); }
@@ -448,6 +494,35 @@ span.drawer-line__name:hover { text-decoration: none; }
 /* ---------- assistant pill ---------- */
 .assistant-pill { position: fixed; inset-inline-end: max(16px, env(safe-area-inset-right)); inset-block-end: max(16px, env(safe-area-inset-bottom)); z-index: var(--z-pill); gap: 10px; min-block-size: 48px; padding-inline: 18px 20px; }
 .assistant-pill__hours { font-size: var(--step--2); opacity: .8; }
+/* a 1 px salt ring (as the buy pill's): over an ink sheet (footer, the home log) the ink pill stays
+   an object instead of leaving loose words over the readings */
+.assistant-pill { box-shadow: 0 0 0 1px var(--salt); }
+.assistant-pill__icon { display: none; flex: none; }
+/* phones: while a booking pill (.bk-pill, stay/room/experience pages) or the product buy pill is
+   docked at the bottom, the assistant folds into a 56 px round button at that pill's inline end and
+   the pill makes room for it — one row of controls (56 px) instead of two stacked pills (≈ 140 px)
+   covering prices and links. The link keeps its aria-label ("Pyet …"). Specificity is raised on
+   purpose: it must beat the older "lift above the pill" rules in booking.css / Product.astro. */
+@media (max-width: 999px) {
+  html.js:has(.bk-pill) body .assistant-pill.pill { inset-block-end: calc(12px + env(safe-area-inset-bottom)); inset-inline-end: max(12px, env(safe-area-inset-right)); }
+  html.js:has(.assistant-pill) body .bk-pill { inset-inline-end: calc(max(12px, env(safe-area-inset-right)) + 56px + 8px); }
+}
+@media (max-width: 1023px) {
+  html:has(.buy-pill[data-show="on"]) body .assistant-pill.pill { inset-block-end: calc(max(12px, env(safe-area-inset-bottom)) + 2px); inset-inline-end: max(12px, env(safe-area-inset-right)); }
+  html:has(.assistant-pill) body .buy-pill { inset-inline-end: calc(max(12px, env(safe-area-inset-right)) + 56px + 8px); }
+}
+@media (max-width: 999px) {
+  html.js:has(.bk-pill) .assistant-pill { inline-size: 56px; block-size: 56px; min-block-size: 56px; padding: 0; gap: 0; }
+  html.js:has(.bk-pill) .assistant-pill :is(.assistant-pill__label, .assistant-pill__hours) { display: none; }
+  html.js:has(.bk-pill) .assistant-pill .assistant-pill__icon { display: block; }
+  html.js:has(.bk-pill) .assistant-pill .live-dot { position: absolute; inset-block-start: 11px; inset-inline-end: 11px; inline-size: 7px; block-size: 7px; }
+}
+@media (max-width: 1023px) {
+  html:has(.buy-pill[data-show="on"]) .assistant-pill { inline-size: 56px; block-size: 56px; min-block-size: 56px; padding: 0; gap: 0; }
+  html:has(.buy-pill[data-show="on"]) .assistant-pill :is(.assistant-pill__label, .assistant-pill__hours) { display: none; }
+  html:has(.buy-pill[data-show="on"]) .assistant-pill .assistant-pill__icon { display: block; }
+  html:has(.buy-pill[data-show="on"]) .assistant-pill .live-dot { position: absolute; inset-block-start: 11px; inset-inline-end: 11px; inline-size: 7px; block-size: 7px; }
+}
 html.menu-open .assistant-pill, html.cart-drawer-open .assistant-pill { opacity: 0; pointer-events: none; }
 .assistant-pill { transition: transform var(--dur-press) var(--ease-out), opacity var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out); }
 

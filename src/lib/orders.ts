@@ -46,6 +46,7 @@ import { ensureNight } from './db/repo/rooms';
 import { cardMode, paymentAvailability } from './payments/mode';
 import { nights as nightList, nowIso, dayOf, addDays, today } from './time';
 import { productUrl, type Lang } from './urls';
+import { formatDate } from '../i18n/format';
 import { rateFactor } from './security';
 
 const CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ'; // no 0 O 1 I L
@@ -102,10 +103,17 @@ export const UNCONFIRMED = "o.demo = 0 AND o.staff_hold = 0 AND ((o.status = 'pe
  */
 export const LONG_HOLD = `${UNCONFIRMED} AND (o.payment_method != 'card' OR o.test = 1)`;
 
-const HOLD_CAP = () =>
-  E.conflict('hold_cap',
-    'Për këto data shumica e vendeve janë të mbajtura nga rezervime që presin konfirmim. Paguani me kartë për ta siguruar menjëherë, zgjidhni data të tjera ose kontaktoni hotelin.',
-    'For these dates most places are held by bookings waiting for confirmation. Pay by card to secure it now, choose other dates or contact the hotel.');
+const HOLD_CAP_MSG = {
+  sq: 'Për këto data shumica e vendeve janë të mbajtura nga rezervime që presin konfirmim. Paguani me kartë për ta siguruar menjëherë, zgjidhni data të tjera ose kontaktoni hotelin.',
+  en: 'For these dates most places are held by bookings waiting for confirmation. Pay by card to secure it now, choose other dates or contact the hotel.',
+};
+/** 409 hold_cap naming the cart lines that hit the cap: lines:[{key, problem:{code:'hold_cap', message}}] (like cart_problem). */
+const HOLD_CAP = (keys: string[], lang: Lang) =>
+  E.conflict('hold_cap', HOLD_CAP_MSG.sq, HOLD_CAP_MSG.en,
+    { lines: [...new Set(keys)].map((key) => ({ key, problem: { code: 'hold_cap', message: HOLD_CAP_MSG[lang] } })) });
+
+/** Cart line keys of the priced lines that match. */
+const keysOf = (priced: PricedLine[], match: (pl: PricedLine) => boolean) => priced.filter(match).map((pl) => pl.line.key);
 
 const shareOf = () => Math.min(1, Math.max(0.1, Number(getSetting('inventory').unconfirmed_share ?? 0.5)));
 
@@ -113,7 +121,7 @@ const shareOf = () => Math.min(1, Math.max(0.1, Number(getSetting('inventory').u
  * Per room type and night, unconfirmed long holds may cover at most share × units (at least 1).
  * Runs inside the createOrder transaction, before the new order's rows are written.
  */
-function assertUnconfirmedShare(priced: PricedLine[]): void {
+function assertUnconfirmedShare(priced: PricedLine[], lang: Lang): void {
   const share = shareOf();
   const want = new Map<string, number>(); // `${productId}|${night}` → rooms this order wants
   const products = new Map<number, number>(); // product id → units
@@ -143,13 +151,15 @@ function assertUnconfirmedShare(priced: PricedLine[]): void {
     for (const [k, n] of want) {
       const [id, night] = k.split('|');
       if (Number(id) !== pid) continue;
-      if ((held.get(night) ?? 0) + n > cap) throw HOLD_CAP();
+      if ((held.get(night) ?? 0) + n > cap) {
+        throw HOLD_CAP(keysOf(priced, (pl) => pl.product?.id === pid && !!pl.nightInfo?.some((x) => x.night === night)), lang);
+      }
     }
   }
 }
 
 /** Per experience session, unconfirmed long holds may take at most share × capacity seats (at least 1). */
-function assertSeatShare(priced: PricedLine[]): void {
+function assertSeatShare(priced: PricedLine[], lang: Lang): void {
   const share = shareOf();
   const want = new Map<number, { people: number; capacity: number }>();
   for (const pl of priced) {
@@ -163,7 +173,7 @@ function assertSeatShare(priced: PricedLine[]): void {
       `SELECT COALESCE(SUM(COALESCE(i.guests, i.qty)), 0) AS n FROM order_items i JOIN orders o ON o.id = i.order_id
        WHERE i.session_id = ? AND i.kind = 'experience' AND ${LONG_HOLD}`, sid,
     )?.n ?? 0);
-    if (held + w.people > Math.max(1, Math.floor(w.capacity * share))) throw HOLD_CAP();
+    if (held + w.people > Math.max(1, Math.floor(w.capacity * share))) throw HOLD_CAP(keysOf(priced, (pl) => pl.session?.id === sid), lang);
   }
 }
 
@@ -172,7 +182,7 @@ function assertSeatShare(priced: PricedLine[]): void {
  * max_units_per_unconfirmed_order units of one product, and all of them together at most
  * share × (stock left + what they already hold), at least 1.
  */
-function assertStockShare(priced: PricedLine[]): void {
+function assertStockShare(priced: PricedLine[], lang: Lang): void {
   const share = shareOf();
   const perOrder = getSetting('inventory').max_units_per_unconfirmed_order || 5;
   const want = new Map<number, { units: number; stock: number }>();
@@ -187,13 +197,14 @@ function assertStockShare(priced: PricedLine[]): void {
     if (w.units > perOrder) {
       throw E.conflict('hold_cap_units',
         `Pa pagesë paraprake mund të rezervoni deri në ${perOrder} copë nga një artikull. Paguani me kartë ose kontaktoni hotelin për më shumë.`,
-        `Without paying now you can reserve up to ${perOrder} of one item. Pay by card or contact the hotel for more.`, { max: perOrder });
+        `Without paying now you can reserve up to ${perOrder} of one item. Pay by card or contact the hotel for more.`,
+        { max: perOrder, lines: keysOf(priced, (pl) => pl.product?.id === pid).map((key) => ({ key, problem: { code: 'hold_cap_units' } })) });
     }
     const held = Number(get<{ n: number }>(
       `SELECT COALESCE(SUM(CAST(json_extract(i.meta, '$.held_stock') AS INTEGER)), 0) AS n FROM order_items i JOIN orders o ON o.id = i.order_id
        WHERE i.product_id = ? AND i.kind NOT IN ('room','experience') AND ${LONG_HOLD}`, pid,
     )?.n ?? 0);
-    if (held + w.units > Math.max(1, Math.floor((w.stock + held) * share))) throw HOLD_CAP();
+    if (held + w.units > Math.max(1, Math.floor((w.stock + held) * share))) throw HOLD_CAP(keysOf(priced, (pl) => pl.product?.id === pid), lang);
   }
 }
 
@@ -285,6 +296,8 @@ export interface CheckoutInput {
   client?: (d: Demand, longHold: boolean) => { overShare: boolean };
   /** Orders this person (e-mail or phone key) placed from this address group in the last 24 h. */
   personHere?: number;
+  /** The checkout page's draft id (32 hex), stored so a repeated POST answers with this order (orderForCheckout). */
+  checkout_id?: string | null;
   /** seed only */
   demo?: boolean;
   at?: string;
@@ -293,6 +306,47 @@ export interface CheckoutInput {
 
 const SOLD_OUT = (lang_sq = 'Dikush tjetër sapo rezervoi të fundit. Ndryshoni datat ose sasinë.', lang_en = 'Someone else just booked the last one. Change the dates or quantity.') =>
   E.conflict('sold_out', lang_sq, lang_en);
+
+/**
+ * The order an earlier POST of the same checkout draft made: same checkout_id and e-mail key,
+ * placed in the last 24 h and not cancelled. api/checkout.ts answers a repeat with it instead of
+ * creating (and holding) a second order.
+ */
+export function orderForCheckout(checkoutId: string | null | undefined, email: string): Order | undefined {
+  if (!checkoutId) return undefined;
+  const since = new Date(Date.now() - 24 * 3600_000).toISOString();
+  return get<Order>(
+    "SELECT * FROM orders WHERE checkout_id = ? AND email_key = ? AND created_at >= ? AND status != 'cancelled' ORDER BY id DESC LIMIT 1",
+    checkoutId, emailKey(email), since,
+  );
+}
+
+/** When a cart line's service starts (ms): stays at noon of the first night, sessions at their start, Tirana winter offset, as the checkout page counts it. */
+function lineStartMs(l: { kind: string; date_from?: string; starts_at?: string }): number | null {
+  const s = l.kind === 'room' ? l.date_from : l.kind === 'experience' ? l.starts_at : undefined;
+  if (!s) return null;
+  const v = Date.parse(`${s.length <= 10 ? `${s}T12:00` : s.slice(0, 16)}:00+01:00`);
+  return Number.isFinite(v) ? v : null;
+}
+
+/**
+ * Bank transfer only when a transfer can arrive before the first night or session: the unpaid
+ * hold (bank_hold_hours) must end before the service starts, or it would keep the rooms or seats
+ * through the stay or the tour. The checkout page hides the method in this case (pay.bank.late).
+ */
+function assertBankInTime(priced: PricedLine[], lang: Lang): void {
+  const limit = Date.now() + (getSetting('payments').bank_hold_hours || 72) * 3600_000;
+  const soon = priced.map((pl) => ({ l: pl.line, at: lineStartMs(pl.line) }))
+    .filter((x): x is { l: PricedLine['line']; at: number } => x.at != null && x.at < limit)
+    .sort((a, b) => a.at - b.at)[0];
+  if (!soon) return;
+  const day = (soon.l.kind === 'room' ? soon.l.date_from : soon.l.starts_at)!.slice(0, 10);
+  const name = soon.l.name;
+  throw new ApiError(400, 'bank_late',
+    `Transferimi bankar nuk ofrohet për këtë porosi: «${name}» është më ${formatDate(day, 'sq', 'medium')}, para se të mbërrijë një transferim. Zgjidhni një mënyrë tjetër.`,
+    `Bank transfer is not offered for this order: “${name}” is on ${formatDate(day, 'en', 'medium')}, before a transfer could arrive. Please choose another way to pay.`,
+    { lines: [{ key: soon.l.key, problem: { code: 'bank_late' } }] });
+}
 
 const PROMO_USED_UP = () =>
   E.conflict('promo_used', 'Kodi promocional ka arritur kufirin e përdorimeve.', 'The promo code has reached its usage limit.');
@@ -321,7 +375,16 @@ function hold(it: { product_id: number | null; kind: string; qty: number; date_f
     if (it.kind === 'experience' && it.session_id) {
       const people = it.guests ?? it.qty;
       const r = run("UPDATE sessions SET booked = booked + ? WHERE id = ? AND status = 'open' AND booked + ? <= capacity", people, it.session_id, people);
-      if (!r.changes) throw SOLD_OUT();
+      if (!r.changes) {
+        // A slot staff cancelled or closed is not "sold out": say so, so staff reopen it or move the guest.
+        const st = get<{ status: string }>('SELECT status FROM sessions WHERE id = ?', it.session_id)?.status;
+        if (st && st !== 'open') {
+          throw E.conflict('session_cancelled',
+            st === 'cancelled' ? 'Ky orar është anuluar.' : 'Ky orar është mbyllur.',
+            st === 'cancelled' ? 'This time slot has been cancelled.' : 'This time slot is closed.');
+        }
+        throw SOLD_OUT();
+      }
       logInv({ product_id: p.id, session_id: it.session_id, delta: -people, reason, order_id: orderId, ts });
       return {};
     }
@@ -366,6 +429,14 @@ function release(it: OrderItem, orderId: number, reason: string, adminId: number
 function takePromoUse(code: string): void {
   const r = run('UPDATE offers SET used = used + 1 WHERE code = ? COLLATE NOCASE AND (max_uses IS NULL OR used < max_uses)', code);
   if (!r.changes && get('SELECT 1 FROM offers WHERE code = ? COLLATE NOCASE', code)) throw PROMO_USED_UP();
+}
+
+/** True when any line of the order sits on a time slot staff cancelled. */
+function hasCancelledSlot(orderId: number): boolean {
+  return !!get(
+    "SELECT 1 FROM order_items i JOIN sessions s ON s.id = i.session_id WHERE i.order_id = ? AND s.status = 'cancelled' LIMIT 1",
+    orderId,
+  );
 }
 
 /** Hold the inventory of a cancelled order again (re-open / late payment). Throws 409 when gone. */
@@ -453,13 +524,14 @@ export function createOrder(input: CheckoutInput): CreatedOrder {
     if (input.promo && q.promo && !q.promo.valid) {
       throw E.conflict('promo_invalid', q.promo.message, q.promo.message, { promo: q.promo });
     }
+    if (input.payment_method === 'bank' && !input.demo) assertBankInTime(q.priced, lang);
     if (!input.demo) {
       const demand = demandOf(q.priced);
       const c = input.client?.(demand, longHold);
       if (longHold) {
-        assertUnconfirmedShare(q.priced);
-        assertSeatShare(q.priced);
-        assertStockShare(q.priced);
+        assertUnconfirmedShare(q.priced, lang);
+        assertSeatShare(q.priced, lang);
+        assertStockShare(q.priced, lang);
         if (c?.overShare) review.push('address_share');
         if (isFarOrLong(q.priced)) review.push('far_or_long');
         if (!isSmall(q.priced, demand) && surgeNow()) {
@@ -483,12 +555,12 @@ export function createOrder(input: CheckoutInput): CreatedOrder {
     const shortHold = review.length > 0;
     const orderId = run(
       `INSERT INTO orders (code, access_token, customer_id, email, email_key, name, phone, phone_key, country, lang, status, payment_method, payment_status, payment_provider,
-        subtotal, discount, total, promo_code, notes, source, demo, test, marketing_consent, hold_until, review, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, 'unpaid', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        subtotal, discount, total, promo_code, notes, source, demo, test, marketing_consent, hold_until, review, checkout_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, 'unpaid', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       code, token, customerId, email, eKey, input.customer.name.trim(), input.customer.phone || null, pKey, input.customer.country || null,
       lang, input.payment_method, provider, q.subtotal, q.discount, q.total, q.promo?.valid ? q.promo.code : null, input.notes || null,
       input.source || null, input.demo ? 1 : 0, isTest, input.marketing_consent ? 1 : 0,
-      input.demo ? null : holdUntil(input.payment_method, at, shortHold), review.length ? review.join(',') : null, at, at,
+      input.demo ? null : holdUntil(input.payment_method, at, shortHold), review.length ? review.join(',') : null, input.checkout_id || null, at, at,
     ).id;
 
     for (const pl of q.priced) writeItem(pl, orderId, at);
@@ -635,10 +707,21 @@ export function markPaymentFailed(orderId: number): Order | undefined {
  * unconfirmed). Confirming does NOT copy the marketing consent — staff confirm bookings without
  * proving who owns the e-mail; `confirm_consent: true` does that explicitly (after staff checked
  * with the guest), and a payment does it automatically (markPaid).
+ * Confirming, completing or marking paid an order with a line on a time slot staff cancelled is
+ * refused (409 session_cancelled, nothing changed) unless the body says `force: true` — the admin
+ * page sends it after its "slot cancelled" warning.
  */
-export function adminUpdateOrder(orderId: number, patch: { status?: Order['status']; payment_status?: Order['payment_status']; notes?: string | null; payment_ref?: string | null; confirm_consent?: boolean }, adminId: number): Order | undefined {
+export function adminUpdateOrder(orderId: number, patch: { status?: Order['status']; payment_status?: Order['payment_status']; notes?: string | null; payment_ref?: string | null; confirm_consent?: boolean; force?: boolean }, adminId: number): Order | undefined {
   const o = getOrder(orderId);
   if (!o) return undefined;
+  const confirming = (patch.status === 'confirmed' || patch.status === 'completed') && patch.status !== o.status;
+  const paying = patch.payment_status === 'paid' && o.payment_status !== 'paid';
+  if ((confirming || paying) && !patch.force && hasCancelledSlot(orderId)) {
+    throw E.conflict('session_cancelled',
+      'Një orar në këtë porosi është anuluar. Anulojeni porosinë ose zhvendoseni klientin në një orar tjetër.',
+      'A time slot in this order has been cancelled. Cancel the order or move the guest to another slot.',
+      { field: 'force' });
+  }
   if (patch.status === 'cancelled' && o.status !== 'cancelled') cancelOrder(orderId, { reason: 'cancel', adminId });
   else if (patch.status && patch.status !== 'cancelled') {
     const now = nowIso();
@@ -662,6 +745,8 @@ export interface OrderViewLine {
   name: string; kind: Kind | string; slug: string | null; url: string | null; image: string | null;
   unit_price: number; qty: number; line_total: number; nights?: number; guests?: number | null;
   date_from?: string | null; date_to?: string | null; starts_at?: string | null; offer?: unknown;
+  /** The hotel cancelled this line's time slot (experience lines only; staff contact the guest). */
+  session_cancelled?: boolean;
 }
 
 export interface OrderView {
@@ -680,7 +765,9 @@ export function orderView(o: Order, lang: Lang): OrderView {
   const items = orderItems(o.id).map((it): OrderViewLine => {
     const p = it.product_id ? getProduct(it.product_id) : undefined;
     const m = it.meta as { nights?: number; starts_at?: string; offer?: unknown; slug?: string };
+    const slotGone = !!it.session_id && get<{ status: string }>('SELECT status FROM sessions WHERE id = ?', it.session_id)?.status === 'cancelled';
     return {
+      ...(slotGone ? { session_cancelled: true } : {}),
       name: p ? pname(p, lang) : it.name, kind: it.kind, slug: p?.slug ?? m.slug ?? null,
       url: p ? productUrl(p.kind, p.slug, lang) : null, image: p ? primaryImage(p) : null,
       unit_price: it.unit_price, qty: it.qty, line_total: it.line_total, nights: m.nights, guests: it.guests,

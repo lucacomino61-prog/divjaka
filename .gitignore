@@ -2,6 +2,13 @@ node_modules/
 dist/
 .astro/
 data/*.db*
+# any database copy anywhere (DIVJAKA_DB may point outside data/): customer data, never committed
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.sqlite
+*.sqlite3
 data/uploads/
 .env
 .env.*

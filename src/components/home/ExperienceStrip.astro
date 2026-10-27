@@ -35,7 +35,7 @@ const listHref = `${path('experiences', lang)}?pamja=liste`;
 ---
 <section class="exp sheet" aria-labelledby="exp-h">
   <div class="wrap">
-    <SectionHead id="exp-h" index={t(lang, 'home.exp.index')} kicker={t(lang, 'home.exp.kicker')} title={t(lang, 'home.exp.title')} size="poster">
+    <SectionHead id="exp-h" index={t(lang, 'home.exp.index')} kicker={t(lang, 'home.exp.kicker')} title={t(lang, 'home.exp.title')}>
       <a slot="aside" href={listHref} class="exp__list-link">{t(lang, 'home.exp.list')}</a>
     </SectionHead>
     <div class="exp__bar">
@@ -85,8 +85,6 @@ const listHref = `${path('experiences', lang)}?pamja=liste`;
 </section>
 
 <style>
-  /* the poster line box reaches up over the rule row: it must never take the list link's taps */
-  .exp :global(.poster), .exp :global(.poster__line) { pointer-events: none; }
   .exp__list-link { position: relative; z-index: 1; font-family: var(--font-mono); font-size: var(--step--2); text-transform: uppercase; letter-spacing: 0.06em; min-block-size: 24px; display: inline-flex; align-items: center; }
   @media (pointer: coarse) { .exp__list-link { min-block-size: 44px; } }
   .exp__bar { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; margin-block: 18px 22px; }

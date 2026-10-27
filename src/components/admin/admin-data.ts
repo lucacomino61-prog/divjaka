@@ -8,7 +8,7 @@ import { t, type Lang } from '../../i18n/ui';
 import { money, number, formatDate, tirane as tiraneParts } from '../../i18n/format';
 import { readResearch, photos, type PhotoEntry } from '../site/site-data';
 import { photoSrc } from '../site/photo-url';
-import { get as dbGet } from '../../lib/db/index';
+import { get as dbGet, all as dbAll } from '../../lib/db/index';
 import { localMidnightUtc } from '../../lib/stats';
 
 export const LANG_COOKIE = 'dv_admin_lang';
@@ -148,6 +148,33 @@ export const WARN_LINK: Record<string, string> = {
   payment_details_changed: '/admin/cilesimet/#pagesat',
   live_contact_missing: '/admin/cilesimet/#hoteli',
 };
+
+/**
+ * A TEST-paid order still on its automatic hold: the card simulator set it 'confirmed', but the
+ * sweep releases it like an unpaid one (orders.ts UNCONFIRMED) unless staff confirm it by hand.
+ */
+export function testHold(o: { test?: number | boolean | null; status: string; staff_hold?: number | null; hold_until?: string | null }): string | null {
+  return o.test && o.status !== 'cancelled' && !o.staff_hold && o.hold_until ? o.hold_until : null;
+}
+
+/** hold_until / staff_hold for rows that come without them (dashboard, customer history). */
+export function holdsOf(ids: number[]): Map<number, { hold_until: string | null; staff_hold: number }> {
+  const out = new Map<number, { hold_until: string | null; staff_hold: number }>();
+  const list = [...new Set(ids.filter((n) => Number.isInteger(n)))].slice(0, 500);
+  if (!list.length) return out;
+  for (const r of dbAll<{ id: number; hold_until: string | null; staff_hold: number }>(`SELECT id, hold_until, staff_hold FROM orders WHERE id IN (${list.map(() => '?').join(',')})`, ...list)) out.set(r.id, r);
+  return out;
+}
+
+/** Ids of the orders (among `ids`) with a line on a time slot staff cancelled. */
+export function cancelledSlotOrders(ids: number[]): Set<number> {
+  const list = [...new Set(ids.filter((n) => Number.isInteger(n)))].slice(0, 500);
+  if (!list.length) return new Set();
+  return new Set(dbAll<{ order_id: number }>(
+    `SELECT DISTINCT i.order_id FROM order_items i JOIN sessions s ON s.id = i.session_id
+     WHERE s.status = 'cancelled' AND i.order_id IN (${list.map(() => '?').join(',')})`, ...list,
+  ).map((r) => r.order_id));
+}
 
 export const ORDER_STATUSES = ['pending', 'confirmed', 'completed', 'cancelled'] as const;
 export const PAY_STATUSES = ['unpaid', 'paid', 'refunded', 'failed'] as const;

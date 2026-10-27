@@ -3,7 +3,8 @@
  * (admin mutations; cross-site form posts everywhere — this replaces Astro's security.checkOrigin,
  * switched off in astro.config.mjs because it compares against http://localhost:PORT in
  * production and answers in text/plain), per-address limits for public API reads, JSON errors
- * for every /api/* response (unknown routes included), security headers on every response.
+ * for every /api/* response (unknown routes included), a per-address ceiling for server-rendered
+ * pages, security headers and (production) gzip on every text response.
  * The CSP's script hashes are fixed at build time (src/lib/csp.ts), so responses are streamed
  * untouched; in dev the CSP is relaxed for Vite.
  */
@@ -30,6 +31,15 @@ if (!DEV) warnUnconfiguredOrigin();
  */
 const READ_PER_MIN = 1200;
 const UNCOUNTED_READS = new Set(['/api/live', '/api/live/', '/api/config', '/api/config/']);
+/**
+ * Server-rendered pages per address and minute (GET/HEAD, outside /admin and /api). A page costs
+ * 15–35 ms of synchronous work (SQLite + render) on the one thread that also runs checkout, so
+ * one address must not be able to stall the site. Generous for CGNAT (many phones, one address);
+ * a last line of defence only — the proxy's own limit (README → Deployment) comes first.
+ */
+const PAGES_PER_MIN = 600;
+/** Served by the adapter in production (never reach here) or cheap: not counted as pages. */
+const UNCOUNTED_PAGE = /^\/(?:_astro|fonts|photos|media|@[\w-]+|node_modules|src)\/|\.(?:js|css|map|svg|png|jpe?g|webp|avif|woff2?|ico|txt|xml|json|webmanifest)$/;
 
 export const onRequest = defineMiddleware(async (ctx, next) => {
   const { url, request, cookies, locals } = ctx;
@@ -47,10 +57,22 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   try {
     if (isForbiddenCrossSiteForm(request, url)) {
       res = isApi ? errorResponse(E.crossSite()) : new Response('Cross-site form submissions are not allowed.', { status: 403, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
-      return secure(res, p, locals.https, url);
+      return secure(res, p, locals.https, url, request);
     }
     // The work behind public reads is synchronous SQLite, so a flood would stall checkout.
     if (isApi && !isAdminApi && !mutating && !UNCOUNTED_READS.has(p)) rateLimit('api-read', clientIp(ctx), READ_PER_MIN, 60_000);
+    if (!isApi && !isAdminPage && !mutating && !UNCOUNTED_PAGE.test(p)) {
+      try {
+        rateLimit('page', clientIp(ctx), PAGES_PER_MIN, 60_000);
+      } catch (e) {
+        if (!(e instanceof ApiError)) throw e;
+        const retry = String((e.extra?.retry_after as number | undefined) ?? 60);
+        res = new Response(locals.lang === 'en' ? 'Too many requests. Try again shortly.' : 'Shumë kërkesa. Provoni pas pak.', {
+          status: 429, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Retry-After': retry, 'Cache-Control': 'no-store' },
+        });
+        return secure(res, p, locals.https, url, request);
+      }
+    }
 
     if (isAdminPage || isAdminApi) {
       try {
@@ -88,7 +110,7 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
     else if (res.status === 405) res = errorResponse(new ApiError(405, 'method_not_allowed', 'Metodë e palejuar.', 'Method not allowed.'));
   }
 
-  return secure(res, p, locals.https, url);
+  return secure(res, p, locals.https, url, request);
 });
 
 /** Order confirmation and booking lookup pages (both languages). */
@@ -96,8 +118,27 @@ const PRIVATE_PAGE = /^\/(?:porosia|rezervimet|en\/order|en\/bookings)(?:\/|$)/;
 /** APIs that answer with an order (token-checked). */
 const PRIVATE_API = /^\/api\/(?:order|pay|lookup|checkout)(?:\/|$)/;
 
-async function secure(res: Response, p: string, https: boolean, url?: URL): Promise<Response> {
-  const out = new Response(res.body, { status: res.status, statusText: res.statusText, headers: new Headers(res.headers) });
+/** Text responses worth compressing (SSR pages, JSON, XML feeds, CSV, robots.txt). */
+const COMPRESSIBLE = /^(?:text\/(?:html|plain|xml|csv|css|javascript)|application\/(?:json|xml|rss\+xml|atom\+xml|ld\+json|manifest\+json|javascript)|image\/svg\+xml)\b/i;
+
+/**
+ * gzip for server-rendered text in production when the client accepts it and nothing upstream
+ * compressed it yet. The reverse proxy should compress too (README → Deployment: it also covers
+ * the static files the adapter serves); a proxy leaves an already encoded body alone.
+ */
+function compress(res: Response, request?: Request): Response {
+  if (DEV || !request || !res.body || request.method === 'HEAD' || res.status === 204 || res.status === 304) return res;
+  if (res.headers.has('Content-Encoding') || !COMPRESSIBLE.test(res.headers.get('content-type') || '')) return res;
+  if (!/\bgzip\b/i.test(request.headers.get('accept-encoding') || '')) return res;
+  const headers = new Headers(res.headers);
+  headers.set('Content-Encoding', 'gzip');
+  headers.delete('Content-Length');
+  headers.append('Vary', 'Accept-Encoding');
+  return new Response(res.body.pipeThrough(new CompressionStream('gzip')), { status: res.status, statusText: res.statusText, headers });
+}
+
+async function secure(res: Response, p: string, https: boolean, url?: URL, request?: Request): Promise<Response> {
+  const out = compress(new Response(res.body, { status: res.status, statusText: res.statusText, headers: new Headers(res.headers) }), request);
   const isHtml = (res.headers.get('content-type') || '').includes('text/html');
   // HSTS / upgrade-insecure-requests: on https requests, and in production whenever the
   // configured public origin is https (TLS ends at the proxy, which may not say so).
@@ -113,6 +154,8 @@ async function secure(res: Response, p: string, https: boolean, url?: URL): Prom
   if (PRIVATE_PAGE.test(p) || PRIVATE_API.test(p) || (p.startsWith('/api/') && url?.searchParams.has('t'))) {
     out.headers.set('Cache-Control', 'private, no-store');
     out.headers.set('Referrer-Policy', 'no-referrer');
+    // A personal lookup / order page is never a search result (it is also left out of the sitemap).
+    out.headers.set('X-Robots-Tag', 'noindex, nofollow');
   }
   return out;
 }

@@ -71,6 +71,9 @@ const plain = text.replace(/\[\[[^|\]]+\|([^\]]+)\]\]/g, '$1');
     font-variation-settings: "opsz" 72; line-height: 1.06; letter-spacing: -0.03em;
     max-inline-size: 12em; text-wrap: pretty; hyphens: manual; overflow-wrap: anywhere;
   }
+  /* the soft hyphens are for phones only: from 640 px every word fits its line whole, and a
+     hyphen in display type ("fla- / mingot") reads like a bug (hyphens: none ignores &shy;) */
+  @media (min-width: 640px) { .verse { hyphens: none; } }
   :global(html.js) .verse:not(.is-set) > [aria-hidden] { visibility: hidden; animation: verse-show 0s linear 1.6s forwards; }
   @keyframes verse-show { to { visibility: visible; } }
   .verse__w { color: var(--ink); transition: color 300ms var(--ease-out); }

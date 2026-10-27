@@ -2,7 +2,7 @@
 /** /admin/klientet/:id/ — one customer (T6): details + consent, order history, erase (owner, confirmed). */
 import Admin from '../../../layouts/Admin.astro';
 import OrderBadges from '../../../components/admin/OrderBadges.astro';
-import { adminLang, tr, lek, when, callApi } from '../../../components/admin/admin-data';
+import { adminLang, tr, lek, when, callApi, testHold, holdsOf, cancelledSlotOrders } from '../../../components/admin/admin-data';
 import { GET as customerGET } from '../../api/admin/customers/[id]';
 import type { Customer } from '../../../lib/db/repo/customers';
 
@@ -15,6 +15,8 @@ type O = { id: number; code: string; total: number; status: string; payment_stat
 const data = await callApi<{ customer: Customer; orders: O[] }>(customerGET as never, Astro, undefined, { id });
 if (!data) return Astro.redirect(`/admin/klientet/?notfound=${encodeURIComponent(id.slice(0, 40))}`, 303);
 const { customer: c, orders } = data;
+const holds = holdsOf(orders.map((o) => o.id));
+const slotGone = cancelledSlotOrders(orders.map((o) => o.id));
 const total = orders.filter((o) => o.status !== 'cancelled' && !o.test && (o.payment_status === 'paid' || o.status === 'confirmed' || o.status === 'completed')).reduce((s, o) => s + o.total, 0);
 ---
 <Admin lang={lang} title={c.name || c.email} titleSize="s" section="customers" kicker={T('admin.customer.since', { date: when(c.created_at, lang, 'medium') })}>
@@ -45,7 +47,7 @@ const total = orders.filter((o) => o.status !== 'cancelled' && !o.test && (o.pay
               <li class="ledger__row">
                 <span class="ledger__main"><a class="mono mono-lc" href={`/admin/porosite/${o.code}/`}>{o.code}</a></span>
                 <span class="ledger__side mono">{lek(o.total, lang)}</span>
-                <span class="ledger__sub"><span class="mono">{when(o.created_at, lang)}</span><span>{T(`admin.pay.method.${o.payment_method}`)}</span><OrderBadges lang={lang} status={o.status} payment_status={o.payment_status} test={o.test} compact /></span>
+                <span class="ledger__sub"><span class="mono">{when(o.created_at, lang)}</span><span>{T(`admin.pay.method.${o.payment_method}`)}</span><OrderBadges lang={lang} status={o.status} payment_status={o.payment_status} test={o.test} testHold={testHold({ ...o, ...holds.get(o.id) })} slotCancelled={slotGone.has(o.id)} compact /></span>
               </li>
             ))}
           </ul>

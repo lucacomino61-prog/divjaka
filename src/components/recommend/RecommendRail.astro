@@ -68,10 +68,10 @@ const isList = variant === 'list';
           <button type="button" class="rec-sheet__close mono" data-rec-prefs-close>{t(lang, 'recommend.prefs.close')}</button>
         </div>
         <p class="rec-sheet__body">{t(lang, 'recommend.prefs.body')}</p>
-        <div class="rec-sheet__chips" role="group" aria-labelledby={`${sheetId}-h`}>
+        <div class="rec-sheet__chips filter-chips" role="group" aria-labelledby={`${sheetId}-h`}>
           {INTERESTS.map((k) => (
-            <button type="button" class="chip" aria-pressed="false" data-interest={k}>
-              <span class="chip__box" aria-hidden="true"></span>{t(lang, `recommend.interest.${k}`)}
+            <button type="button" class="filter-chip" aria-pressed="false" data-interest={k}>
+              {t(lang, `recommend.interest.${k}`)}
             </button>
           ))}
         </div>
@@ -137,17 +137,6 @@ const isList = variant === 'list';
   .rec-sheet__title { font-size: var(--step-3); }
   .rec-sheet__close, .rec-sheet__clear { min-block-size: 44px; padding: 0 4px; background: none; border: 0; color: inherit; font-size: var(--step--1); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
   .rec-sheet__body { color: var(--muted); max-inline-size: 52ch; }
-  .rec-sheet__chips { display: flex; flex-wrap: wrap; gap: 10px; }
-  .chip {
-    display: inline-flex; align-items: center; gap: 10px; min-block-size: 44px; padding: 0 18px 0 14px;
-    border: 1px solid var(--ink); border-radius: 99px; background: transparent; color: var(--ink);
-    font: inherit; font-size: var(--step-0); cursor: pointer; touch-action: manipulation;
-    transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out), transform 120ms var(--ease-out);
-  }
-  .chip:active { transform: scale(0.97); }
-  .chip__box { inline-size: 12px; block-size: 12px; border: 1.5px solid currentColor; border-radius: 99px; flex: none; }
-  .chip[aria-pressed="true"] { background: var(--ink); color: var(--salt); }
-  .chip[aria-pressed="true"] .chip__box { background: var(--pouch); border-color: var(--pouch); }
   .rec-sheet__foot { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-block-start: 12px; border-block-start: 1px solid var(--rule); }
 </style>
 

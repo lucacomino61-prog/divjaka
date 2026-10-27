@@ -36,6 +36,9 @@ try {
   live = await Promise.race([getLive({ origin }), new Promise<null>((r) => setTimeout(() => r(null), 3000))]);
 } catch { live = null; }
 const w = live && !live.stale ? live.weather : null;
+// no reading yet and nothing has failed (a slow provider on a cold start; or getLive itself did not
+// answer in time): "loading" and scripts/live.ts asks again in a few seconds, never the stale copy
+const loading = !w && (live ? live.loading : true);
 const spot = await hotelSpot();
 const now = tirane();
 const view = Astro.url.searchParams.get('pamja') === 'dite' ? 'days' : 'hours';
@@ -46,7 +49,8 @@ const n1 = (v: number) => number(v, lang, Math.abs(v) < 10 && v % 1 !== 0 ? 1 : 
 const deg = (v: number) => `${Math.round(v)}°`;
 const compassIdx = (d: number) => Math.round((((d % 360) + 360) % 360) / 45) % 8;
 const compassName = w ? t(lang, `now.compass.${compassIdx(w.wind_dir)}`) : '';
-const updated = live ? tirane(new Date(live.updated_at)).time : '';
+// the time of the last reading (MET checked), never the clock: no reading, no time
+const updated = w && live?.updated_at ? tirane(new Date(live.updated_at)).time : '';
 const validAt = w ? tirane(new Date(w.valid_at)).time : '';
 const weatherSrc = live?.sources.find((s) => s.key === 'weather');
 const seaSrc = live?.sources.find((s) => s.key === 'sea');
@@ -99,10 +103,10 @@ const jsonld = {
       <p class="now__rule mono">
         <span>{t(lang, 'now.index')}</span>
         <span>{t(lang, 'now.kicker')}</span>
-        <span class="now__rule-end"><time data-clock datetime={now.time}>{now.time}</time> · {coords(spot.lat, spot.lon)}</span>
+        <span class="now__rule-end">{updated ? <time data-live-block id="now-latest" datetime={updated}>{updated}</time> : <span data-live-block id="now-latest">{t(lang, 'now.latest.none')}</span>} · {coords(spot.lat, spot.lon)}</span>
       </p>
 
-      <div class="now__grid" data-live-block id="now-entry" data-stale={w ? '0' : '1'} data-updated={updated}>
+      <div class="now__grid" data-live-block id="now-entry" data-stale={w ? '0' : '1'} data-loading={loading ? '1' : '0'} data-updated={updated}>
         <div class="now__entry">
           <h1 id="now-h" class="now__title">{t(lang, 'now.title')}</h1>
           {w ? (
@@ -123,6 +127,11 @@ const jsonld = {
                 {weatherSrc && <a href={weatherSrc.url} rel="noopener">{lang === 'sq' ? weatherSrc.sq : weatherSrc.en}</a>}
               </p>
             </>
+          ) : loading ? (
+            <div class="now__stale now__stale--loading" role="status" aria-busy="true">
+              <p class="now__stale-t"><span class="live-dot" aria-hidden="true"></span>{t(lang, 'now.loading.title')}</p>
+              <p class="muted">{t(lang, 'now.loading.body')}</p>
+            </div>
           ) : (
             <div class="now__stale" role="status">
               <p class="now__stale-t">{t(lang, 'now.stale.title')}</p>
@@ -336,6 +345,7 @@ const jsonld = {
   .now__lead { max-inline-size: 46ch; color: var(--muted); margin-block-start: 10px; }
   .now__stale { border-block: 1px solid var(--ink); padding-block: 22px; display: grid; gap: 8px; max-inline-size: 52ch; }
   .now__stale-t { font-size: var(--step-2); font-weight: 700; font-stretch: 85%; }
+  .now__stale--loading .now__stale-t { display: flex; align-items: center; gap: 12px; }
   .now__chart { margin: 0; display: grid; gap: 8px; min-inline-size: 0; }
   .now__chart-cap { font-size: var(--step--2); color: var(--muted); }
 
@@ -442,7 +452,7 @@ const jsonld = {
   .today__plan { margin-block-start: 32px; padding: 20px; border: 1px solid var(--ink); display: grid; gap: 10px; justify-items: start; }
   .today__plan-t { font-size: var(--step-2); font-weight: 700; font-stretch: 85%; }
 
-  .now__foot { padding-block: 0 var(--section-gap); }
+  .now__foot { padding-block: 0; }
   .foot__bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; padding-block: 14px; border-block: 1px solid var(--ink); }
   .foot__status { font-size: var(--step--2); }
   .foot__status:empty { display: none; }

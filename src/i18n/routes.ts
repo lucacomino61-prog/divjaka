@@ -30,6 +30,13 @@ export const ROUTES = {
 } as const satisfies Record<string, Record<Lang, string>>;
 
 export type RouteKey = keyof typeof ROUTES;
+
+/**
+ * Task pages (DESIGN: two poster scales): their h1 poster is capped by --poster-max-task so the
+ * form, the list or the reading starts on the first screen. SectionHead reads this; views never
+ * set a cap of their own. Every other page is editorial (--poster-max).
+ */
+export const TASK_ROUTES: ReadonlySet<RouteKey> = new Set<RouteKey>(['shop', 'product', 'cart', 'checkout', 'order', 'account', 'article']);
 export type RouteParams = Record<string, string | number>;
 
 const PARAM_RE = /\[([a-z]+)\]/g;

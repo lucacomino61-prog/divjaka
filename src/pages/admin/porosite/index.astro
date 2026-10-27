@@ -2,7 +2,7 @@
 /** /admin/porosite/ — Porositë (T6): filters in the URL, ruled table (stacked rows on phones), flood cancel tool. */
 import Admin from '../../../layouts/Admin.astro';
 import OrderBadges from '../../../components/admin/OrderBadges.astro';
-import { adminLang, tr, lek, when, pageOf, withParam, callApi, ORDER_STATUSES, PAY_STATUSES, PAY_METHODS, KINDS } from '../../../components/admin/admin-data';
+import { adminLang, tr, lek, when, pageOf, withParam, callApi, testHold, cancelledSlotOrders, ORDER_STATUSES, PAY_STATUSES, PAY_METHODS, KINDS } from '../../../components/admin/admin-data';
 import { GET as ordersGET } from '../../api/admin/orders/index';
 import type { OrderListRow } from '../../../lib/db/repo/orders';
 
@@ -22,6 +22,7 @@ const moreCount = [f.payment_status, f.payment_method, f.kind, f.from, f.to].fil
 const moreSet = moreCount > 0;
 const reviewText = (r: string | null) => (r ? r.split(',').map((x) => T(`admin.review.${x}`)).join(', ') : '');
 const now = Date.now();
+const slotGone = cancelledSlotOrders(data.items.map((o) => o.id));
 ---
 <Admin lang={lang} title={T('admin.orders.title')} section="orders" kicker={T('admin.orders.kicker')}>
   {notFound && <p class="note-box" role="status" style="margin-block-end:24px">{T('admin.notfound.order', { code: notFound })}</p>}
@@ -98,6 +99,7 @@ const now = Date.now();
           <tbody>
             {data.items.map((o) => {
               const holding = o.hold_until && o.status === 'pending' && Date.parse(o.hold_until) > now;
+              const th = testHold(o);
               return (
                 <tr class:list={[o.status === 'cancelled' && 'is-muted']}>
                   <td data-label="" class="c-code">
@@ -114,8 +116,9 @@ const now = Date.now();
                   </td>
                   <td data-label={T('admin.orders.method')} class="c-method">{T(`admin.pay.method.${o.payment_method}`)}</td>
                   <td data-label={T('admin.status')} class="c-status">
-                    <OrderBadges lang={lang} status={o.status} payment_status={o.payment_status} test={o.test} demo={o.demo} />
-                    {holding && <span class="cell-sub mono">{T('admin.orders.hold', { time: when(o.hold_until, lang) })}</span>}
+                    <OrderBadges lang={lang} status={o.status} payment_status={o.payment_status} test={o.test} demo={o.demo} testHold={th} slotCancelled={slotGone.has(o.id)} />
+                    {holding && !th && <span class="cell-sub mono">{T('admin.orders.hold', { time: when(o.hold_until, lang) })}</span>}
+                    {th && <span class="cell-sub mono">{T('admin.orders.test.hold', { time: when(th, lang) })}</span>}
                     {o.review && o.status === 'pending' && <span class="cell-sub signal-text">{T('admin.orders.hold.short', { why: reviewText(o.review) })}</span>}
                     {!!o.staff_hold && o.status === 'pending' && <span class="cell-sub mono">{T('admin.orders.staff')}</span>}
                   </td>

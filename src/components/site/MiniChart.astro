@@ -5,7 +5,7 @@
  * `paths.lagoon` as SVG `d` strings (OSM, ODbL) and `pois[]` with x/y in the same space.
  * Without geo.json it draws only the survey grid and the hotel pin — never an invented coast.
  * T3 builds the full <Chart> (components/chart/) for the signature.
- * Pins carry data-pin (hotel, tower, island, heritage, lagoon — each a distinct place, see
+ * Pins carry data-pin (hotel, tower = tower-360, island, heritage, lagoon — each a distinct place, see
  * nav.ts LEGEND); menu.ts adds .is-active to drop a pin + draw its leader line and tagged label. Phones show it as a strip centred on the hotel
  * (--strip-y, see .menu__chart in chrome.css).
  */
@@ -48,7 +48,9 @@ const pinAt = (key: string, p: Raw | undefined) => (p ? { key, name: nameOf(p), 
 const pins = [
   { key: 'hotel', name: t(lang, 'site.hotel'), x: num(hotelPoi?.x) ?? W / 2, y: num(hotelPoi?.y) ?? H / 2 },
   ...(hasMap ? [
-    pinAt('tower', byId('pelican-tower') ?? byKind('observation_tower')),
+    // the 360° Tower by the visitor centre (OSM way 1124509421), the one the experiences visit; never
+    // 'pelican-tower', the bird hide OSM tags as destroyed (NEEDS_VERIFICATION, Catalogue T0)
+    pinAt('tower', byId('tower-360')),
     pinAt('island', byId('pelican-island')),
     pinAt('heritage', byId('st-cosmas-monastery') ?? byKind('monastery')),
     lagoonCentre ? { key: 'lagoon', name: t(lang, 'water.lagoon'), ...lagoonCentre } : null,

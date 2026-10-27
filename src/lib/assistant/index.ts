@@ -75,7 +75,7 @@ export interface AssistantProduct {
 }
 export interface AssistantReply {
   reply: string; chips: string[]; links: AssistantLink[]; products: AssistantProduct[];
-  intent: 'contact' | 'availability' | 'sessions' | 'faq' | 'recommend' | 'ask_dates' | 'llm' | 'handoff' | 'miss' | 'greeting' | 'weather';
+  intent: 'contact' | 'availability' | 'sessions' | 'faq' | 'recommend' | 'ask_dates' | 'llm' | 'handoff' | 'miss' | 'greeting' | 'weather' | 'price';
   handoff: boolean;
   dates?: { from: string; to: string; nights: number; guests: number | null };
 }
@@ -91,6 +91,7 @@ const DEFAULT_STRINGS = {
     recommend: 'Disa ide që mund t\'ju pëlqejnë:',
     miss: 'Nuk e di përgjigjen me siguri. Dëshironi që t\'ju kontaktojë stafi i hotelit? Lini emrin dhe email-in ose telefonin.',
     handoff: 'Sigurisht. Lini emrin dhe email-in ose telefonin, dhe stafi i hotelit ju kontakton.',
+    handoff_plain: 'Lini emrin dhe një email ose telefon, dhe stafi i hotelit ju kontakton.',
     contact_saved: 'Faleminderit! Mesazhi u dërgua te stafi i Hotel Pelikan. Do t\'ju kontaktojnë sa më shpejt.',
     contact_missing: 'Na duhet një email ose numër telefoni që stafi t\'ju kontaktojë.',
     chip_rooms: 'Dhoma për fundjavën',
@@ -119,6 +120,12 @@ const DEFAULT_STRINGS = {
     weather_none: 'Tani nuk kemi lexime të freskëta të motit. Te "Tani në Divjakë" janë dielli, stina dhe, sapo të vijnë, leximet e reja.',
     link_now: 'Tani në Divjakë',
     chip_plan: 'Më ndihmo me itinerarin',
+    weather_loading: 'Leximet e motit po vijnë nga MET Norway. Pyesni sërish pas pak sekondash, ose hapni "Tani në Divjakë".',
+    date_invalid: 'Ajo datë nuk ekziston ({date}). Për cilat data? Shkruani p.sh. "12–14 korrik".',
+    date_invalid_any: 'Ajo datë nuk vlen. Për cilat data? Shkruani p.sh. "12–14 korrik".',
+    date_order: 'Data e largimit duhet të jetë pas datës së mbërritjes. Për cilat data? Shkruani p.sh. "12–14 korrik".',
+    price_now: 'Çmimet aktuale:',
+    price_more: 'Oraret dhe vendet e lira janë te faqja e eksperiencës.',
   },
   en: {
     greeting: 'Hello! Ask about rooms, experiences in the park and lagoon, payments or your bookings.',
@@ -130,6 +137,7 @@ const DEFAULT_STRINGS = {
     recommend: 'A few ideas you may like:',
     miss: 'I do not know that for sure. Would you like the hotel staff to contact you? Leave your name and e-mail or phone.',
     handoff: 'Of course. Leave your name and e-mail or phone and the hotel staff will contact you.',
+    handoff_plain: 'Leave your name and e-mail or phone and the hotel staff will contact you.',
     contact_saved: 'Thank you! Your message was sent to the Hotel Pelikan staff. They will contact you soon.',
     contact_missing: 'We need an e-mail or phone number so the staff can contact you.',
     chip_rooms: 'A room this weekend',
@@ -158,6 +166,12 @@ const DEFAULT_STRINGS = {
     weather_none: 'There are no fresh weather readings right now. "Now in Divjakë" has the sun, the season and, as soon as they arrive, the new readings.',
     link_now: 'Now in Divjakë',
     chip_plan: 'Help me plan my days',
+    weather_loading: 'The weather readings are on their way from MET Norway. Ask again in a few seconds, or open "Now in Divjakë".',
+    date_invalid: 'That date does not exist ({date}). Which dates do you mean? Write for example "12–14 July".',
+    date_invalid_any: 'That date is not valid. Which dates do you mean? Write for example "12–14 July".',
+    date_order: 'The departure date has to come after the arrival date. Which dates do you mean? Write for example "12–14 July".',
+    price_now: 'Current prices:',
+    price_more: 'Times and free places are on the experience page.',
   },
 };
 type StrKey = keyof typeof DEFAULT_STRINGS.sq;
@@ -193,6 +207,14 @@ const REC_WORDS = ['rekomand', 'sugjer', 'keshill', 'recommend', 'suggest', 'ide
  * person to talk to are a hand-off.
  */
 const HANDOFF_WORDS = ['flas me', 'staf', 'njeri real', 'me nje njeri\\b', 'njeri te stafit', 'njeri nga stafi', 'operator', 'human', 'person real', 'real person', 'call me', 'me telefononi', 'me merrni', 'contact me', 'me kontaktoni', 'talk to'];
+/**
+ * The hand-off words that really ask to talk to (or be contacted by) a person. Only these get the
+ * "Of course." opener: "Do the staff speak English?" names the staff but asks for nothing, and a
+ * "Of course." there would read as a confirmed yes (NEEDS_VERIFICATION keeps the languages open).
+ */
+const HANDOFF_ASK = ['flas me', 'njeri real', 'me nje njeri\\b', 'njeri te stafit', 'njeri nga stafi', 'operator', 'human', 'person real', 'real person', 'call me', 'me telefononi', 'me merrni', 'contact me', 'me kontaktoni', 'talk to', 'speak (to|with)', 'dua .{0,24}staf', 'want .{0,24}staff', 'need .{0,24}staff'];
+/** A language named (or "language" itself): "a flasin stafi anglisht?" is the languages FAQ row, not a hand-off. */
+const LANGUAGE_WORDS = ['gjuh', 'language', 'anglisht', 'italisht', 'gjermanisht', 'frengjisht', 'greqisht', 'spanjisht', 'english', 'italian', 'german', 'french', 'greek', 'spanish'];
 /** "Is this a bot?": the FAQ row about the assistant answers, before the hand-off words ("real person"). */
 const BOT_WORDS = ['bot\\b', 'robot', 'chatbot', 'inteligjenc', 'artificial', 'are you (a )?(human|real|person)', 'is this (a )?(bot|human|real|person)', 'a je njeri', 'je njeri', 'po flas me (nje )?(njeri|robot|bot)', 'talking to a (person|human|bot|machine|real)'];
 /**
@@ -384,6 +406,9 @@ function roomAvailability(lang: Lang, from: string, to: string, guests: number |
 }
 
 const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
+/** month names for a date that does not exist (Intl cannot format it; Chrome has no Albanian Intl either) */
+const MONTH_SQ = ['janar', 'shkurt', 'mars', 'prill', 'maj', 'qershor', 'korrik', 'gusht', 'shtator', 'tetor', 'nëntor', 'dhjetor'];
+const MONTH_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 /** Albanian weekday after a verb or a preposition takes the accusative: "të hënën, 26 tetor 2026". */
 const WEEKDAY_ACC_SQ = ['të hënën', 'të martën', 'të mërkurën', 'të enjten', 'të premten', 'të shtunën', 'të dielën'];
 function datePhrase(date: string, lang: Lang): string {
@@ -413,6 +438,47 @@ function sessionPrice(x: AssistantProduct, lang: Lang, guests: number | null): s
   return parts.join(', ');
 }
 
+/**
+ * Words a visitor uses for an experience, also when they are not in its name ("boat", "dawn
+ * birdwatching", "dinner"): matched to a slug fragment. Fishing ("peshkim", "fishing") is not the
+ * fish dinner.
+ */
+const EXP_TOPIC: [RegExp, string][] = [
+  [/\b(varke|varka|varken|boat|lundrim|cruise)/, 'varke'], [/\b(agim|dawn|sunrise|zog|shpend|bird)/, 'shpendet'],
+  [/\b(biciklet|bike|cycling)/, 'biciklete'], [/\b(darke|darka|darken|dinner|peshk(?!im|oj|on|atar)|fish(?!ing|er))/, 'darke'],
+  [/\b(kulturor|cultural|ardenic|apoloni|apolloni)/, 'kulturore'], [/\b(qendr\w* e vizitor|visitor cent|kulla 360|360)/, 'qendra'],
+  [/\b(guid\w*|udherrefy\w*)\b.*\bpark|\bpark\w*\b.*\b(guid|tour|tur)/, 'parku'],
+];
+function topicalExperiences<T extends { slug: string }>(folded: string, exps: T[]): T[] {
+  const topical = EXP_TOPIC.filter(([re]) => re.test(folded)).map(([, frag]) => frag);
+  return topical.length ? exps.filter((p) => topical.some((frag) => p.slug.includes(frag))) : [];
+}
+
+/** "Sa kushton …?", "how much is …", "price of …": a price question. */
+const PRICE_WORDS = ['sa kusht', 'kushton', 'kushtojne', 'cmim', 'sa leke', 'sa para', 'how much', 'price', 'cost', 'what does .* cost', 'rate for'];
+/** Fishing is no topic of the FAQ (the restaurant row has "fish", the park rules say nothing about it): the hand-off answers. */
+const FISHING_WORDS = ['peshkim', 'peshkoj', 'peshkojme', 'peshkon\\b', 'peshkatar', 'fishing', 'go fish\\b', 'fish(ing)? rod', 'kallam peshk'];
+
+/**
+ * The price of a named experience: per person, and for the party when its size is given, with a
+ * link to its page (persona= carried). Only experiences the visitor named by topic (EXP_TOPIC).
+ */
+function priceReply(lang: Lang, folded: string, guests: number | null): AssistantReply | null {
+  const named = topicalExperiences(folded, listProducts({ kind: 'experience' }));
+  if (!named.length) return null;
+  const products: AssistantProduct[] = named.slice(0, 3).map((p) => ({
+    slug: p.slug, kind: p.kind, name: pname(p, lang), image: primaryImage(p), price: p.price, per: 'person' as const,
+    url: `${productUrl(p.kind, p.slug, lang)}${guests ? `?persona=${guests}` : ''}`,
+    ...(guests && guests > 1 ? { total: p.price * guests, party: guests } : {}),
+  }));
+  const lines = products.map((x) => `• ${x.name} — ${sessionPrice({ ...x, left: null }, lang, guests)}`);
+  return {
+    reply: `${s(lang, 'price_now')}\n${lines.join('\n')}\n${s(lang, 'price_more')}`,
+    chips: [s(lang, 'chip_rooms'), s(lang, 'chip_staff')],
+    links: [{ label: s(lang, 'link_experiences'), url: path('experiences', lang) }], products, intent: 'price', handoff: false,
+  };
+}
+
 function sessionAvailability(lang: Lang, date: string, folded: string, guests: number | null): AssistantReply {
   const exps = listProducts({ kind: 'experience' });
   // Which experience is the visitor asking about? Count distinctive name words (5-letter
@@ -422,16 +488,7 @@ function sessionAvailability(lang: Lang, date: string, folded: string, guests: n
     const words = new Set(tokens(`${p.name_sq} ${p.name_en}`).filter((t) => t.length >= 5).map((t) => t.slice(0, 5)).filter((t) => !GENERIC.has(t)));
     return { p, n: [...words].filter((w) => folded.includes(w)).length };
   });
-  // Words a visitor uses that are not in the product names ("boat", "dawn birdwatching",
-  // "dinner"): matched to a slug fragment, and they decide before the name words do.
-  const TOPIC: [RegExp, string][] = [
-    [/\b(varke|varka|varken|boat|lundrim|cruise)/, 'varke'], [/\b(agim|dawn|sunrise|zog|shpend|bird)/, 'shpendet'],
-    [/\b(biciklet|bike|cycling)/, 'biciklete'], [/\b(darke|darka|darken|dinner|peshk|fish)/, 'darke'],
-    [/\b(kulturor|cultural|ardenic|apoloni|apolloni)/, 'kulturore'], [/\b(qendr\w* e vizitor|visitor cent|kulla 360|360)/, 'qendra'],
-    [/\b(guid\w*|udherrefy\w*)\b.*\bpark|\bpark\w*\b.*\b(guid|tour|tur)/, 'parku'],
-  ];
-  const topical = TOPIC.filter(([re]) => re.test(folded)).map(([, frag]) => frag);
-  const byTopic = topical.length ? exps.filter((p) => topical.some((frag) => p.slug.includes(frag))) : [];
+  const byTopic = topicalExperiences(folded, exps);
   const best = Math.max(0, ...scored.map((x) => x.n));
   const list = byTopic.length ? byTopic : best > 0 ? scored.filter((x) => x.n === best).map((x) => x.p) : exps;
   const products: AssistantProduct[] = [];
@@ -468,11 +525,11 @@ async function weatherReply(lang: Lang, date: string | null): Promise<AssistantR
   const links = [{ label: s(lang, 'link_now'), url: path('now', lang) }];
   const chips = [s(lang, 'chip_ideas'), s(lang, 'chip_tours')];
   const w = live && !live.stale ? live.weather : null;
-  if (!w) return { reply: s(lang, 'weather_none'), chips, links, products: [], intent: 'weather', handoff: false };
+  if (!w) return { reply: s(lang, live && !live.loading ? 'weather_none' : 'weather_loading'), chips, links, products: [], intent: 'weather', handoff: false };
   const low = (x: string) => x.charAt(0).toLowerCase() + x.slice(1);
   const lines = [s(lang, 'weather_now', {
     // the hour the reading is valid for (MET's forecast hour), not the moment the server checked
-    time: new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Tirane', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(w.valid_at || live!.updated_at)),
+    time: new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Tirane', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(w.valid_at || live!.updated_at || Date.now())),
     temp: Math.round(w.temp), label: low(lang === 'en' ? w.label_en : w.label_sq), wind: Math.round(w.wind_kmh),
   })];
   const want = date && date !== todayStr() ? date : null;
@@ -566,9 +623,19 @@ export async function answer(input: AssistantInput, meta: { ua: string | null; i
     }
   }
 
+  // "Do the staff speak English?" / "A flet stafi italisht?": the languages FAQ row answers (Booking.com
+  // listing, confirm with the hotel), before the hand-off words catch "staff".
+  if (has(folded, LANGUAGE_WORDS) && !has(folded, HANDOFF_ASK)) {
+    const hit = matchFaq(msg).find((h) => /\blanguages?\b/.test(h.faq.keywords ?? ''));
+    if (hit) {
+      log('faq', true, { faq: hit.faq.id, languages: true });
+      return { reply: faqText((lang === 'en' ? hit.faq.a_en : hit.faq.a_sq) || hit.faq.a_sq || hit.faq.a_en || ''), chips: [s(lang, 'chip_staff')], links: faqLinks(hit.faq, lang), products: [], intent: 'faq', handoff: false };
+    }
+  }
+
   if (has(folded, HANDOFF_WORDS)) {
     log('handoff', true);
-    return { reply: s(lang, 'handoff'), chips: [], links: [{ label: lang === 'en' ? 'Contact' : 'Kontakt', url: path('contact', lang) }], products: [], intent: 'handoff', handoff: true };
+    return { reply: s(lang, has(folded, HANDOFF_ASK) ? 'handoff' : 'handoff_plain'), chips: [], links: [{ label: lang === 'en' ? 'Contact' : 'Kontakt', url: path('contact', lang) }], products: [], intent: 'handoff', handoff: true };
   }
 
   const today = todayStr();
@@ -595,9 +662,11 @@ export async function answer(input: AssistantInput, meta: { ua: string | null; i
   if (d.problem && (d.problem !== 'past' || roomWord || d.range || has(folded, STRONG_AVAIL))) {
     // A date that does not exist, an end not after the start, or a start in the past: ask again,
     // never answer for other dates than the guest wrote.
-    const key: StrKey = d.problem === 'past' ? 'range_past' : 'ask_dates';
-    log('range_refused', false, d.from ? { from: d.from } : {});
-    return { reply: s(lang, key), chips: [s(lang, 'chip_rooms')], links: [], products: [], intent: 'ask_dates', handoff: false };
+    // say why: a day the month does not have ("30 shkurt"), an end before the start, a past day
+    const key: StrKey = d.problem === 'past' ? 'range_past' : d.problem === 'order' ? 'date_order' : d.bad ? 'date_invalid' : 'date_invalid_any';
+    const date = d.bad ? `${d.bad.d} ${(lang === 'en' ? MONTH_EN : MONTH_SQ)[d.bad.m - 1]}` : '';
+    log('range_refused', false, { problem: d.problem, ...(d.from ? { from: d.from } : {}) });
+    return { reply: s(lang, key, { date }), chips: [s(lang, 'chip_rooms')], links: [], products: [], intent: 'ask_dates', handoff: false };
   }
   if (d.from && d.to && !d.problem && (aboutExp || datedRooms)) {
     // Same limits as a cart line (pricing.ts), checked BEFORE any availability work: a range
@@ -617,10 +686,25 @@ export async function answer(input: AssistantInput, meta: { ua: string | null; i
     return r;
   }
 
+  // Fishing: no FAQ row is about it ("fish" would meet the restaurant row) and nothing verified is
+  // known about fishing rules: Claude (grounded) or the staff hand-off answers.
+  const fishing = has(folded, FISHING_WORDS);
+
+  // "Sa kushton dita kulturore?", "price of the dawn birds tour": the experience's own price (per
+  // person, and for the party when its size was given), before any FAQ row. Rooms keep their FAQ
+  // (the price depends on the room and the dates).
+  if (!fishing && !roomWord && has(folded, PRICE_WORDS)) {
+    const r = priceReply(lang, folded, d.guests);
+    if (r) {
+      log('price', true, { products: r.products.map((x) => x.slug) });
+      return r;
+    }
+  }
+
   // Only rows that share a topic with the question are candidates (matchFaq `ok`). When two are
   // nearly tied, the higher one answers and the other is offered first as a chip ("a ka wifi në
   // dhoma?": the Wi-Fi row and the room-contents row both fit).
-  const faq = matchFaq(msg);
+  const faq = fishing ? [] : matchFaq(msg);
   const best = faq[0];
   if (best) {
     const f = best.faq;
@@ -633,7 +717,7 @@ export async function answer(input: AssistantInput, meta: { ua: string | null; i
     };
   }
 
-  if (has(folded, REC_WORDS)) {
+  if (!fishing && has(folded, REC_WORDS)) {
     const interests = [...new Set([...interestsFrom(folded), ...(input.context?.interests ?? [])])];
     const items = recommend({ lang, interests, cart: input.context?.cart, limit: 3 });
     log('recommend', items.length > 0, { interests });

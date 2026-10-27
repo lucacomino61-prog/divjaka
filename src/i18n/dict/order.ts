@@ -4,7 +4,7 @@
  */
 export default {
   sq: {
-    'order.index': '07',
+    'order.index': '04.4',
     'order.kicker': 'Porosia {code}',
     'order.title': 'Porosia',
     'order.lead.pending': 'Porosia u regjistrua. Ruani kodin {code}: me të dhe me emailin e gjeni porosinë kurdo te «Rezervimet e mia».',
@@ -46,6 +46,9 @@ export default {
     'order.hold.hotel.goods': 'Nëse hoteli nuk e konfirmon porosinë deri më {date}, ora {time} (ora e Shqipërisë), artikujt lirohen vetë.',
     'order.hold.hotel.mixed': 'Nëse hoteli nuk e konfirmon porosinë deri më {date}, ora {time} (ora e Shqipërisë), vendet dhe artikujt lirohen vetë.',
     'order.bundle.dates': 'Hoteli ju kontakton për të caktuar datat.',
+    'order.slot.cancelled': 'Hoteli e anuloi këtë orar dhe do t’ju kontaktojë.',
+    'order.slot.cancelled.status': 'Hoteli anuloi një orar në këtë porosi dhe do t’ju kontaktojë për të.',
+    'order.slot.cancelled.pay': 'Pagesa me kartë është ndalur derisa të flisni me hotelin.',
     'order.st.confirm.card': 'Konfirmimi me pagesën',
     'order.hotel.note': 'Paguani në recepsion kur mbërrini.',
     'order.bank.title': 'Të dhënat për transferimin',
@@ -126,7 +129,7 @@ export default {
     'account.data.done': 'U fshinë të dhënat që ky sajt mbante në këtë shfletues.',
   },
   en: {
-    'order.index': '07',
+    'order.index': '04.4',
     'order.kicker': 'Order {code}',
     'order.title': 'Order',
     'order.lead.pending': 'Your order is registered. Keep the code {code}: with it and your email you can find the order any time under “My bookings”.',
@@ -168,6 +171,9 @@ export default {
     'order.hold.hotel.goods': 'If the hotel has not confirmed the order by {date}, {time} (Albania time), the items are released.',
     'order.hold.hotel.mixed': 'If the hotel has not confirmed the order by {date}, {time} (Albania time), the places and items are released.',
     'order.bundle.dates': 'The hotel will contact you to agree the dates.',
+    'order.slot.cancelled': 'The hotel cancelled this time slot and will contact you.',
+    'order.slot.cancelled.status': 'The hotel cancelled a time slot in this order and will contact you about it.',
+    'order.slot.cancelled.pay': 'Card payment is paused until you have spoken to the hotel.',
     'order.st.confirm.card': 'Confirmation by your payment',
     'order.hotel.note': 'Pay at reception when you arrive.',
     'order.bank.title': 'Transfer details',

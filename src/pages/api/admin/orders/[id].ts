@@ -36,6 +36,8 @@ export const GET: APIRoute = handle(async ({ locals, params }) => {
  * (409 sold_out if they are gone); any status set here makes the order a staff hold (no automatic
  * release); payment_status 'paid' stamps paid_at and confirms the marketing consent ticked on the
  * order; confirm_consent: true confirms it without a payment (after checking with the guest).
+ * Confirming/completing or marking paid an order on a cancelled time slot → 409 session_cancelled
+ * ({ field: 'force' }) unless the body carries force: true.
  */
 export const PATCH: APIRoute = handle(async ({ locals, params, request }) => {
   const admin = requireAdmin(locals);

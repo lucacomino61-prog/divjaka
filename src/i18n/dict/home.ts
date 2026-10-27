@@ -132,8 +132,8 @@ export default {
 
     'home.kind.room': 'Dhomë',
     'home.kind.experience': 'Eksperiencë',
-    'home.kind.bundle': 'Paketë',
-    'home.kind.gift': 'Kartë dhurate',
+    'home.kind.bundle': 'Paketë me qëndrim',
+    'home.kind.gift': 'Kartë dhuratë',
     'home.kind.goods': 'Për udhëtimin',
   },
   en: {
@@ -209,7 +209,7 @@ export default {
     'home.exp.lead.seats': 'Free places come straight from the booking calendar.',
     'home.exp.list': 'View as list',
     'home.exp.all': 'All experiences',
-    'home.exp.next': 'Next on {date}',
+    'home.exp.next': 'Next: {date}',
     'home.exp.seats': '{n} places free',
     'home.exp.seats.one': '1 place free',
     'home.exp.none': 'No open dates right now',
@@ -255,7 +255,7 @@ export default {
 
     'home.kind.room': 'Room',
     'home.kind.experience': 'Experience',
-    'home.kind.bundle': 'Package',
+    'home.kind.bundle': 'Bundle',
     'home.kind.gift': 'Gift card',
     'home.kind.goods': 'For your trip',
   },

@@ -67,9 +67,9 @@ const interestLabel =(i: string) => (i === 'rainy' ? t(lang, 'shop.interest.rain
     <section class="acc-block" aria-labelledby="acc-int-h">
       <h2 id="acc-int-h" class="acc-block__h"><span class="mono">02</span>{t(lang, 'account.interests')}</h2>
       <p class="muted">{t(lang, 'account.interests.lead')}</p>
-      <div class="chips" role="group" aria-labelledby="acc-int-h">
+      <div class="chips filter-chips" role="group" aria-labelledby="acc-int-h">
         {INTEREST_ORDER.map((i) => (
-          <button type="button" class="chip" aria-pressed="false" data-acc-interest={i}><span class="chip__box" aria-hidden="true"></span>{interestLabel(i)}</button>
+          <button type="button" class="filter-chip" aria-pressed="false" data-acc-interest={i}>{interestLabel(i)}</button>
         ))}
       </div>
       <div class="chips__foot">
@@ -121,7 +121,6 @@ const interestLabel =(i: string) => (i === 'rainy' ? t(lang, 'shop.interest.rain
 
 <style>
   .acc-head { padding-block-start: clamp(12px, 2vw, 24px); display: grid; gap: 14px; }
-  .acc-head :global(.section-head--poster) { --poster-max: clamp(6rem, 20vh, 11rem); }
   .acc-head__lead { max-inline-size: 60ch; color: var(--muted); }
   .acc { display: grid; gap: clamp(36px, 5vw, 64px) var(--gutter); margin-block-start: clamp(28px, 4vw, 56px); }
   @media (min-width: 1024px) { .acc { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -140,12 +139,7 @@ const interestLabel =(i: string) => (i === 'rainy' ? t(lang, 'shop.interest.rain
   .lookup__out:empty { display: none; }
   .lookup__out { font-size: var(--step--1); text-transform: none; letter-spacing: 0; }
   .lookup__found { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
-  .chip { display: inline-flex; align-items: center; gap: 10px; min-block-size: 44px; padding: 0 18px 0 14px; border: 1px solid var(--ink); border-radius: 99px; background: transparent; color: var(--ink); font: inherit; cursor: pointer; touch-action: manipulation; transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out), transform 120ms var(--ease-out); }
-  .chip:active { transform: scale(0.97); }
-  .chip__box { inline-size: 12px; block-size: 12px; border: 1.5px solid currentColor; border-radius: 99px; flex: none; }
-  .chip[aria-pressed="true"] { background: var(--ink); color: var(--salt); }
-  .chip[aria-pressed="true"] .chip__box { background: var(--pouch); border-color: var(--pouch); }
+  /* the interest toggles are the shared .filter-chip in a .filter-chips row (chrome.css) */
   .chips__foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; }
   .chips__saved { font-size: var(--step--2); color: var(--muted); }
   .linkbtn { min-block-size: 44px; padding: 0; border: 0; background: none; color: inherit; font-size: var(--step--2); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
@@ -164,7 +158,7 @@ const interestLabel =(i: string) => (i === 'rainy' ? t(lang, 'shop.interest.rain
   .viewed__empty[hidden] { display: none; }
   .viewed__empty { padding: 16px; border: 1px dashed var(--ink-40); color: var(--muted); }
   .acc-data .pill { justify-self: start; }
-  .clear-confirm { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--ink); border-inline-start: 4px solid var(--pouch); }
+  .clear-confirm { display: grid; gap: 12px; padding-block: 16px; border-block: 1px solid var(--ink); }
   .clear-confirm[hidden] { display: none; }
   .clear-done[hidden] { display: none; }
   .clear-done { font-size: var(--step--1); text-transform: none; letter-spacing: 0; outline: none; }

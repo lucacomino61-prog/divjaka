@@ -56,7 +56,9 @@ if (known) {
   try { alt = { sq: path(routeKey as RouteKey, 'sq', params), en: path(routeKey as RouteKey, 'en', params) }; } catch { alt = null; }
 }
 const canonical = alt ? new URL(alt[lang], origin).href : null;
-const fullTitle = /hotel pelikan|divjaka/i.test(title) ? title : `${title} · Divjaka · Hotel Pelikan`;
+// one suffix everywhere (Room pages too): ' · Hotel Pelikan'; the site name is in og:site_name.
+// (final pass: ' · Divjaka · Hotel Pelikan' pushed 9 titles to 60–72 characters)
+const fullTitle = /hotel pelikan/i.test(title) ? title : `${title} · Hotel Pelikan`;
 const ogImage = new URL(image ?? '/og-default.png', origin).href;
 const ogLocale = lang === 'sq' ? 'sq_AL' : 'en_GB';
 
@@ -84,7 +86,7 @@ const siteLd = {
 const extra = jsonld ? (Array.isArray(jsonld) ? jsonld : [jsonld]) : [];
 const ld = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c');
 
-const clientStrings = pick(lang, ['cart.', 'live.', 'motion.', 'currency.', 'stamp.', 'price.', 'assistant.', 'loader.', ...clientKeys]);
+const clientStrings = pick(lang, ['cart.', 'live.', 'motion.', 'currency.', 'stamp.', 'price.', 'assistant.', 'loader.', 'booking.rooms.n', ...clientKeys]);
 ---
 <!doctype html>
 <html lang={lang} dir="ltr" data-loader={loader ? '' : undefined} data-eur-rate={rate || undefined} data-route={routeKey}>

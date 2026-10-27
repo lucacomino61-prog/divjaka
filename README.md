@@ -1,30 +1,130 @@
-# Divjaka Smart Tourism Platform — Hotel Pelikan
+# Divjaka Smart Tourism Platform · Hotel Pelikan
 
-Albanian at `/`, English under `/en/`. Astro 7 (SSR, `@astrojs/node`), SQLite (`node:sqlite`), GSAP + Lenis. Plan: `PLAN.md` · design: `DESIGN.md` · open values: `NEEDS_VERIFICATION.md`.
+The booking site, shop and admin panel of Hotel Pelikan in Divjakë, Albania, next to the Divjakë-Karavasta National Park and the Karavasta Lagoon. Guests book rooms and guided experiences, buy gift cards and trip gear, plan a day-by-day itinerary, check live conditions and ask a bilingual assistant; the hotel runs orders, inventory, prices, offers and analytics from `/admin/`. Albanian is served at `/`, English under `/en/`.
+
+It is built from the hotel's own specification (`research/SPEC.md`). The catalogue it ships with is a sample: rooms, prices and schedules are stamped DEMO until the hotel confirms them (`NEEDS_VERIFICATION.md`). Card payments run in a TEST mode until the hotel has a merchant contract.
+
+## What it does
+
+- **Stay and experiences**: room pages with a live availability calendar and seasonal prices; experience pages with dated time slots and places; one cart and a 3-step checkout.
+- **Shop**: catalogue with filters, search and list/grid views; gift cards, bundles, goods; automatic offers and promo codes, priced on the server only.
+- **Payments**: pay at the hotel, bank transfer (IBAN from the admin), card through a POK adapter (TEST simulator until there is a contract). Inventory is held in one SQLite transaction, so overselling is impossible.
+- **Itinerary planner**: days, interests, pace and transport give a timed plan drawn as a route on the lagoon chart, with bookable stops.
+- **Live conditions**: weather (MET Norway), sea temperature (NASA JPL MUR), sunrise and sunset, what's in season; a ticker on every page.
+- **Assistant**: answers in Albanian and English from a 61-question knowledge base, live availability and the forecast, and hands off to staff.
+- **Heritage guide**: 8 sourced articles on the lagoon, the Dalmatian pelican, birds by season, the pine forest, the park and local history.
+- **Admin**: dashboard, orders, room-night grid, products, schedules, rates, offers, customers, messages, analytics without cookies, assistant FAQ, settings.
+- **Integrations**: product feed for Google Merchant Center (`/feed/products.xml`), sitemap with hreflang pairs, Product/Hotel JSON-LD, share buttons, UTM link builder.
+
+## Stack
+
+| Layer | Choice |
+|---|---|
+| Framework | Astro 7 (`output: 'server'`), `@astrojs/node` standalone; every page server-rendered |
+| Database | SQLite through Node's built-in `node:sqlite` (one file, `data/divjaka.db`) |
+| Validation | zod 4 on every API input |
+| Motion | GSAP 3.15 + Lenis 1.3 on one ticker; cross-document View Transitions |
+| Fonts | Bricolage Grotesque, Instrument Serif, Geist Mono, self-hosted |
+| Tests | `node:test` API suite, Playwright e2e (Chromium + WebKit) |
+
+No front-end framework, no CMS, no third-party scripts or cookies on the public site.
+
+## Quick start
+
+Needs **Node.js 24 or newer** (for `node:sqlite`) and npm.
+
+```sh
+npm install
+npm run db:demo
+npm run dev
+```
+
+- The site runs at http://127.0.0.1:3800 and the admin at http://127.0.0.1:3800/admin/.
+- `npm run db:demo` creates `data/divjaka.db` with the sample catalogue, about 60 fake orders and browsing events (so the dashboard has data), and the admin user. When `.env` has no `ADMIN_PASSWORD`, it generates one and writes `ADMIN_EMAIL` (default `admin@divjaka.local`) and `ADMIN_PASSWORD` to `.env`. The password is never printed: read it there.
+- Copy `.env.example` to `.env` first if you want to choose the e-mail and password or set other variables (list under [Environment](#environment)).
+- In development, card payments use the TEST simulator.
+
+## Scripts
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Development server on port 3800 (the database is opened and migrated on the first request). |
+| `npm run build` | Production build into `dist/`. |
+| `npm start` | Runs the build (`node ./dist/server/entry.mjs`). Set `PORT` and `HOST`; run it from the project folder so `data/` and `.env` are found. |
+| `npm run preview` | Astro preview of the build on port 3801. |
+| `npm run check` | `astro check` (types and templates). |
+| `npm run db:seed` | Creates the database (schema + migrations) and adds what is missing: settings, categories, admin user, sample catalogue, slots 90 days ahead, offers, FAQ. Never overwrites rows the owner edited. Use this, without `--demo`, for a production database. |
+| `npm run db:demo` | `--reset --demo`: empties every table, re-seeds and adds fake orders and events. **Refused** under `NODE_ENV=production` or when the database looks live (real orders, a product or offer the owner saved, an IBAN, more than one settings group changed, or an admin password no longer the one in `.env`); `-- --i-know-this-wipes-everything` overrides, only after a backup. |
+| `npm run db:faq` | Non-destructive sync of the assistant FAQ from `scripts/seed-data/faq.mjs`: adds new rows, refreshes seed-written rows nobody edited, leaves owner-edited rows alone. |
+| `node scripts/seed.mjs --sync-admin` | Sets the admin password from `.env` again and ends every admin session. Recovery when nobody can sign in. After the first sign-in, change the password in the admin and delete `ADMIN_PASSWORD` from `.env`. |
+| `npm run test:api` | API tests against a running server (see [Tests](#tests)). |
+| `npm run test:e2e` | Playwright end-to-end suite against a running server (see [End-to-end tests](#end-to-end-tests)). |
+| `npm run wordmark` | Build-time tool: outlines the DIVJAKA wordmark to SVG and writes the poster metrics (`tools/wordmark.mjs`). |
+| `npm run icons` | Build-time tool: favicons and the default share image (`tools/icons.mjs`). |
+
+## Tests
+
+- **API** (`tests/api/`, `node:test`): start a server on a **copy** of the database with `RATE_LIMIT_FACTOR=50` (and `ALLOW_TEST_PAYMENTS=1` for a built server), then run the tests with the same `DIVJAKA_DB`:
+  ```sh
+  DIVJAKA_DB=/tmp/dv/divjaka.db DIVJAKA_DATA=/tmp/dv RATE_LIMIT_FACTOR=50 npx astro dev --port 3812
+  DIVJAKA_DB=/tmp/dv/divjaka.db API_URL=http://127.0.0.1:3812 npm run test:api
+  ```
+  They create `apitest-*` products (archived afterwards) and orders from `api-test-…@example.com` (cancelled afterwards). `abuse3.test.mjs` writes a staff account straight into the database and refuses `data/divjaka.db`; `final.test.mjs` reads analytics counts from it; `csp.test.mjs` checks the inline scripts against the CSP header when `API_URL` is a production build. Covers pricing, offers, holds, concurrent last-unit checkouts, abuse limits, admin roles, SEO files and the CSP.
+- **End-to-end** (`tests/e2e/`, Playwright, Chromium + WebKit at desktop and phone sizes): read-only by default, `E2E_WRITE=1` adds the full ordering journey and admin checks. Details under [End-to-end tests](#end-to-end-tests).
+
+## Deployment
+
+The app is one Node process that keeps its data in files, so it needs a **Node 24 host with a persistent disk** (a VPS, a dedicated server or a container with a mounted volume). Serverless or read-only hosts do not fit.
+
+1. Clone, `npm ci`, `npm run build`.
+2. Create `.env` from `.env.example` (admin e-mail, payment keys when there is a contract, `TRUST_PROXY=1`, `LIVE_CONTACT`). Never set `ALLOW_TEST_PAYMENTS` or `RATE_LIMIT_FACTOR` on the public server.
+3. `npm run db:seed` (no `--demo`) creates a fresh database. Keep `data/` (or `DIVJAKA_DB` / `DIVJAKA_DATA`) on the persistent disk.
+4. Run `PORT=3801 HOST=127.0.0.1 node dist/server/entry.mjs` under a process manager (systemd, pm2 or the container runtime), behind a reverse proxy that ends TLS (Caddy or nginx). The proxy rules are in the [Deployment contract](#deployment-contract).
+5. In the admin: Cilësimet → SEO → the public `https://` address (sitemap, feed, robots and card payments need it), then the owner's checklist in `NEEDS_VERIFICATION.md`.
+6. Back up `data/divjaka.db` every day with `VACUUM INTO` (command in `OWNER.md` §7) plus `data/uploads/`, encrypted and off the server. The database holds guests' names, e-mails, phones and order links.
+
+## Licences
+
+- **Code**: no licence has been chosen yet. Until a `LICENSE` file is added, all rights are reserved.
+- **Photos** (`public/photos/`): 32 photos from Wikimedia Commons, each under its own licence (CC BY 2.0, CC BY 4.0, CC BY-SA 2.0/3.0/4.0 or CC0). They were resized and re-encoded; one (`beach-shelters`) was also cropped. Author, licence and source for every file: `research/ASSETS.md` and the site's credits page (`/kreditet/`, `/en/credits/`). Reusing a photo means keeping its credit and licence; ShareAlike photos stay under ShareAlike.
+- **Fonts**: Bricolage Grotesque, Instrument Serif and Geist Mono under the SIL Open Font License 1.1 (`public/fonts/LICENSES/`; the static instances in `tools/fonts/` are derived from Bricolage Grotesque under the same licence).
+- **Map data**: © OpenStreetMap contributors, ODbL (`research/geo.json`); the chart always prints the attribution.
+- **Live data**: MET Norway (CC BY 4.0 / NLOD), NASA JPL MUR SST (JPL PO.DAAC policy), credited next to the readings.
+- **Dependencies** keep their own licences: Astro, `@astrojs/node`, Lenis and zod are MIT; GSAP 3.15 is under GreenSock's "Standard no charge" licence (https://gsap.com/standard-license).
+
+## Documents
+
+| File | What it holds |
+|---|---|
+| `OWNER.md` | The hotel's guide to the admin (Albanian, then English): daily tasks, DEMO stamps, payments, weather, backups, analytics. |
+| `NEEDS_VERIFICATION.md` | The checklist of values the hotel must confirm before launch, marked admin or developer. |
+| `PLAN.md` | Spec → feature map, routes, data model, API, acceptance criteria. |
+| `DESIGN.md` | The design contract ("Harta e Lagunës"): type, colour, motion, the signature chart. |
+| `HANDOFF.md` | Cross-team notes from the build. |
+| `research/` | The specification, the sourced facts (heritage, business, geography, live APIs) and the photo credits. |
+
+## Environment
+
+`.env` is git-ignored; names in `.env.example`: `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `POK_KEY_ID`, `POK_KEY_SECRET`, `POK_MERCHANT_ID`, `POK_ENV`, `ANTHROPIC_API_KEY` (optional: the assistant asks Claude when the FAQ has no answer), `TRUST_PROXY`, `TRUST_PROXY_HOPS`, `CLIENT_IP_HEADER`, `COOKIE_SECURE`, `ALLOW_TEST_PAYMENTS`, `RATE_LIMIT_FACTOR`, `LIVE_CONTACT` (an e-mail for the MET Norway User-Agent on /tani/), `OPEN_METEO_API_KEY` (optional, a secret: air, waves, UV), `DIVJAKA_DB`, `DIVJAKA_DATA`. The server loads `.env` itself (`src/lib/dotenv.ts`).
+
+---
+
+# Technical reference
 
 ## Back end
 
-### Commands
-| Command | What it does |
-|---|---|
-| `npm run db:seed` | Creates `data/divjaka.db` (schema + migrations) and adds what is missing: settings, categories, admin user, demo catalogue, sessions 90 days ahead, offers, FAQ. Never overwrites rows the owner edited. If `.env` has no `ADMIN_PASSWORD`, one is generated and written there (never printed). |
-| `npm run db:demo` | `--reset --demo`: empties every table, re-seeds, and adds ~60 fake orders + browsing events so the admin dashboard has data. **Refused** when `NODE_ENV=production` or the database looks live: real orders (not demo, not `@example.com`), a product or offer the owner saved, an IBAN, more than one settings group changed from the seed defaults, or an admin password that is no longer the one in `.env`; add `-- --i-know-this-wipes-everything` only after a backup. |
-| `node scripts/seed.mjs --sync-admin` | Sets the admin password from `.env` again (the plain seed only uses it when the admin user is first created). After the first sign-in: change the password in the admin and delete `ADMIN_PASSWORD` from `.env`. **Recovery** when nobody can sign in (forgotten password, or someone keeps the account locked and you are on a new browser): put a new `ADMIN_PASSWORD` in `.env` on the server and run this. |
-| `npm run dev` | Dev server (the DB is opened and migrated on first request). |
-| `npm run build` then `PORT=3801 npm start` | Production server (`dist/server/entry.mjs`); run it from the project folder so `data/` and `.env` are found. |
-| `API_URL=http://127.0.0.1:3810 npm run test:api` | API tests (node:test) against a running server started with `RATE_LIMIT_FACTOR=50` (and `ALLOW_TEST_PAYMENTS=1` for a built server). They create `apitest-*` products (archived afterwards) and orders from `api-test-…@example.com` with random phone numbers (cancelled afterwards). |
-
-Environment (`.env`, git-ignored; names in `.env.example`): `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `POK_KEY_ID`, `POK_KEY_SECRET`, `POK_MERCHANT_ID`, `POK_ENV`, `ANTHROPIC_API_KEY`, `TRUST_PROXY`, `TRUST_PROXY_HOPS`, `CLIENT_IP_HEADER`, `COOKIE_SECURE`, `ALLOW_TEST_PAYMENTS`, `RATE_LIMIT_FACTOR`, `DIVJAKA_DB`, `DIVJAKA_DATA`. The server loads `.env` itself (`src/lib/dotenv.ts`).
-
 ### Deployment contract
 - **TLS ends at a reverse proxy** (Caddy / nginx) in front of `node dist/server/entry.mjs` bound to 127.0.0.1. The proxy must **append** the client address to `X-Forwarded-For` (nginx `$proxy_add_x_forwarded_for`, Caddy default) or overwrite one header named in `CLIENT_IP_HEADER` (`X-Real-IP`, `CF-Connecting-IP`), set `X-Forwarded-Proto` and **overwrite** `X-Forwarded-Host` (nginx `proxy_set_header X-Forwarded-Host $host;` — never pass the client's own header through; until `site_url` is saved the sitemap, feed and robots.txt take their origin from it, and are then sent `no-store`), and cap bodies (`client_max_body_size 20m`). Set `TRUST_PROXY=1` (and `TRUST_PROXY_HOPS=2` behind two appending proxies, e.g. Cloudflare + nginx). Without it every visitor shares the proxy's address for rate limits (logged once, shown in `/api/admin/me` warnings).
+- **The proxy also compresses, caches, rate-limits and sends nosniff.** The app gzips the text it renders itself (pages, JSON, feeds) in production; the files the adapter serves (`/_astro/*` scripts and styles, `/fonts/*`, `/photos/*`, `/favicon.svg`) leave it plain and with no security headers. Caddy: `encode zstd gzip` and `header X-Content-Type-Options nosniff`; nginx: `gzip on; gzip_types text/css application/javascript image/svg+xml application/json application/xml text/plain;` and `add_header X-Content-Type-Options nosniff always;` in every location. `/_astro/*` names carry a content hash: the adapter sends `Cache-Control: public, max-age=31536000, immutable` on a 200 GET — keep it (do not overwrite it at the proxy). `/fonts/*` and `/photos/*` are NOT hashed (`max-age=0`, revalidated by ETag): give them at most a short cache (e.g. `max-age=604800`) and change the file name when a file changes. Put a request limit in front of the app (nginx `limit_req` about 10 r/s per address with a burst of 40, or a Cloudflare rate-limiting rule): the in-memory limits below are the last line of defence, and every server-rendered page costs 15–35 ms on the one Node thread that also runs checkout.
 - **Public origin**: set it in the admin (Cilësimet → SEO → site URL) or `site` in `astro.config.mjs`. Sitemap, feed, robots and POK callbacks use it; until it is set they use the forwarded host (with `TRUST_PROXY=1`) or a placeholder, never localhost, and **POK card payments stay off**.
 - **Cookies / HSTS**: in a production build the admin cookie is always `Secure` (`COOKIE_SECURE=0` only for a plain-http LAN test); HSTS (`max-age=31536000`) and `upgrade-insecure-requests` are sent when the request or the configured origin is https.
 - **Payments**: card is offered only with `mode: live` + POK keys, or `mode: test` where `ALLOW_TEST_PAYMENTS=1` (never in production: the TEST simulator lets a customer mark their own order paid; such orders carry `orders.test = 1` and never count as money). Bank transfer is offered only once IBAN and beneficiary are set. Unconfirmed holds expire: card 30 min, bank 72 h, pay-at-hotel 24 h (settings → payments; staff confirming an order ends its hold).
 - **Anonymous bookings cannot block the hotel** (settings → inventory; `src/lib/orders.ts` header). A pay-at-hotel, bank or TEST-card order nobody has confirmed (a "long hold") may take at most `unconfirmed_share` (50 %) of a room type's units per night, of a session's seats and of a tracked product's stock, and at most `max_units_per_unconfirmed_order` (5) units of one item (409 `hold_cap` / `hold_cap_units`); the other half stays bookable by card (a 30-minute hold, then paid or released) and by staff. Long or far-ahead stays (> 7 nights or > 60 days ahead), orders placed while new long holds in the last hour passed `max_unconfirmed_{room_nights,seats,units}_per_hour` (unless small and within 30 days), orders past an address group's hourly share (`address_*_per_hour`) and orders by a person who already has open orders from another address get the SHORT hold (`short_hold_hours`, 2 h; `orders.review` says why) — nothing sitewide refuses everybody. Per order: `max_room_nights_per_order` (40), 10 people per time slot, 5 time slots, 30 people. Per address group (IPv4 /24, IPv6 /48) and day: 60 room-nights, 40 seats, 20 units (429). One person: `max_open_orders_per_email` (3) waiting orders on the normalised e-mail or phone, refused only from the same address group. A phone number is required for pay-at-hotel and bank. The dashboard warns (`pending_surge`) at `pending_alert_per_hour` (5) unconfirmed orders or half a surge threshold within an hour; `POST /api/admin/orders/cancel-unconfirmed` (dry run first) cancels a flood in one click. Confirm the real ones (that lifts every limit for them).
-- **Rate limits** are in memory, per client address; IPv6 addresses are grouped per /64. Public API reads: 1 200 a minute (`/api/live` and `/api/config` are not counted). Admin sign-in: 5/min per address + e-mail, 20/min per address, 60 password checks/min sitewide, and after 10 failures in 15 min one try per 30 s for that account — except from a **known device** (`dv_device` cookie, 180 days, set at every successful sign-in), so a password guesser can never lock the owner out of a browser they used before. The sitewide sign-in ceiling (60 password checks a minute, 10 per address group) is audited when hit (`login_ceiling_hit`, dashboard warning); remembered browsers still sign in. `RATE_LIMIT_FACTOR` multiplies every limit and ceiling: test servers only — a production server with it set logs a warning at boot and shows `rate_limit_factor_set`.
+- **Rate limits** are in memory, per client address; IPv6 addresses are grouped per /64. Public API reads: 1 200 a minute (`/api/live` and `/api/config` are not counted). Server-rendered pages (GET/HEAD outside `/admin` and `/api`): 600 a minute (429 text with `Retry-After`). Admin sign-in: 5/min per address + e-mail, 20/min per address, 60 password checks/min sitewide, and after 10 failures in 15 min one try per 30 s for that account — except from a **known device** (`dv_device` cookie, 180 days, set at every successful sign-in), so a password guesser can never lock the owner out of a browser they used before. The sitewide sign-in ceiling (60 password checks a minute, 10 per address group) is audited when hit (`login_ceiling_hit`, dashboard warning); remembered browsers still sign in. `RATE_LIMIT_FACTOR` multiplies every limit and ceiling: test servers only — a production server with it set logs a warning at boot and shows `rate_limit_factor_set`.
 - **Audit log** (`audit_log`, also one JSON console line each): sign-ins, first failure and lockout per account, password changes, settings changes (IBAN / beneficiary / bank / SWIFT flagged; the dashboard shows `payment_details_changed` for 7 days), price and unit changes, offers, room rates, customer exports and erasures. No secrets are logged; addresses are cut to /24 (IPv4) or /48 (IPv6).
 - **Roles**: `owner` and `staff`. Owner only: settings, prices (`price`, `compare_at`, gift amount limits, `min_nights`), publishing a product and taking a published one off sale (staff-created products are saved as drafts), offers, room rates, customer CSV export, customer erasure. Payment settings (IBAN, beneficiary, bank, SWIFT, card mode, methods) also need the owner's password again (`current_password`). Everyone: their own password. Password re-entry is throttled (5 per user / 10 per address in 15 min) and 5 wrong in a row end every session of that user. Admin sessions: 14 days sliding, 30 days at most.
+- **Backups and the database file** hold every guest's order link: `orders.access_token` is the bearer token of the order page (bank details, name, e-mail, phone) and is stored as is, because "find my booking" (code + e-mail) hands it back. Encrypt backups and never copy the `.db` anywhere it could be committed (`.gitignore` ignores `*.db`, `*.db-wal`, `*.db-shm`, `*.sqlite` everywhere).
+- **Before launch**: list `admin_users` and delete anything you do not recognise (an interrupted API test run once left `apitest-staff-…@example.com`, role staff: `DELETE FROM admin_users WHERE email LIKE 'apitest-staff-%';` — sessions and devices cascade). The demo promo code `MIRESEVINI10` is public in this repository: it is seeded inactive and DEMO-flagged; change the code (Ofertat) before you switch it on.
 - **Retention** (settings → privacy): raw analytics events older than `events_days` (180) are rolled up per day/type/product into `events_daily` and deleted; handled messages older than `messages_days` (730) are deleted; at most `events_per_day` (30 000) events are stored per day sitewide, 400 per browsing tab, 120 per address a minute. Runs a minute after boot and every 6 hours. Orders never store the browsing tab id. Cancelled, never-paid orders older than `orders_days` (90) are anonymised (name, e-mail, phone, notes cleared; amounts kept), customers left without any order deleted; `inventory_log` older than `inventory_log_days` (730) deleted. Analytics volume: 2 000 ordinary events per address group a day (then 1 in 20, up to 4 000), own budgets for search / assistant / vital events.
 - **CSP**: `script-src 'self'` + sha256 of every `<script is:inline>` in `src/**/*.astro`, fixed at build time (`src/lib/csp.ts`); processed `<script>`s are bundled files. Inline scripts must be static (no `define:vars`, no `{…}`); violations are logged by `/api/csp-report`.
 
@@ -37,9 +137,9 @@ Environment (`.env`, git-ignored; names in `.env.example`): `ADMIN_EMAIL`, `ADMI
 ### API (JSON; errors `{ error: { code, message_sq, message_en } }`)
 Public
 - `GET /api/catalog?lang&kind&category&tag&q&sort&ids&featured&limit` · `GET /api/product/:slug?lang` · `GET /api/config`
-- `GET /api/availability/room/:slug?from&to[&qty&guests]` or `?month=YYYY-MM` · `GET /api/availability/experience/:slug?month=YYYY-MM`
+- `GET /api/availability/room/:slug?from&to[&qty&guests]` or `?month=YYYY-MM` (while the room unit counts are demo values no count is sent: no `units`, no `left`, only prices and day status) · `GET /api/availability/experience/:slug?month=YYYY-MM`
 - `POST /api/quote` `{lang, items, promo}` — the only place prices are computed (`src/lib/pricing.ts`). A failed promo code gets one generic message; 10 failed codes per address in 10 minutes and codes are not looked up any more (checkout: 429 `promo_rate`).
-- `POST /api/checkout` `{lang, items, customer, payment_method, promo, notes, marketing_consent, terms_accepted, utm, ref}` → `201 {code, token, next, order}`; errors 409 `cart_problem` / `sold_out` / `promo_invalid` / `hold_cap`, 429 `too_many_open_orders` / `busy` / `promo_rate` / `rate_limited` (`sid` is accepted and ignored)
+- `POST /api/checkout` `{lang, items, customer, payment_method, promo, notes, marketing_consent, terms_accepted, utm, ref, checkout_id}` → `201 {code, token, next, order}`; a repeat with the same `checkout_id` (one per checkout draft) and e-mail within 24 h, while that order is not cancelled, is answered `201` with that same order (header `X-DV-Replay: 1`) — nothing is held twice; errors 409 `cart_problem` / `sold_out` / `promo_invalid` / `hold_cap` / `hold_cap_units` (both with `lines:[{key, problem:{code}}]`), 400 `bank_late` (bank transfer for a stay or session that starts within `bank_hold_hours`; `lines`), 429 `too_many_open_orders` / `busy` / `promo_rate` / `rate_limited` (`sid` is accepted and ignored)
 - `GET /api/order/:code?t=TOKEN` · `POST /api/lookup` `{code, email}` → `{token, url}`
 - `GET|POST /api/pay/test/:code?t=` (TEST card simulator, test mode only) · `POST /api/pay/pok/webhook` (POK; re-reads the order from POK)
 - `GET /api/recommend?lang&interests&viewed&cart&exclude&kinds&limit` · `GET /api/search?q&lang[&track=1&sid]` · `GET /api/live` (`availability_today.rooms_verified`: true only when every published room type was saved by the owner; until then `rooms_left` is a demo figure — do not show it)
@@ -152,3 +252,27 @@ For T7: the wind arrow at the hotel = `slot="overlay"` element at the hotel's `%
   `<RecommendRail lang index? title? lead? limit?(4–8, default 6) kinds?(Kind[]) exclude?(slugs) prefs?(default true) id?(unique per page) variant?('cards' default | 'list') class? />`. `variant="cards"`: plates (2–3 columns; under 640 px a horizontal swipe rail, never a tall stack). `variant="list"`: a ruled text index (nr · reason · name · kind · price), for pages that already show the same plates (the home uses it for rooms, packages and gear, since the strip above lists every experience).
   Server: in-season / hotel-picked order (`lib/recommend.ts`; demo events and demo orders never count as popularity), every published product rendered once (hidden pool). Client: `GET /api/recommend` with dv-prefs interests, dv-viewed and the cart's slugs, re-orders the cards and writes the reason (`recommend.reason.<interests|history|together|season|popular|picked>`). "Interesat e mia" = a bottom-sheet `<dialog>` with chips (birds, nature, beach, culture, food, active, family, couple, slow) that write dv-prefs through `scripts/prefs.ts`. Example on a product page: `<RecommendRail lang={lang} title={t(lang,'…')} exclude={[product.slug]} limit={4} id="rekomanduar-produkt" />`.
 - Heritage sheets: `src/content/heritage/<slug>.<sq|en>.md` (same slug in both languages; `src/lib/content.ts` feeds search + sitemap from the same files). Body syntax and frontmatter: `src/components/heritage/articles.ts` header. Footnotes are `research/heritage.json` fact ids (`[^lagoon-01]`), verified facts only; `::photo slug | note`, `::chart poi poi*`, `::seasons`, `::distances`.
+
+## End-to-end tests
+
+`tests/e2e/` holds a Playwright suite (`@playwright/test` 1.63.0, the version of the browsers in `%LOCALAPPDATA%\ms-playwright`). It never starts a server: point it at one with `E2E_BASE_URL` (default `http://127.0.0.1:3801`). Results and traces go to `tests/e2e/.results/` (git-ignored, inside the folder Vite already ignores).
+
+| Command | What it runs |
+|---|---|
+| `E2E_BASE_URL=http://127.0.0.1:3850 npm run test:e2e` | Read-only checks on four projects (`chrome-desktop` 1440×900, `chrome-phone` 390×844, `webkit-desktop`, `webkit-iphone` = iPhone 13): every sitemap route answers 200 with one h1, canonical, hreflang twins, parseable JSON-LD (once); 404s; robots, sitemap, product feed; key pages load without console errors, failed requests or sideways scroll; menu open/close; language switch to the twin page; no third-party requests and no cookies; Stop-animations (0 rAF calls/s, persisted), reduced motion (no loop, nothing left invisible), preloader (Skip, once per session), signature coastline drawing with scroll; JavaScript off (h1 + ≥ 50 words, prices, GET forms, the checkout notice); `/tani/` shows live data or a clean stale state. |
+| `E2E_WRITE=1 E2E_BASE_URL=… npm run test:e2e` | Adds `journey.spec.mjs`: home → signature → stay → room (2 nights picked on the calendar) → experience session → shop → gift card + map print → cart → checkout (empty-submit errors, pay at the hotel, a double click sends one order) → order page; TEST card checkout → paid; "find my booking" without JavaScript; then `/admin/`: both orders listed (TEST stamp), room-night grid, seats and stock moved; cancelling the pay-at-hotel order releases nights, seats and stock; the TEST order is cancelled too. Orders use `e2e-…@example.com`; leftovers of a failed run are cancelled at the start of the next one. |
+
+**Write runs only against a test server on a database copy**, never on the shared `data/divjaka.db`:
+
+```sh
+npm run build
+# copy the database first (VACUUM INTO, or stop writers and copy divjaka.db*), then:
+PORT=3850 HOST=127.0.0.1 DIVJAKA_DB=/tmp/e2e/divjaka.db DIVJAKA_DATA=/tmp/e2e ALLOW_TEST_PAYMENTS=1 COOKIE_SECURE=0 RATE_LIMIT_FACTOR=20 node dist/server/entry.mjs
+E2E_BASE_URL=http://127.0.0.1:3850 E2E_WRITE=1 npm run test:e2e
+```
+
+- `ALLOW_TEST_PAYMENTS=1` enables the TEST card simulator (the card step is skipped without it); `COOKIE_SECURE=0` lets the admin cookie work on plain http; `RATE_LIMIT_FACTOR=20` because the four projects share one address (checkout allows 8 orders per 10 minutes per address).
+- Admin sign-in uses `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD`, else `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env` (never printed).
+- The journey books next month (the room on different nights per project, the Visitor Centre & Tower session, which runs all year); a demo experience that is out of season (the boat trip ends in October) would have no sessions.
+- Firefox is not a project: Playwright's Firefox does not launch on this Windows machine. WebKit on Windows draws variable fonts from their default instance and leaves WebGL out of screenshots; judge type in Chrome. How it feels on a real iPhone (type, scroll) is not covered.
+- Not covered here: concurrent last-unit checkouts (covered by `npm run test:api`) and a weather provider that answers slowly. The slow case needs a delaying proxy in front of the server; it was checked by hand (2026-10-27): with a 7 s delay `/tani/` shows its loading state and swaps the readings in without a reload; with 20 s it shows the stale state after 15 s.

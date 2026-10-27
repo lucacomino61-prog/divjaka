@@ -7,6 +7,8 @@
  *   visible; paused while hidden and while animations are stopped (Stop switch / reduced motion
  *   does not stop it — only the Stop switch does, as the brief asks); the button always works.
  *   No requestAnimationFrame anywhere.
+ * - Loading (#now-entry data-loading="1": the server has no reading yet but nothing failed): a few
+ *   quick re-asks (LOADING_RETRY) until the readings or the stale copy come.
  * - Analytics: live_view {section:'now'} once, {section:'forecast', tab} on tab change.
  */
 import { onMotionChange, userStopped } from './motion';
@@ -14,6 +16,8 @@ import { track } from './track';
 import { tc } from '../i18n/client';
 
 const EVERY = 10 * 60 * 1000;
+/** waits between the quick re-asks while the page says "loading" (~33 s in all, past the server's 15 s fetch limit) */
+const LOADING_RETRY = [4000, 5000, 6000, 8000, 10000];
 
 export function initNow() {
   const root = document.querySelector<HTMLElement>('[data-now]');
@@ -66,6 +70,8 @@ export function initNow() {
   let timer: number | undefined;
   let last = Date.now();
   let busy = false;
+  let retries = 0;
+  let wasLoading = document.getElementById('now-entry')?.dataset.loading === '1';
 
   // the same text again is not re-announced (a stale feed must not interrupt every 10 minutes)
   const say = (msg: string) => { if (status && status.textContent !== msg) status.textContent = msg; };
@@ -118,12 +124,17 @@ export function initNow() {
         target?.focus({ preventScroll: true });
       }
       last = Date.now();
-      const stale = document.getElementById('now-entry')?.dataset.stale === '1';
-      // Screen readers hear a manual refresh and a problem; an automatic refresh with fresh data
-      // updates the visible stamp ("Përditësuar HH:MM") silently.
-      if (stale) say(tc('now.refreshed.stale'));
-      else if (manual) say(tc('now.refreshed', { time: document.getElementById('now-entry')?.dataset.updated || '' }));
+      const entry = document.getElementById('now-entry');
+      const stale = entry?.dataset.stale === '1';
+      const stillLoading = entry?.dataset.loading === '1';
+      // Screen readers hear a manual refresh, a problem, and the first readings arriving after
+      // "loading"; an automatic refresh with fresh data updates the visible stamp silently.
+      if (stillLoading) say('');
+      else if (stale) say(tc('now.refreshed.stale'));
+      else if (manual || wasLoading) say(tc('now.refreshed', { time: entry?.dataset.updated || '' }));
       else say('');
+      wasLoading = stillLoading;
+      if (!stillLoading) retries = 0;
     } catch {
       say(tc('now.refresh.failed'));
     } finally {
@@ -139,6 +150,14 @@ export function initNow() {
     if (timer) clearTimeout(timer);
     timer = undefined;
     if (auto) auto.textContent = userStopped() ? tc('now.auto.off') : tc('now.auto');
+    // The first readings are still on their way (server cold start, slow provider): ask again in a
+    // few seconds, a handful of times (the server gives up on a provider after 15 s and then
+    // renders the stale copy). Not paused by the Stop switch: it is data, not motion, and it ends.
+    const loadingNow = document.getElementById('now-entry')?.dataset.loading === '1';
+    if (loadingNow && document.visibilityState === 'visible' && retries < LOADING_RETRY.length) {
+      timer = window.setTimeout(() => refresh(), LOADING_RETRY[retries++]);
+      return;
+    }
     if (!running()) return;
     timer = window.setTimeout(() => refresh(), Math.max(1000, EVERY - (Date.now() - last)));
   }

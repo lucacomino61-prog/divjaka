@@ -63,6 +63,8 @@ const island = {
   'shop.empty.query': t(lang, 'shop.empty.query'), 'shop.empty.body': t(lang, 'shop.empty.body'),
 };
 const titleText = t(lang, 'nav.shop');
+// phones fold the facets, search and sort behind one button; its badge counts the filters in use
+const activeN = (state.kind ? 1 : 0) + (state.interest ? 1 : 0) + (state.q ? 1 : 0);
 ---
 <Base lang={lang} title={t(lang, 'page.shop.title')} description={t(lang, 'page.shop.description')} routeKey="shop" jsonld={jsonld}>
   <script type="application/json" data-dv-i18n set:html={JSON.stringify(island).replace(/</g, '\\u003c')} />
@@ -72,7 +74,9 @@ const titleText = t(lang, 'nav.shop');
       <div class="shop-hero__poster">
         <SectionHead as="h1" id="shop-title" index={t(lang, 'shop.index')} kicker={t(lang, 'shop.kicker')} title={titleText} size="poster" />
       </div>
-      <div class="shop-hero__aside">
+      {/* ≥ 640 px the lead and the readings stand beside the poster; on phones the same lines come
+          after the results (.shop-about), so the first specimen tag is on the first screen */}
+      <div class="shop-hero__aside shop-about-copy">
         <p class="shop-hero__lead">{t(lang, 'shop.lead')}</p>
         <ul class="shop-hero__reads mono">
           <li>{t(lang, 'shop.readout.items', { n: total })}</li>
@@ -84,21 +88,26 @@ const titleText = t(lang, 'nav.shop');
   </section>
 
   <form class="filters wrap" method="get" action={shopPath} role="search" aria-label={t(lang, 'shop.filters')} data-shop-form>
+    <button type="button" class="ftoggle" aria-expanded="false" data-filter-toggle>
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 4h12M4.5 8h7M7 12h2" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
+      <span>{t(lang, 'shop.filters')}</span>
+      <span class="ftoggle__n mono" data-filter-count hidden={activeN === 0}>{activeN}</span>
+    </button>
     <div class="facet" role="group" aria-labelledby="facet-kind">
       <p class="facet__legend mono" id="facet-kind">{t(lang, 'shop.filter.kind')}</p>
-      <div class="facet__row" data-facet-row>
-        <label class="fpill"><input type="radio" name="lloji" value="" checked={!state.kind} /><span>{t(lang, 'shop.filter.all')}</span><span class="fpill__n mono">{String(total).padStart(2, '0')}</span></label>
+      <div class="facet__row filter-chips" data-facet-row>
+        <label class="filter-chip"><input type="radio" name="lloji" value="" checked={!state.kind} /><span>{t(lang, 'shop.filter.all')}</span><span class="filter-chip__n">{String(total).padStart(2, '0')}</span></label>
         {kinds.map((k) => (
-          <label class="fpill"><input type="radio" name="lloji" value={KIND_PARAM[k]} checked={state.kind === k} /><span>{t(lang, `shop.kind.${k}`)}</span><span class="fpill__n mono">{String(counts[k]).padStart(2, '0')}</span></label>
+          <label class="filter-chip"><input type="radio" name="lloji" value={KIND_PARAM[k]} checked={state.kind === k} /><span>{t(lang, `shop.kind.${k}`)}</span><span class="filter-chip__n">{String(counts[k]).padStart(2, '0')}</span></label>
         ))}
       </div>
     </div>
     <div class="facet" role="group" aria-labelledby="facet-interest">
       <p class="facet__legend mono" id="facet-interest">{t(lang, 'shop.filter.interest')}</p>
-      <div class="facet__row" data-facet-row>
-        <label class="fpill fpill--s"><input type="radio" name="interes" value="" checked={!state.interest} /><span>{t(lang, 'shop.filter.all')}</span></label>
+      <div class="facet__row filter-chips" data-facet-row>
+        <label class="filter-chip"><input type="radio" name="interes" value="" checked={!state.interest} /><span>{t(lang, 'shop.filter.all')}</span></label>
         {interests.map((i) => (
-          <label class="fpill fpill--s"><input type="radio" name="interes" value={INTEREST_PARAM[i]} checked={state.interest === i} /><span>{interestLabel(i)}</span></label>
+          <label class="filter-chip"><input type="radio" name="interes" value={INTEREST_PARAM[i]} checked={state.interest === i} /><span>{interestLabel(i)}</span></label>
         ))}
       </div>
     </div>
@@ -184,6 +193,17 @@ const titleText = t(lang, 'nav.shop');
     </div>
   </section>
 
+  <div class="shop-about wrap">
+    <div class="shop-about-copy">
+      <p class="shop-hero__lead">{t(lang, 'shop.lead')}</p>
+      <ul class="shop-hero__reads mono">
+        <li>{t(lang, 'shop.readout.items', { n: total })}</li>
+        {openExperiences > 0 && <li>{t(lang, 'shop.readout.open', { n: openExperiences })}</li>}
+        <li>{t(lang, 'shop.readout.lek')}</li>
+      </ul>
+    </div>
+  </div>
+
   {offers.length > 0 && (
     <section class="offers wrap sheet" aria-labelledby="shop-offers-h" id="ofertat">
       <SectionHead id="shop-offers-h" index={t(lang, 'shop.offers.index')} kicker={t(lang, 'shop.offers.kicker')} title={t(lang, 'shop.offers.title')} size="heading" />
@@ -217,7 +237,6 @@ const titleText = t(lang, 'nav.shop');
   /* ---------- first screen ---------- */
   .shop-hero { padding-block-start: clamp(12px, 2vw, 24px); }
   /* the poster stays a poster but leaves the first row of tags in view at 1440×900 */
-  .shop-hero :global(.section-head--poster) { --poster-max: clamp(9rem, 27vh, 15rem); }
   .shop-hero__grid { display: grid; gap: clamp(16px, 2.4vw, 32px); align-items: end; }
   .shop-hero__aside { display: grid; gap: 14px; padding-block-end: 6px; }
   .shop-hero__lead { max-inline-size: 44ch; font-size: var(--step-0); }
@@ -227,6 +246,15 @@ const titleText = t(lang, 'nav.shop');
   @media (min-width: 900px) {
     .shop-hero__grid { grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); }
     .shop-hero__aside { justify-self: end; max-inline-size: 34rem; }
+  }
+
+  /* phones: the first screen is poster, one filter row and the first specimen tag; the lead and the
+     readings follow the results (one copy shows per width, the other is display:none) */
+  .shop-about { display: none; }
+  @media (max-width: 639px) {
+    .shop-hero__aside { display: none; }
+    .shop-about { display: block; margin-block-start: clamp(28px, 6vw, 48px); }
+    .shop-about .shop-about-copy { display: grid; gap: 14px; }
   }
 
   /* ---------- filters ---------- */
@@ -241,21 +269,9 @@ const titleText = t(lang, 'nav.shop');
   @media (max-width: 719px) {
     .facet__row { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; margin-inline: calc(-1 * var(--page-pad)); padding-inline: var(--page-pad); padding-block: 2px; scroll-padding-inline: var(--page-pad); }
     .facet__row::-webkit-scrollbar { display: none; }
-    .fpill { flex: none; }
+    .facet__row > :global(.filter-chip) { flex: none; }
   }
-  .fpill {
-    position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-block-size: 44px; min-inline-size: 48px; padding: 0 16px;
-    border: 1px solid var(--ink); border-radius: var(--radius-pill); cursor: pointer; font-size: var(--step--1); line-height: 1.1;
-    transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out), transform 120ms var(--ease-out);
-    touch-action: manipulation; -webkit-tap-highlight-color: transparent; white-space: nowrap;
-  }
-  .fpill--s { min-block-size: 44px; padding: 0 14px; border-color: color-mix(in oklch, var(--ink) 45%, var(--salt)); }
-  .fpill input { position: absolute; inset: -1px; margin: 0; opacity: 0; cursor: pointer; border-radius: inherit; }
-  .fpill__n { font-size: var(--step--2); opacity: .7; }
-  .fpill:has(input:checked) { background: var(--ink); color: var(--salt); border-color: var(--ink); }
-  .fpill:has(input:focus-visible) { outline: 2px solid var(--pouch); outline-offset: 2px; }
-  .fpill:active { transform: scale(0.97); }
-  @media (hover: hover) and (pointer: fine) { .fpill:not(:has(input:checked)):hover { background: var(--salt-2); } }
+  /* the facet chips are the shared .filter-chip (chrome.css): no local chip style here */
 
   .filters__tools { display: grid; gap: 12px; align-items: end; grid-template-columns: minmax(0, 1fr) auto; padding-block-start: 6px; }
   .field--search { grid-column: 1 / -1; }
@@ -278,6 +294,30 @@ const titleText = t(lang, 'nav.shop');
   .vs:has(input:checked) { background: var(--ink); color: var(--salt); }
   .vs:has(input:focus-visible) { outline: 2px solid var(--pouch); outline-offset: 2px; }
   :global(html.js) .filters__apply { display: none; }
+
+  /* phones with JavaScript: kind, interest, search and sort fold behind one "Filtrat" button that
+     shares a row with the cards/list switch; it opens them in place (no JavaScript: all shown) */
+  .ftoggle { display: none; }
+  .ftoggle__n[hidden] { display: none; }
+  @media (max-width: 639px) {
+    :global(html.js) .filters { grid-template-columns: minmax(0, 1fr) auto; align-items: end; column-gap: 12px; }
+    :global(html.js) .ftoggle {
+      display: inline-flex; align-items: center; gap: 10px; justify-self: start; min-block-size: 48px; padding: 0 18px; max-inline-size: 100%;
+      border: 1px solid var(--ink); border-radius: var(--radius-pill); background: transparent; color: var(--ink); font: inherit; font-size: var(--step--1); cursor: pointer;
+      touch-action: manipulation; transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out), transform 120ms var(--ease-out);
+    }
+    :global(html.js) .ftoggle:active { transform: scale(0.97); }
+    :global(html.js) .ftoggle:focus-visible { outline: 2px solid var(--pouch); outline-offset: 2px; }
+    :global(html.js) .ftoggle[aria-expanded="true"] { background: var(--ink); color: var(--salt); }
+    .ftoggle__n { display: inline-grid; place-items: center; min-inline-size: 22px; block-size: 22px; padding-inline: 6px; border-radius: 99px; background: var(--ink); color: var(--salt); font-size: var(--step--2); }
+    :global(html.js) .ftoggle[aria-expanded="true"] .ftoggle__n { background: var(--salt); color: var(--ink); }
+    :global(html.js) .filters__tools { display: contents; }
+    :global(html.js) .viewswitch { grid-column: 2; grid-row: 1; }
+    :global(html.js) .viewswitch .field__label, :global(html.js) .vs span { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    :global(html.js) .vs { min-inline-size: 46px; justify-content: center; padding: 0 12px; }
+    :global(html.js) .facet, :global(html.js) .field--search, :global(html.js) .field--sort { grid-column: 1 / -1; }
+    :global(html.js) .filters:not([data-open]) :is(.facet, .field--search, .field--sort) { display: none; }
+  }
 
   /* ---------- results ---------- */
   .results { margin-block-start: clamp(16px, 2vw, 28px); scroll-margin-block-start: calc(var(--header-h) + var(--ticker-h) + 12px); }

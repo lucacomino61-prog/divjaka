@@ -7,9 +7,10 @@
  * Facts rule (PLAN §2): about the hotel only what SPEC.md says or what research/business.json
  * marks verified (Booking.com / AlbaniaVisit listing data, never review text); about the area only
  * verified research/heritage.json / seasons.json facts (ids in the comment above each entry).
- * Anything the owner has not confirmed (check-in times, breakfast, pool, transfers, prices of
- * third parties, cancellation policy) answers "pyesni recepsionin" and the UI offers the staff
- * hand-off. Keywords: both languages, folded (no ë/ç needed), common spellings without accents.
+ * Anything the owner has not confirmed (breakfast, pool, transfers, prices of third parties,
+ * cancellation policy) answers "pyesni recepsionin" and the UI offers the staff hand-off; listing
+ * data the stay page also prints (check-in/out, languages, pets) is quoted as the Booking.com
+ * listing with "confirm with reception" (final pass 2026-10-27), so the two never disagree. Keywords: both languages, folded (no ë/ç needed), common spellings without accents.
  *
  * Used by:
  *   scripts/seed.mjs            — default export, inserted into an EMPTY faq table only;
@@ -57,7 +58,7 @@ export const FAQ = [
   },
   { // business.json room_types (verified, Booking + AlbaniaVisit)
     q_sq: 'Çfarë dhomash keni?', q_en: 'What rooms do you have?',
-    a_sq: 'Sipas listimeve publike të hotelit: Dhomë Deluxe me një shtrat queen (rreth 17 m²), Dhomë Deluxe treshe (rreth 25 m²) dhe Dhomë Deluxe katërshe për 4 persona (rreth 25 m²), të gjitha me ballkon. Çmimet dhe disponueshmëria e sotme janë te faqja e qëndrimit.',
+    a_sq: 'Sipas listimeve publike të hotelit: Dhomë Deluxe (rreth 17 m²) me një shtrat dopio të madh, Dhomë Deluxe treshe (rreth 25 m²) dhe Dhomë Deluxe katërshe për 4 persona (rreth 25 m²), të gjitha me ballkon. Çmimet dhe disponueshmëria e sotme janë te faqja e qëndrimit.',
     a_en: 'According to the hotel’s public listings: a Deluxe Room with one queen bed (about 17 m²), a Deluxe Triple (about 25 m²) and a Deluxe Quadruple for 4 people (about 25 m²), all with a balcony. Prices and today’s availability are on the stay page.',
     keywords: 'dhoma, dhomat, llojet e dhomave, dhome dyshe, dhome treshe, dhome katershe, deluxe, rooms, room types, double room, triple, quadruple, family room, dhome familjare', links: [STAY],
   },
@@ -81,8 +82,8 @@ export const FAQ = [
   },
   { // SPEC (bar-restaurant) + business.json restaurant (verified: fish, eel, local specialities)
     q_sq: 'A keni restorant?', q_en: 'Do you have a restaurant?',
-    a_sq: 'Hoteli ka bar-restorant me kuzhinë vendase dhe ndërkombëtare: peshk, ngjalë dhe specialitete të zonës. Mund të rezervoni edhe "Darkë me peshk" te eksperiencat. Oraret e restorantit i konfirmon recepsioni.',
-    a_en: 'The hotel has a bar-restaurant with local and international cooking: fish, eel and local specialities. You can also book the "Fish dinner" among the experiences. The restaurant’s hours are confirmed by reception.',
+    a_sq: 'Hoteli ka bar-restorant me kuzhinë vendase dhe ndërkombëtare: peshk, ngjalë dhe specialitete të zonës. Mund të rezervoni edhe «Darkë me peshk» te eksperiencat. Oraret e restorantit i konfirmon recepsioni.',
+    a_en: 'The hotel has a bar-restaurant with local and international cooking: fish, eel and local specialities. You can also book the “Fish dinner” among the experiences. The restaurant’s hours are confirmed by reception.',
     keywords: 'restorant, restoranti, restorantin, orari i restorantit, mbremje, bar, ushqim, darke, dreke, ku te ha, restaurant open, open in the evening, peshk, ngjale, restaurant, food, dinner, lunch, where to eat, fish, eel, bar restaurant', links: [EXP],
   },
   { // business.json breakfast: medium, direct rates not confirmed → ask
@@ -91,10 +92,10 @@ export const FAQ = [
     a_en: 'The hotel has to confirm this: it is not set out for direct bookings. Ask reception, or leave your contact here and the staff will write to you.',
     keywords: 'mengjes, mengjesi, mengjesin, me mengjes, breakfast, breakfast included, morning meal', links: [CONTACT], handoff: true,
   },
-  { // business.json check-in/out: medium, hidden placeholders → ask
-    q_sq: 'Në çfarë ore është hyrja dhe dalja?', q_en: 'What are the check-in and check-out times?',
-    a_sq: 'Oraret e hyrjes dhe të daljes do t’jua konfirmojë recepsioni. Lini kontaktin këtu ose shkruani te faqja e kontaktit.',
-    a_en: 'Reception will confirm the check-in and check-out times. Leave your contact here or write through the contact page.',
+  { // business.json check_in / check_out (verified, medium: Booking.com listing), as /qendrimi/ prints them
+    q_sq: 'Në çfarë ore është check-in dhe check-out?', q_en: 'What are the check-in and check-out times?',
+    a_sq: 'Sipas listimit të hotelit në Booking.com: check-in 13:00–23:30, check-out deri në 11:00. Konfirmojini me recepsionin para se të vini.',
+    a_en: 'According to the hotel’s Booking.com listing: check-in 13:00–23:30, check-out until 11:00. Please confirm with reception before you arrive.',
     keywords: 'check in, check-in, check out, check-out, hyrja, dalja, ora e hyrjes, ora e daljes, mberritja vone, late arrival, arrival time, departure time, kur mund te hyj, kur duhet te dal, liroj dhomen, lirimi i dhomes, dita e fundit, diten e fundit, leave the room, last day, what time do i have to leave, check out time, checkout, checkin', links: [CONTACT], handoff: true,
   },
   { // business.json facilities: 24-hour front desk (verified)
@@ -111,8 +112,8 @@ export const FAQ = [
   },
   { // children policy: medium only → ask; family experiences exist
     q_sq: 'A jeni të përshtatshëm për fëmijë?', q_en: 'Is it suitable for children?',
-    a_sq: 'Parku, plazhi dhe shumë eksperienca janë për familje, dhe itinerari ka zgjedhjen "Udhëtojmë me fëmijë". Për shtretërit shtesë dhe çmimet për fëmijët pyesni recepsionin.',
-    a_en: 'The park, the beach and many experiences suit families, and the itinerary planner has a "Travelling with children" option. For extra beds and children’s prices, ask reception.',
+    a_sq: 'Parku, plazhi dhe shumë eksperienca janë për familje, dhe itinerari ka zgjedhjen «Udhëtojmë me fëmijë». Për shtretërit shtesë dhe çmimet për fëmijët pyesni recepsionin.',
+    a_en: 'The park, the beach and many experiences suit families, and the itinerary planner has a “Travelling with children” option. For extra beds and children’s prices, ask reception.',
     keywords: 'femije, femijet, femij, foshnje, krevat shtese, children, kids, child, baby, cot, crib, family, familje', links: [PLAN, CONTACT],
   },
   { // pool: CONFLICT in research → cannot confirm
@@ -127,35 +128,35 @@ export const FAQ = [
     a_en: 'Ask reception about a transfer. From Divjakë town to Tirana Airport it is about 79 km by road, about 1 hour 20 minutes without traffic.',
     keywords: 'transfer, transferte, transferta, transport, transport nga aeroporti, transport from the airport, airport transport, airport pickup, shuttle, taxi, taksi, airport transfer, transfer from the airport, taxi from the airport, taksi nga aeroporti, marrje nga aeroporti, me merrni ne aeroport, pick up, pickup', links: [GETTING, CONTACT], handoff: true,
   },
-  { // business.json languages: medium → do not claim; the assistant itself is bilingual
+  { // business.json languages (verified, medium: Booking.com listing), as /qendrimi/ prints them; the assistant itself is bilingual
     q_sq: 'Në cilat gjuhë flitet?', q_en: 'Which languages do you speak?',
-    a_sq: 'Ky asistent dhe sajti janë në shqip dhe anglisht. Për gjuhët e stafit në recepsion pyesni hotelin.',
-    a_en: 'This assistant and the site are in Albanian and English. For the languages the reception staff speak, ask the hotel.',
+    a_sq: 'Ky asistent dhe sajti janë në shqip dhe anglisht. Listimi i hotelit në Booking.com shënon anglisht dhe italisht në recepsion; konfirmojeni me hotelin.',
+    a_en: 'This assistant and the site are in Albanian and English. The hotel’s Booking.com listing shows English and Italian at reception; please confirm with the hotel.',
     keywords: 'gjuha, gjuhe, gjuhet, flisni, flisni anglisht, anglisht, italisht, gjermanisht, frengjisht, greqisht, language, languages, do you speak, speak english, english, italian, german, french, greek, spanish', links: [CONTACT],
   },
   { // nothing verified about seasonal opening → ask (never "yes")
     q_sq: 'A është hoteli i hapur gjithë vitin?', q_en: 'Is the hotel open all year?',
-    a_sq: 'Nuk kemi informacion të konfirmuar se si punon hoteli jashtë sezonit. Pyesni recepsionin, ose lini kontaktin këtu dhe stafi ju shkruan. Datat që mund të rezervohen online i shihni te "Qëndrimi".',
-    a_en: 'We have no confirmed information on how the hotel works out of season. Ask reception, or leave your contact here and the staff will write to you. The dates you can book online are under "Stay".',
+    a_sq: 'Nuk kemi informacion të konfirmuar se si punon hoteli jashtë sezonit. Pyesni recepsionin, ose lini kontaktin këtu dhe stafi ju shkruan. Datat që mund të rezervohen online i shihni te «Qëndrimi».',
+    a_en: 'We have no confirmed information on how the hotel works out of season. Ask reception, or leave your contact here and the staff will write to you. The dates you can book online are under “Stay”.',
     keywords: 'ne dimer, dimer, dimri, gjate dimrit, jashte sezonit, gjithe vitin, i hapur, hapur, hapet, mbyllur, mbyllet, winter, in winter, open in winter, all year, open all year, year round, off season, closed, open', links: [STAY, CONTACT], handoff: true,
   },
 
   /* ---------------- booking and paying ---------------- */
   {
     q_sq: 'Si rezervoj një dhomë?', q_en: 'How do I book a room?',
-    a_sq: 'Hapni "Qëndrimi", zgjidhni datat dhe numrin e personave: çmimi dhe dhomat e lira llogariten aty për aty. Shtoni në shportë dhe përfundoni në arkë. Mund të më shkruani edhe datat këtu, p.sh. "dhomë 12–14 korrik për 2".',
-    a_en: 'Open "Stay", choose your dates and the number of guests: the price and free rooms are worked out on the spot. Add to the cart and finish at checkout. You can also write me your dates here, e.g. "room 12–14 July for 2".',
+    a_sq: 'Hapni «Qëndrimi», zgjidhni datat dhe numrin e personave: çmimi dhe dhomat e lira llogariten aty për aty. Shtoni në shportë dhe përfundoni në arkë. Mund të më shkruani edhe datat këtu, p.sh. «dhomë 12–14 korrik për 2».',
+    a_en: 'Open “Stay”, choose your dates and the number of guests: the price and free rooms are worked out on the spot. Add to the cart and finish at checkout. You can also write me your dates here, e.g. “room 12–14 July for 2”.',
     keywords: 'si rezervoj, rezervim dhome, rezervoj dhome, dua te rezervoj, booking, how to book, book a room, reserve, reservation, make a booking', links: [STAY],
   },
   { // prices are the owner's data (catalogue), worked out live — never quoted here
     q_sq: 'Sa kushton një dhomë për një natë?', q_en: 'How much is a room per night?',
-    a_sq: 'Çmimi për natë varet nga dhoma, datat dhe numri i personave, dhe llogaritet aty për aty te "Qëndrimi". Më shkruani datat këtu, p.sh. "dhomë 12–14 korrik për 2", dhe ju tregoj dhomat e lira me shumën gjithsej.',
-    a_en: 'The price per night depends on the room, the dates and the number of guests, and is worked out on the spot under "Stay". Write me your dates here, e.g. "room 12–14 July for 2", and I will show you the free rooms with the total.',
+    a_sq: 'Çmimi për natë varet nga dhoma, datat dhe numri i personave, dhe llogaritet aty për aty te «Qëndrimi». Më shkruani datat këtu, p.sh. «dhomë 12–14 korrik për 2», dhe ju tregoj dhomat e lira me shumën gjithsej.',
+    a_en: 'The price per night depends on the room, the dates and the number of guests, and is worked out on the spot under “Stay”. Write me your dates here, e.g. “room 12–14 July for 2”, and I will show you the free rooms with the total.',
     keywords: 'sa kushton dhoma, sa kushton nje dhome, sa kushton nje nate, sa kushton nata, cmimi i dhomes, cmimet e dhomave, cmimi per nate, cmimi, cmimet, room price, room prices, price of a room, how much is a room, room cost, cost of a room, per night, price per night, room rate, rates, price, prices, cheapest, cheapest room, cheap, lowest price, budget, me e lira, me e lire, dhoma me e lire, me lire', links: [STAY],
   },
   {
     q_sq: 'Si mund të paguaj?', q_en: 'How can I pay?',
-    a_sq: 'Në arkë shfaqen mënyrat që ofrohen tani: pagesë në hotel, transfertë bankare (kur hoteli ka publikuar llogarinë) ose kartë. Shumat janë në lekë; euro tregohet si përafërsi.',
+    a_sq: 'Në arkë shfaqen mënyrat që ofrohen tani: pagesë në hotel, transferim bankar (kur hoteli ka publikuar llogarinë) ose kartë. Shumat janë në lekë; euro tregohet si përafërsi.',
     a_en: 'Checkout shows the methods offered right now: pay at the hotel, bank transfer (once the hotel has published its account) or card. Amounts are in lek; euros are shown as an approximation.',
     keywords: 'pagese, paguaj, si paguaj, menyrat e pageses, cash, kesh, para ne dore, pay, payment, payment methods, how to pay', links: [L('checkout', 'Arka', 'Checkout')],
     replaces: 'Si mund të paguaj?',
@@ -167,10 +168,10 @@ export const FAQ = [
     keywords: 'karte, karta, me karte, visa, mastercard, karte krediti, karte debiti, card, credit card, debit card, card payment, safe, secure, siguri', links: [PRIVACY],
   },
   {
-    q_sq: 'Si paguaj me transfertë bankare?', q_en: 'How do I pay by bank transfer?',
-    a_sq: 'Kur hoteli ka publikuar llogarinë bankare, transferta shfaqet në arkë. Pas porosisë shihni IBAN-in dhe kodin e porosisë për t’i shkruar në përshkrim. Porosia pa pagesë mbahet deri në {bank_h} orë, nëse hoteli s’e konfirmon më herët.',
+    q_sq: 'Si paguaj me transferim bankar?', q_en: 'How do I pay by bank transfer?',
+    a_sq: 'Kur hoteli ka publikuar llogarinë bankare, transferimi shfaqet në arkë. Pas porosisë shihni IBAN-in dhe kodin e porosisë për t’i shkruar në përshkrim. Porosia pa pagesë mbahet deri në {bank_h} orë, nëse hoteli s’e konfirmon më herët.',
     a_en: 'Once the hotel has published its bank account, transfer appears at checkout. After ordering you see the IBAN and the order code to put in the reference. An unpaid order is held for up to {bank_h} hours unless the hotel confirms it sooner.',
-    keywords: 'transferte, transfert, banke, banka, iban, llogari bankare, bank transfer, wire transfer, bank account, swift', links: [L('checkout', 'Arka', 'Checkout')],
+    keywords: 'transferte, transfert, transferim, banke, banka, iban, llogari bankare, bank transfer, wire transfer, bank account, swift', links: [L('checkout', 'Arka', 'Checkout')],
   },
   {
     q_sq: 'Mund të paguaj në hotel?', q_en: 'Can I pay at the hotel?',
@@ -180,13 +181,13 @@ export const FAQ = [
   },
   {
     q_sq: 'Sa kohë mbahet rezervimi im pa pagesë?', q_en: 'How long is my booking held without payment?',
-    a_sq: 'Kartë: {card_min} minuta për të përfunduar pagesën. Transfertë bankare: deri në {bank_h} orë. Pagesë në hotel: {hotel_h} orë, derisa hoteli ta konfirmojë. Qëndrimet e gjata ose shumë përpara mund të mbahen vetëm {short_h} orë; faqja e porosisë tregon afatin e saktë.',
+    a_sq: 'Kartë: {card_min} minuta për të përfunduar pagesën. Transferim bankar: deri në {bank_h} orë. Pagesë në hotel: {hotel_h} orë, derisa hoteli ta konfirmojë. Qëndrimet e gjata ose shumë përpara mund të mbahen vetëm {short_h} orë; faqja e porosisë tregon afatin e saktë.',
     a_en: 'Card: {card_min} minutes to finish paying. Bank transfer: up to {bank_h} hours. Pay at the hotel: {hotel_h} hours, until the hotel confirms it. Long stays or bookings far ahead may be held for {short_h} hours only; your order page shows the exact deadline.',
     keywords: 'sa mbahet, afati, skadon, hold, held, expire, expires, how long is my booking held, reserved until, lirohet', links: [ACCOUNT, TERMS],
   },
   { // terms draft: policy set by the hotel
     q_sq: 'Si mund të anuloj ose ndryshoj një rezervim?', q_en: 'How can I cancel or change a booking?',
-    a_sq: 'Kushtet e anulimit i përcakton hoteli dhe jua konfirmon kur konfirmon rezervimin, me telefon ose me shkrim. Për të anuluar ose ndryshuar, shkruani stafit me kodin e porosisë, nga faqja e kontaktit ose këtu.',
+    a_sq: 'Kushtet e anulimit i përcakton hoteli dhe jua konfirmon kur konfirmon rezervimin, me telefon ose me shkrim. Për të anuluar ose ndryshuar, shkruajini stafit me kodin e porosisë, nga faqja e kontaktit ose këtu.',
     a_en: 'Cancellation terms are set by the hotel, which confirms them to you when it confirms your booking, by phone or in writing. To cancel or change, write to the staff with your order code, from the contact page or here.',
     keywords: 'anulim, anuloj, anulimi, ndryshim, ndryshoj, ndrysho datat, cancel, cancellation, change booking, modify, change dates, postpone', links: [TERMS, CONTACT], handoff: true,
     replaces: 'Si mund të anuloj ose ndryshoj një rezervim?',
@@ -199,15 +200,15 @@ export const FAQ = [
   },
   {
     q_sq: 'Si e gjej rezervimin tim?', q_en: 'How do I find my booking?',
-    a_sq: 'Hapni "Rezervimet e mia" dhe shkruani kodin e porosisë (p.sh. DV-7K3Q9) dhe emailin që përdorët.',
-    a_en: 'Open "My bookings" and enter your order code (e.g. DV-7K3Q9) and the e-mail you used.',
+    a_sq: 'Hapni «Rezervimet e mia» dhe shkruani kodin e porosisë (p.sh. DV-7K3Q9) dhe emailin që përdorët.',
+    a_en: 'Open “My bookings” and enter your order code (e.g. DV-7K3Q9) and the email you used.',
     keywords: 'rezervimi im, rezervimin tim, porosia ime, porosine time, kodi i porosise, kodin e porosise, kodi i rezervimit, kodin e rezervimit, kodin, humb, humba kodin, kam humbur kodin, harrova kodin, gjej rezervimin, gjej porosine, ku eshte rezervimi, my booking, find my booking, order code, booking code, order number, booking number, reservation number, numri i porosise, numrin e porosise, numri i rezervimit, find order, lost, lost my code, lost the code, forgot my code, lost booking', links: [ACCOUNT],
     replaces: 'Si e gjej rezervimin tim?',
   },
   {
-    q_sq: 'Nuk mora email për porosinë. Çfarë të bëj?', q_en: 'I did not get an e-mail about my order. What now?',
+    q_sq: 'Nuk mora email për porosinë. Çfarë të bëj?', q_en: 'I did not get an email about my order. What now?',
     a_sq: 'Ky sajt nuk dërgon email. Kodin e porosisë e shihni në faqen që hapet pas porosisë; me kodin dhe emailin e gjeni porosinë te «Rezervimet e mia». Nëse e keni humbur kodin, lini kontaktin dhe stafi ju shkruan.',
-    a_en: 'This site does not send e-mails. Your order code is on the page that opens after you order; with the code and your e-mail you find the order under "My bookings". If you have lost the code, leave your contact and the staff will write to you.',
+    a_en: 'This site does not send emails. Your order code is on the page that opens after you order; with the code and your email you find the order under “My bookings”. If you have lost the code, leave your contact and the staff will write to you.',
     keywords: 'nuk mora email, s mora email, nuk me erdhi, nuk me vjen, nuk me ka ardhur, me ka ardhur, asnje email, email per porosine, never got an email, email konfirmimi, konfirmim me email, a dergoni email, no email, did not receive, confirmation email, no confirmation, did not get an email, send an email', links: [ACCOUNT, CONTACT], handoff: true,
   },
   {
@@ -259,8 +260,8 @@ export const FAQ = [
   },
   { // birds-03, birds-04, birds-07, birds-08 (counts as the sources give them; no official count after 2020)
     q_sq: 'Sa pelikanë kaçurrelë ka në Divjakë?', q_en: 'How many Dalmatian pelicans are there?',
-    a_sq: 'Historikisht kolonia kishte 200–250 çifte folezuese; në pikën më të ulët, në fillim të viteve 2000, ra në 19 çifte. Më 2020 u numëruan saktësisht 85 çifte, numri më i lartë në rreth 40 vjet. Një fletëpalosje e PPNEA/Fondacionit Böll (2025) shënon "rreth 100 çifte" pa dhënë vitin; numërim zyrtar pas 2020-s nuk kemi gjetur.',
-    a_en: 'Historically the colony held 200–250 breeding pairs; at its lowest, in the early 2000s, it fell to 19 pairs. In 2020 exactly 85 pairs were counted, the highest in about 40 years. A PPNEA/Böll Foundation flyer (2025) says "around 100 breeding pairs" without giving a year; we found no official count after 2020.',
+    a_sq: 'Historikisht kolonia kishte 200–250 çifte folezuese; në pikën më të ulët, në fillim të viteve 2000, ra në 19 çifte. Më 2020 u numëruan saktësisht 85 çifte, numri më i lartë në rreth 40 vjet. Një fletëpalosje e PPNEA/Fondacionit Böll (2025) shënon «rreth 100 çifte» pa dhënë vitin; numërim zyrtar pas 2020-s nuk kemi gjetur.',
+    a_en: 'Historically the colony held 200–250 breeding pairs; at its lowest, in the early 2000s, it fell to 19 pairs. In 2020 exactly 85 pairs were counted, the highest in about 40 years. A PPNEA/Böll Foundation flyer (2025) says “around 100 breeding pairs” without giving a year; we found no official count after 2020.',
     keywords: 'sa pelikane, sa jane pelikanet, sa pelikan, numri i pelikaneve, sa cifte, cifte, cifte folezuese, kacurel, sa jane, how many, how many pelicans, how many dalmatian pelicans, number of pelicans, pelican population, population, breeding pairs, pairs, popullata, popullsia', links: [PELICAN],
   },
   { // birds-10, prac-13, birds-11
@@ -271,8 +272,8 @@ export const FAQ = [
   },
   { // birds-15, birds-17, birds-25, seasons year_round flamingos (medium, Albanian wetlands)
     q_sq: 'Çfarë zogjsh mund të shoh?', q_en: 'Which birds can I see?',
-    a_sq: 'Buletini i parkut numëron rreth 260 lloje shpendësh. Agjencia Kombëtare e Turizmit rendit flamingot, karabullakët dhe çafkat ndër shpendët e lagunës, dhe në mars 2020 vëzhguesit e shpendëve panë këtu edhe karabullakë të vegjël, pulëbardha e rosa; në dimër laguna mban deri në 84 000 shpendë uji. Kalendari muaj pas muaji është te "Zogjtë sipas stinëve".',
-    a_en: 'The park bulletin counts about 260 bird species. The national tourism agency lists flamingos, cormorants and herons among the lagoon’s birds, and in March 2020 birdwatchers also saw pygmy cormorants, gulls and ducks here; in winter the lagoon holds up to 84,000 waterbirds. The month-by-month calendar is in "Birds by season".',
+    a_sq: 'Buletini i parkut numëron rreth 260 lloje shpendësh. Agjencia Kombëtare e Turizmit rendit flamingot, karabullakët dhe çafkat ndër shpendët e lagunës, dhe në mars 2020 vëzhguesit e shpendëve panë këtu edhe karabullakë të vegjël, pulëbardha e rosa; në dimër laguna mban deri në 84 000 shpendë uji. Kalendari muaj pas muaji është te «Zogjtë sipas stinëve».',
+    a_en: 'The park bulletin counts about 260 bird species. The national tourism agency lists flamingos, cormorants and herons among the lagoon’s birds, and in March 2020 birdwatchers also saw pygmy cormorants, gulls and ducks here; in winter the lagoon holds up to 84,000 waterbirds. The month-by-month calendar is in “Birds by season”.',
     keywords: 'zogj, zogjte, zogjsh, cfare zogjsh, shpende, shpendet, shpendesh, shpendet e ujit, ne dimer, dimer, dimrit, shihen, flamingo, flamingot, cafka, karabullak, birds, winter, in winter, birds in winter, wintering, cormorant, birdwatching, bird watching, which birds, flamingos, herons, species, vezhgim zogjsh', links: [BIRDS],
   },
   { // visit-02 (36 m AKT) + OSM 35 m → "35–36 m"; visit-08 no official hours
@@ -353,8 +354,8 @@ export const FAQ = [
   /* ---------------- culture ---------------- */
   { // hist-13, hist-14, hist-15, hist-16, hist-09
     q_sq: 'Çfarë vende kulturore ka afër?', q_en: 'What cultural sites are nearby?',
-    a_sq: 'Kishat e Karavastasë (shekulli XVIII), Manastiri i Ardenicës, rreth 35 km nga qyteti i Divjakës, ku u martua Skënderbeu më 1451, dhe Apolonia, qyteti antik i themeluar rreth vitit 600 p.e.s., rreth 52 km larg. Të treja janë në "Ditën kulturore".',
-    a_en: 'The churches of Karavasta (18th century), Ardenica Monastery, about 35 km from Divjakë town, where Skanderbeg married in 1451, and Apollonia, the ancient city founded around 600 BC, about 52 km away. All three are in the "Cultural day".',
+    a_sq: 'Kishat e Karavastasë (shekulli XVIII), Manastiri i Ardenicës, rreth 35 km nga qyteti i Divjakës, ku u martua Skënderbeu më 1451, dhe Apolonia, qyteti antik i themeluar rreth vitit 600 p.e.s., rreth 52 km larg. Të treja janë në «Ditën kulturore».',
+    a_en: 'The churches of Karavasta (18th century), Ardenica Monastery, about 35 km from Divjakë town, where Skanderbeg married in 1451, and Apollonia, the ancient city founded around 600 BC, about 52 km away. All three are in the “Cultural day”.',
     keywords: 'kulture, kulturore, histori, manastir, ardenica, ardenice, apolonia, apollonia, kisha, kishat, karavasta, skenderbeu, culture, history, monastery, churches, ruins, archaeology, museum, muze', links: [HISTORY, EXP],
   },
   { // hist-21, lagoon-12
@@ -367,21 +368,21 @@ export const FAQ = [
   /* ---------------- weather, seasons, planning ---------------- */
   {
     q_sq: 'Si është moti tani në Divjakë?', q_en: 'What is the weather like now?',
-    a_sq: 'Leximet e fundit (temperatura, era, deti, lindja dhe perëndimi i diellit) dhe parashikimi për 7 ditë janë te "Tani në Divjakë". Faqja rifreskohet vetë çdo 10 minuta; moti ndryshon kur MET Norway publikon parashikimin e ri, deti një herë në ditë.',
-    a_en: 'The latest readings (temperature, wind, sea, sunrise and sunset) and the 7-day forecast are on "Now in Divjakë". The page refreshes itself every 10 minutes; the weather changes when MET Norway publishes a new forecast, the sea once a day.',
+    a_sq: 'Leximet e fundit (temperatura, era, deti, lindja dhe perëndimi i diellit) dhe parashikimi për 7 ditë janë te «Tani në Divjakë». Faqja rifreskohet vetë çdo 10 minuta; moti ndryshon kur MET Norway publikon parashikimin e ri, deti një herë në ditë.',
+    a_en: 'The latest readings (temperature, wind, sea, sunrise and sunset) and the 7-day forecast are on “Now in Divjakë”. The page refreshes itself every 10 minutes; the weather changes when MET Norway publishes a new forecast, the sea once a day.',
     keywords: 'moti, mot, temperatura, era, shi, parashikimi, sa grade, weather, temperature, forecast, wind, rain, how hot, how cold', links: [NOW],
     replaces: 'Si është moti tani në Divjakë?',
   },
   { // prac-13, birds-17, seasons
     q_sq: 'Kur është koha më e mirë për të ardhur?', q_en: 'When is the best time to come?',
-    a_sq: 'Varet nga çfarë kërkoni: pelikanët folezojnë janar–qershor; në dimër laguna mbushet me shpendë uji (deri në 84 000); guidat e quajnë korrikun dhe gushtin sezonin e plazhit. Muaj pas muaji: "Zogjtë sipas stinëve".',
-    a_en: 'It depends on what you are after: the pelicans nest January–June; in winter the lagoon fills with waterbirds (up to 84,000); guides call July and August the beach season. Month by month: "Birds by season".',
+    a_sq: 'Varet nga çfarë kërkoni: pelikanët folezojnë janar–qershor; në dimër laguna mbushet me shpendë uji (deri në 84 000); guidat e quajnë korrikun dhe gushtin sezonin e plazhit. Muaj pas muaji: «Zogjtë sipas stinëve».',
+    a_en: 'It depends on what you are after: the pelicans nest January–June; in winter the lagoon fills with waterbirds (up to 84,000); guides call July and August the beach season. Month by month: “Birds by season”.',
     keywords: 'koha me e mire, kur te vij, kur eshte me mire, muaji me i mire, cili muaj, ne cilin muaj, sezoni, stina, best time, best month, which month, best season, best period, when to visit, when to come, season, high season, low season', links: [BIRDS, PLAN],
   },
   {
     q_sq: 'A mund të planifikoj disa ditë në Divjakë?', q_en: 'Can I plan a few days in Divjakë?',
-    a_sq: 'Te "Itinerari" zgjidhni 1–4 ditë, interesat, ritmin dhe si lëvizni. Plani ndërtohet nga vende të vërteta, me lindjen dhe perëndimin e diellit, vizatohet mbi hartë dhe ruhet në lidhje.',
-    a_en: 'In "Itinerary" choose 1–4 days, your interests, your pace and how you get around. The plan is built from real places, around sunrise and sunset, drawn on the chart and kept in its link.',
+    a_sq: 'Te «Itinerari» zgjidhni 1–4 ditë, interesat, ritmin dhe si lëvizni. Plani ndërtohet nga vende të vërteta, me lindjen dhe perëndimin e diellit, vizatohet mbi hartë dhe ruhet në lidhje.',
+    a_en: 'In “Itinerary” choose 1–4 days, your interests, your pace and how you get around. The plan is built from real places, around sunrise and sunset, drawn on the chart and kept in its link.',
     keywords: 'itinerar, itinerari, plan, planifikoj, program, cfare te bej, ku te shkoj, itinerary, plan my trip, trip planner, what to do, things to do, schedule, days', links: [PLAN],
     replaces: 'A mund të planifikoj disa ditë në Divjakë?',
   },
@@ -393,34 +394,34 @@ export const FAQ = [
   },
   { // policy is the operator's / the hotel's (NEEDS_VERIFICATION: cancellation terms) → hand-off
     q_sq: 'Çfarë ndodh me një eksperiencë nëse moti është i keq?', q_en: 'What happens to a tour in bad weather?',
-    a_sq: 'Nëse moti e pengon një eksperiencë në natyrë (varkën, shpendët në agim, biçikletën), vendimin e merr organizatori. Si shtyhet ose anulohet, dhe çfarë ndodh me pagesën, e përcakton hoteli dhe jua konfirmon kur konfirmon rezervimin. Pyesni stafin me kodin e porosisë; parashikimin për 7 ditë e gjeni te "Tani në Divjakë".',
-    a_en: 'If the weather stops an outdoor experience (the boat, the dawn birds, the bike ride), the organiser decides. How it is moved or cancelled, and what happens to your payment, is set by the hotel, which confirms it to you when it confirms your booking. Ask the staff with your order code; the 7-day forecast is on "Now in Divjakë".',
+    a_sq: 'Nëse moti e pengon një eksperiencë në natyrë (varkën, shpendët në agim, biçikletën), vendimin e merr organizatori. Si shtyhet ose anulohet, dhe çfarë ndodh me pagesën, e përcakton hoteli dhe jua konfirmon kur konfirmon rezervimin. Pyesni stafin me kodin e porosisë; parashikimin për 7 ditë e gjeni te «Tani në Divjakë».',
+    a_en: 'If the weather stops an outdoor experience (the boat, the dawn birds, the bike ride), the organiser decides. How it is moved or cancelled, and what happens to your payment, is set by the hotel, which confirms it to you when it confirms your booking. Ask the staff with your order code; the 7-day forecast is on “Now in Divjakë”.',
     keywords: 'mot i keq, moti i keq, mot te keq, moti eshte i keq, ne mot te keq, nese moti, bad weather, in bad weather, if the weather, weather is bad, anulohet, anulohen, shtyhet, shtyhen, cancelled, canceled, called off, postponed, stuhi, storm, era e forte, strong wind', links: [NOW, TERMS, CONTACT], handoff: true,
   },
 
   /* ---------------- privacy, contact, this assistant ---------------- */
   {
     q_sq: 'Çfarë të dhënash ruani për mua?', q_en: 'What data do you keep about me?',
-    a_sq: 'Pa cookies gjurmuese: statistikat janë të përgjithshme, në sajtin tonë. Kur porositni ruajmë emrin, emailin, telefonin dhe porosinë, që hoteli ta përmbushë. Shporta dhe zgjedhjet tuaja ruhen vetëm në shfletuesin tuaj. Të gjitha te "Privatësia".',
-    a_en: 'No tracking cookies: statistics are aggregate, on our own site. When you order we keep your name, e-mail, phone and the order so the hotel can fulfil it. Your cart and choices stay in your browser only. All of it under "Privacy".',
+    a_sq: 'Pa cookies gjurmuese: statistikat janë të përgjithshme, në sajtin tonë. Kur porositni ruajmë emrin, emailin, telefonin dhe porosinë, që hoteli ta përmbushë. Shporta dhe zgjedhjet tuaja ruhen vetëm në shfletuesin tuaj. Të gjitha te «Privatësia».',
+    a_en: 'No tracking cookies: statistics are aggregate, on our own site. When you order we keep your name, email, phone and the order so the hotel can fulfil it. Your cart and choices stay in your browser only. All of it under “Privacy”.',
     keywords: 'privatesia, te dhenat, te dhenat personale, cookies, gdpr, privacy, personal data, data protection, my data, tracking', links: [PRIVACY],
   },
   {
     q_sq: 'Si i fshij të dhënat e mia?', q_en: 'How do I delete my data?',
-    a_sq: 'Shkruani hotelit nga faqja e kontaktit dhe kërkoni fshirjen ose kopjen e të dhënave tuaja; hoteli përgjigjet sipas ligjit për mbrojtjen e të dhënave personale. Të dhënat në shfletues i fshini vetë te "Rezervimet e mia" → "Fshi të dhënat e mia nga ky shfletues".',
-    a_en: 'Write to the hotel from the contact page and ask for your data to be deleted or for a copy; the hotel answers under the personal-data protection law. Data in your browser you clear yourself in "My bookings" → "Delete my data from this browser".',
+    a_sq: 'Shkruajini hotelit nga faqja e kontaktit dhe kërkoni fshirjen ose kopjen e të dhënave tuaja; hoteli përgjigjet sipas ligjit për mbrojtjen e të dhënave personale. Të dhënat në shfletues i fshini vetë te «Rezervimet e mia» → «Fshi të dhënat e mia nga ky shfletues».',
+    a_en: 'Write to the hotel from the contact page and ask for your data to be deleted or for a copy; the hotel answers under the personal-data protection law. Data in your browser you clear yourself in “My bookings” → “Delete my data from this browser”.',
     keywords: 'fshij te dhenat, fshirje, fshi, kopje e te dhenave, delete my data, erase, remove my data, right to be forgotten, data request', links: [PRIVACY, CONTACT], handoff: true,
   },
   {
     q_sq: 'Si kontaktoj stafin e hotelit?', q_en: 'How do I contact the hotel staff?',
     a_sq: 'Shkruani te faqja e kontaktit, ose lini këtu emrin dhe emailin ose telefonin dhe stafi ju kontakton. Kanalet e tjera shfaqen atje sapo i konfirmon hoteli.',
-    a_en: 'Write through the contact page, or leave your name and e-mail or phone here and the staff will contact you. Other channels appear there as soon as the hotel confirms them.',
+    a_en: 'Write through the contact page, or leave your name and email or phone here and the staff will contact you. Other channels appear there as soon as the hotel confirms them.',
     keywords: 'kontakt, kontakti, telefon, numri, email, whatsapp, viber, si ju kontaktoj, contact, phone number, call, email address, reach you', links: [CONTACT], handoff: true,
   },
   {
     q_sq: 'A po flas me një njeri?', q_en: 'Am I talking to a person?',
-    a_sq: 'Jo, jam asistenti automatik i sajtit: përgjigjem nga pyetjet e hotelit dhe nga burime të verifikuara, dhe, kur hoteli e ka aktivizuar, me ndihmën e një shërbimi të inteligjencës artificiale. Kur s’e di, ia kaloj pyetjen stafit me "Fol me stafin".',
-    a_en: 'No, I am the site’s automatic assistant: I answer from the hotel’s questions and verified sources and, when the hotel has switched it on, with the help of an AI service. When I do not know, I pass your question to the staff with "Talk to the staff".',
+    a_sq: 'Jo, jam asistenti automatik i sajtit: përgjigjem nga pyetjet e hotelit dhe nga burime të verifikuara, dhe, kur hoteli e ka aktivizuar, me ndihmën e një shërbimi të inteligjencës artificiale. Kur s’e di, ia kaloj pyetjen stafit me «Fol me stafin».',
+    a_en: 'No, I am the site’s automatic assistant: I answer from the hotel’s questions and verified sources and, when the hotel has switched it on, with the help of an AI service. When I do not know, I pass your question to the staff with “Talk to the staff”.',
     keywords: 'je njeri, a je njeri, je robot, po flas me nje njeri, flas me nje robot, bot, ai, inteligjence artificiale, are you human, are you a bot, is this a bot, robot, real person, chatbot, talking to a person, talking to a human, machine', links: [],
   },
   {

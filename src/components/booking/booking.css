@@ -196,9 +196,15 @@
 .bk__wait { font-size: var(--step--1); color: var(--muted); max-inline-size: 34ch; }
 .bk__calc, .bk__offer { margin: 0; font-size: var(--step--2); color: var(--muted); }
 .bk__offer { color: var(--fg); }
-.bk__offer::before { content: ""; display: inline-block; inline-size: 7px; block-size: 7px; border-radius: var(--radius-pill); background: var(--pouch); margin-inline-end: 8px; vertical-align: 1px; }
+.bk__offer::before { content: ""; display: inline-block; inline-size: 7px; block-size: 7px; border-radius: var(--radius-pill); background: var(--fg); margin-inline-end: 8px; vertical-align: 1px; }
 .bk__nights { font-size: var(--step--2); }
-.bk__nights summary { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; min-block-size: 32px; display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.bk__nights summary { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; min-block-size: 32px; display: inline-flex; align-items: center; gap: 10px; color: var(--muted); list-style: none; }
+.bk__nights summary::-webkit-details-marker { display: none; }
+/* inline-flex drops the disclosure triangle: a chevron says the line opens (down closed, up open) */
+.bk__nights summary::after { content: ""; flex: none; inline-size: 7px; block-size: 7px; border-inline-end: 1.5px solid currentColor; border-block-end: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform 180ms var(--ease-out, ease-out); }
+.bk__nights[open] summary::after { transform: translateY(2px) rotate(225deg); }
+.bk__nights summary:hover { color: var(--fg); }
+@media (pointer: coarse) { .bk__nights summary { min-block-size: 44px; } }
 .bk__nights ol { list-style: none; padding: 0; margin: 4px 0 0; display: grid; max-block-size: 9.5em; overflow: auto; overscroll-behavior: contain; }
 .bk__nights li { display: flex; justify-content: space-between; gap: 12px; font-family: var(--font-mono); font-size: var(--step--2); padding-block: 4px; border-block-end: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
 .bk-msg { margin: 0; padding: 8px 0 8px 12px; border-inline-start: 2px solid var(--pouch); font-size: var(--step--1); color: var(--signal-text); }
@@ -263,7 +269,7 @@ html.js .bk__nojs { display: none; }
 }
 @media (max-width: 999px) {
   html.js .bk-pill {
-    position: fixed; z-index: var(--z-pill); inset-block-end: calc(12px + env(safe-area-inset-bottom)); inset-inline-start: 12px; inset-inline-end: 72px;
+    position: fixed; z-index: var(--z-pill); inset-block-end: calc(12px + env(safe-area-inset-bottom)); inset-inline: 12px;
     display: flex; align-items: center; justify-content: space-between; gap: 10px; min-block-size: 56px; padding: 6px 6px 6px 18px;
     background: var(--ink); color: var(--salt); border-radius: var(--radius-pill); border: 1px solid var(--ink); text-decoration: none; cursor: pointer; font: inherit; text-align: start;
     box-shadow: 0 0 0 4px var(--salt); touch-action: manipulation; transition: transform var(--dur-press) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
@@ -275,11 +281,10 @@ html.js .bk__nojs { display: none; }
   .bk-pill__price { font-family: var(--font-mono); font-size: var(--step--1); letter-spacing: 0.02em; line-height: 1.2; min-inline-size: 0; overflow-wrap: anywhere; }
   .bk-pill__cta { flex: none; display: inline-flex; align-items: center; gap: 8px; min-block-size: 44px; padding: 0 18px; border-radius: var(--radius-pill); background: var(--salt); color: var(--ink); font-weight: 650; font-size: 15px; }
   html:is(.menu-open, .cart-drawer-open) .bk-pill { opacity: 0; pointer-events: none; }
-  /* the Pyet pill steps up above the buy pill (T2: buy pills may move it) */
-  html.js:has(.bk-pill) .assistant-pill { inset-block-end: calc(12px + 56px + 12px + env(safe-area-inset-bottom)); }
-  /* both pills stacked (≈ 140 px): a focused link or control scrolls clear of them (WCAG 2.4.11) */
-  html.js:has(.bk-pill) { scroll-padding-block-end: calc(148px + env(safe-area-inset-bottom)); }
-  html.js .bk-pill { inset-inline-end: 12px; }
+  /* the Pyet pill folds into a round button beside the bk-pill and chrome.css sets the pill's
+     inline end to make room; one 56 px row (+ 12 px inset + 12 px air): a focused link or control
+     scrolls clear of it (WCAG 2.4.11) */
+  html.js:has(.bk-pill) { scroll-padding-block-end: calc(56px + 24px + env(safe-area-inset-bottom)); }
   html.js [data-bk-slot] > .bk { display: none; }
   html.js [data-bk-slot] { display: contents; }
 }

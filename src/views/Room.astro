@@ -172,7 +172,7 @@ const jsonld = [
   /* the fixed Pyet pill (bottom-right, 48 px) never hides a focused control */
   :global(html:has(.room-page)) { scroll-padding-block-end: 88px; }
   .room-coords { color: var(--muted); font-size: var(--step--2); }
-  .room-split { display: grid; gap: clamp(28px, 4vw, 56px); padding-block: clamp(14px, 2vw, 24px) var(--section-gap); }
+  .room-split { display: grid; gap: clamp(28px, 4vw, 56px); padding-block: clamp(14px, 2vw, 24px) 0; }
   .room-main { display: grid; gap: clamp(22px, 3vw, 40px); align-content: start; min-inline-size: 0; }
   /* the specification: two columns (a rule between the columns and between the rows, the first
      column flush left) until the main column is wide enough for one row of every cell. The
@@ -218,8 +218,11 @@ const jsonld = [
     .room-about { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
     .room-rules > div { grid-template-columns: minmax(8em, 1fr) minmax(0, 3fr) auto; }
   }
+  /* room between the "Krahasoni" title and the first card's rule (Stay 02.1 has its bar there) */
+  .room-others { margin-block-start: clamp(20px, 3vw, 40px); }
   .room-others :global(.rt-tags) { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
-  .room-sources { padding-block-end: var(--section-gap); }
+  /* the footer's margin owns the last gap (chrome.css .site-footer) */
+  .room-sources { padding-block-end: 0; }
   @media (min-width: 1000px) {
     .room-split { grid-template-columns: minmax(0, 1fr) minmax(380px, 440px); }
     .room-card { align-self: start; padding: 0 6px 6px 0; margin-block-start: -12px; }
@@ -233,5 +236,4 @@ const jsonld = [
   @media (min-width: 1000px) and (min-height: 820px) {
     .room-card { position: sticky; inset-block-start: calc(var(--header-h) + 12px); }
   }
-  @media (max-width: 999px) { .room-page { padding-block-end: 84px; } }
 </style>

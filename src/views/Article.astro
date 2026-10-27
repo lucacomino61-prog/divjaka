@@ -175,7 +175,7 @@ const nums = (n: number) => String(n).padStart(2, '0');
 <style>
   .art__head { padding-block-start: clamp(16px, 2vw, 28px); display: grid; gap: 18px; }
   /* poster size on phones too: two lines fill the column (the fit still caps each line to the width) */
-  .art__title { --poster-max: clamp(5rem, 1rem + 26vw, 11rem); }
+  .art__title { --poster-max: var(--poster-max-task); }
   .art__split { display: grid; gap: 0 clamp(32px, 4vw, 64px); }
   .art__lead-row { display: grid; gap: 18px; align-items: end; padding-block: 18px clamp(20px, 3vw, 40px); }
   .art__lead { max-inline-size: 36ch; }
@@ -185,9 +185,9 @@ const nums = (n: number) => String(n).padStart(2, '0');
   /* wide screens: the sheet's first screen is poster + lead on the left and a tall plate on the right */
   @media (min-width: 1100px) {
     .art__split { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: start; padding-block-start: 14px; container-type: inline-size; }
-    /* the poster at the top, lead + meta set on the hero's foot line: one composed first screen */
-    .art__split:has(.art__hero) .art__left { display: flex; flex-direction: column; justify-content: space-between; gap: 24px; /* = the hero frame: 4:5 of the 5fr column, capped like the frame */
-      min-block-size: min(calc(100svh - var(--header-h) - 190px), calc((100cqi - clamp(32px, 4vw, 64px)) * 5 / 12 * 1.25)); }
+    /* the poster at the top, lead + meta right under it (pinning the lead to the hero's foot line
+       left ~230 px of empty paper between title and lead at 1440) */
+    .art__split:has(.art__hero) .art__left { display: flex; flex-direction: column; justify-content: flex-start; gap: 20px; }
     .art__left .art__lead-row { padding-block-end: 0; }
     .art__split .art__lead-row { grid-template-columns: minmax(0, 1fr); }
     .art__split .art__meta { justify-content: flex-start; }

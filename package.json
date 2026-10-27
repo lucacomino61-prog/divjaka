@@ -18,7 +18,8 @@
     "db:faq": "node scripts/seed-data/faq.mjs --sync",
     "test:api": "node --test --test-concurrency=1 \"tests/api/*.test.mjs\"",
     "wordmark": "node tools/wordmark.mjs",
-    "icons": "node tools/icons.mjs"
+    "icons": "node tools/icons.mjs",
+    "test:e2e": "playwright test -c tests/e2e/playwright.config.mjs"
   },
   "dependencies": {
     "@astrojs/node": "^11.1.9",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
+    "@playwright/test": "1.63.0",
     "@types/node": "24.19.2",
     "opentype.js": "^2.0.0",
     "typescript": "^6.0.3"

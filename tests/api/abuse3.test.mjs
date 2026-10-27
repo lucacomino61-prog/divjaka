@@ -20,10 +20,23 @@ const day = (n) => addDays(tiraneToday(), n);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 let staff = null;
 
-function db() {
+/**
+ * This file writes a staff account straight into the database the server uses, so it runs only
+ * against a COPY: DIVJAKA_DB (the same value the server was started with) must point somewhere
+ * other than the shared data/divjaka.db.
+ */
+function dbFile() {
   const e = env();
   const file = path.resolve(e.DIVJAKA_DB || path.join(e.DIVJAKA_DATA || path.join(ROOT, 'data'), 'divjaka.db'));
-  const conn = new DatabaseSync(file, { timeout: 5000 });
+  if (file.toLowerCase() === path.resolve(ROOT, 'data', 'divjaka.db').toLowerCase()) {
+    throw new Error('abuse3.test.mjs writes admin_users directly: start the server on a database copy and set DIVJAKA_DB to that copy for the test run too.');
+  }
+  return file;
+}
+
+function db() {
+  const conn = new DatabaseSync(dbFile(), { timeout: 5000 });
+  conn.exec('PRAGMA foreign_keys = ON');
   conn.exec('PRAGMA busy_timeout = 5000');
   return conn;
 }
@@ -45,6 +58,8 @@ before(async () => {
   const email = `apitest-staff-${rand()}@example.com`;
   const password = crypto.randomBytes(18).toString('base64url');
   const conn = db();
+  // Leftovers of an interrupted run (sessions and devices cascade).
+  conn.prepare("DELETE FROM admin_users WHERE email LIKE 'apitest-staff-%@example.com'").run();
   const id = Number(conn.prepare("INSERT INTO admin_users (email, name, password_hash, role, created_at) VALUES (?, 'API staff', ?, 'staff', ?)").run(email, scrypt(password), new Date().toISOString()).lastInsertRowid);
   conn.close();
   staff = { id, email, password, cookie: await login(email, password) };

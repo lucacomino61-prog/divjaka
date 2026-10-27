@@ -2,7 +2,8 @@
 /** /admin/porosite/:code/printo/ — the order as a printable permit sheet (T6). */
 import Admin from '../../../../layouts/Admin.astro';
 import Wordmark from '../../../../components/site/Wordmark.astro';
-import { adminLang, tr, lek, when, callApi } from '../../../../components/admin/admin-data';
+import { adminLang, tr, lek, when, callApi, testHold } from '../../../../components/admin/admin-data';
+import { getSession } from '../../../../lib/db/repo/sessions';
 import { GET as orderGET } from '../../../api/admin/orders/[id]';
 import type { Order, OrderItem } from '../../../../lib/db/repo/orders';
 import { formatDate, formatRange, nights as nightsWord, tirane } from '../../../../i18n/format';
@@ -22,7 +23,7 @@ const itemName = (it: OrderItem) => { const p = it.product_id ? getProduct(it.pr
 const meta = (it: OrderItem) => {
   const m = (it.meta ?? {}) as { starts_at?: string; amount?: number };
   if (it.kind === 'room' && it.date_from && it.date_to) return `${formatRange(it.date_from, it.date_to, lang)} · ${nightsWord(daysBetween(it.date_from, it.date_to), lang)} · ${T('admin.order.rooms', { n: it.qty })}${it.guests ? ' · ' + T('admin.order.guests', { n: it.guests }) : ''}`;
-  if (it.kind === 'experience' && m.starts_at) return `${T('admin.order.session', { date: formatDate(m.starts_at.slice(0, 10), lang, 'long'), time: m.starts_at.slice(11, 16) })} · ${T('admin.order.guests', { n: it.guests ?? it.qty })}`;
+  if (it.kind === 'experience' && m.starts_at) return `${T('admin.order.session', { date: formatDate(m.starts_at.slice(0, 10), lang, 'long'), time: m.starts_at.slice(11, 16) })} · ${T('admin.order.guests', { n: it.guests ?? it.qty })}${it.session_id && getSession(it.session_id)?.status === 'cancelled' ? ` · ${T('admin.order.slot.cancelled')}` : ''}`;
   if (it.kind === 'gift' && m.amount) return `${T('admin.order.amount', { amount: lek(m.amount, lang) })} · × ${it.qty}`;
   return `× ${it.qty}`;
 };
@@ -43,7 +44,7 @@ const meta = (it: OrderItem) => {
           <dt>{T('admin.order.customer')}</dt><dd>{o.name}</dd>
           <dt>{T('admin.order.contact')}</dt><dd>{[o.email, o.phone].filter(Boolean).join(' · ')}</dd>
           <dt>{T('admin.orders.created')}</dt><dd>{when(o.created_at, lang, 'medium')}</dd>
-          <dt>{T('admin.status')}</dt><dd>{T(`admin.order.status.${o.status}`)} · {T(`admin.pay.status.${o.payment_status}`)} · {T(`admin.pay.method.${o.payment_method}`)}{o.test ? ' · TEST' : ''}</dd>
+          <dt>{T('admin.status')}</dt><dd>{testHold(o) ? T('admin.orders.test.hold', { time: when(o.hold_until, lang, 'medium') }) : T(`admin.order.status.${o.status}`)} · {T(`admin.pay.status.${o.payment_status}`)} · {T(`admin.pay.method.${o.payment_method}`)}{o.test ? ' · TEST' : ''}</dd>
         </dl>
       </header>
       <div class="osheet__body">

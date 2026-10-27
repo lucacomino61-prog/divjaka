@@ -2,8 +2,28 @@
 import { z } from 'zod';
 import { DATE_RE, DATETIME_RE, daysBetween, wallTimeExists } from './time';
 import { E } from './http';
+import { get } from './db/index';
 
 /** A bundle holds no rooms or seats until dates are agreed with the hotel, so it needs a stock cap. */
+/**
+ * 400 naming the field when a product points at a category or bundle item that does not exist
+ * (SQLite would refuse it with a foreign-key error, answered as 500 server_error).
+ */
+export function checkProductRefs(b: { category?: string | null; bundle_items?: { product_id: number }[] | null }, selfId?: number): void {
+  const fields: { path: string; message: string }[] = [];
+  if (b.category && !get('SELECT 1 FROM categories WHERE id = ?', b.category)) fields.push({ path: 'category', message: 'unknown_category' });
+  (b.bundle_items ?? []).forEach((it, i) => {
+    if (it.product_id === selfId || !get("SELECT 1 FROM products WHERE id = ? AND kind != 'bundle'", it.product_id)) fields.push({ path: `bundle_items.${i}.product_id`, message: 'unknown_product' });
+  });
+  if (fields.length) {
+    throw E.bad(
+      fields[0].path === 'category' ? 'Kjo kategori nuk ekziston.' : 'Një artikull i paketës nuk ekziston.',
+      fields[0].path === 'category' ? 'This category does not exist.' : 'A bundle item does not exist.',
+      { fields },
+    );
+  }
+}
+
 export const BUNDLE_STOCK = () =>
   E.bad('Paketa ka nevojë për një sasi (stok): ajo nuk rezervon dhoma apo vende derisa të caktohen datat.', 'A bundle needs a stock quantity: it holds no rooms or seats until dates are agreed.', { fields: [{ path: 'stock', message: 'required_for_bundle' }] });
 
@@ -150,6 +170,8 @@ export const zOrderPatch = z.object({
   payment_ref: optStr(200),
   /** Copy the marketing consent ticked on this order to the customer (staff checked it with the guest). */
   confirm_consent: z.literal(true).optional(),
+  /** Staff saw the "time slot cancelled" warning and confirm/complete/mark paid anyway (else 409 session_cancelled). */
+  force: z.literal(true).optional(),
 });
 
 export const zCustomerPatch = z.object({ name: optStr(120), phone: optStr(40), country: optStr(60), notes: optText(4000), marketing_consent: z.boolean().optional() });

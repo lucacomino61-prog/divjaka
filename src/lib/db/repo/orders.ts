@@ -17,6 +17,8 @@ export interface Order {
   email_key: string | null; phone_key: string | null; staff_hold: number;
   /** migration 004: why the order got the short hold (comma list: far_or_long, surge, address_share, person_open_orders) */
   review: string | null;
+  /** migration 005: the checkout page's draft id (repeated POSTs answer with this order) */
+  checkout_id: string | null;
 }
 
 /** Order columns safe for the admin list (no access_token, no analytics sid). */

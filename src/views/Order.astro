@@ -56,7 +56,7 @@ const when = (iso: string | null | undefined) => {
 };
 
 // ---- view model ----
-type PlanItem = { sort: string; date: string; time?: string; title: string; sub: string[]; poi?: string | null };
+type PlanItem = { sort: string; date: string; time?: string; title: string; sub: string[]; poi?: string | null; gone?: boolean };
 const plan: PlanItem[] = [];
 const events: { uid: string; title: string; start: string; end: string; allDay: boolean; location: string; desc: string }[] = [];
 const pins: string[] = [];
@@ -75,8 +75,13 @@ if (v && o) {
     } else if (l.kind === 'experience' && l.starts_at) {
       const s = raw[i]?.session_id ? getSession(raw[i].session_id!) : undefined;
       const sun = s?.note === 'sunrise' || s?.note === 'sunset' ? t(lang, `order.plan.sun.${s.note}`) : '';
-      const sub = [fmtGuests(l.guests ?? l.qty, lang), meet && t(lang, 'order.plan.meet', { place: meet }), sun].filter(Boolean) as string[];
-      plan.push({ sort: l.starts_at, date: l.starts_at.slice(0, 10), time: l.starts_at.slice(11, 16), title: l.name, sub, poi: place });
+      // a slot the hotel cancelled stays in the plan with the notice, but gets no calendar event
+      const gone = !!l.session_cancelled && v!.status !== 'cancelled';
+      const sub = gone
+        ? [t(lang, 'order.slot.cancelled')]
+        : [fmtGuests(l.guests ?? l.qty, lang), meet && t(lang, 'order.plan.meet', { place: meet }), sun].filter(Boolean) as string[];
+      plan.push({ sort: l.starts_at, date: l.starts_at.slice(0, 10), time: l.starts_at.slice(11, 16), title: l.name, sub, poi: gone ? null : place, gone });
+      if (gone) return;
       const mins = p?.duration_min ?? 120;
       const startMs = Date.UTC(+l.starts_at.slice(0, 4), +l.starts_at.slice(5, 7) - 1, +l.starts_at.slice(8, 10), +l.starts_at.slice(11, 13), +l.starts_at.slice(14, 16)) + mins * 60_000;
       const e = new Date(startMs);
@@ -110,6 +115,9 @@ const lineMeta = (l: OrderView['lines'][number]) => {
 const status = v?.status ?? 'pending';
 const cancelled = status === 'cancelled';
 const isTest = !!v?.payment.test;
+// staff cancelled the time slot of an experience line (orderView: session_cancelled) and the order
+// itself is still open: say so on the line, in the status block and the card; pause "Pay now"
+const slotGone = !cancelled && !!v?.lines.some((l) => l.session_cancelled);
 // Who confirmed it: staff (status set by hand → staff_hold) or a real payment (markPaid). A TEST
 // payment marks the order 'confirmed' on the server but proves nothing, so the step keeps waiting.
 const byStaff = !!o?.staff_hold && (status === 'confirmed' || status === 'completed');
@@ -155,7 +163,10 @@ const holdKey = method === 'card'
 const holdText = hold ? t(lang, holdKey, hold) : '';
 const ins = v?.payment.instructions;
 // a TEST order is never a real booking: it keeps the 'registered' wording even when the simulator marked it paid
-const lead = v ? t(lang, `order.lead.${isTest && status !== 'cancelled' ? 'pending' : status}`, { code }) : '';
+// The lead follows the same flag as the timeline (confirmedDone): a 'confirmed' status that neither
+// staff nor a real payment confirmed still reads "registered", never "confirmed" over a waiting step.
+const leadKey = cancelled ? 'cancelled' : isTest ? 'pending' : status === 'completed' ? 'completed' : confirmedDone ? 'confirmed' : 'pending';
+const lead = v ? t(lang, `order.lead.${leadKey}`, { code }) : '';
 const rate = v?.eur_rate ?? 0;
 const island = { 'order.copied': t(lang, 'order.copied'), 'order.ics.file': t(lang, 'order.ics.file', { code }) };
 const eventsJson = JSON.stringify(events).replace(/</g, '\\u003c');
@@ -220,6 +231,7 @@ const orderPath = path('order', lang, { code: code || 'DV-0000' });
                   {!lineMeta(l) && l.qty > 1 && <span class="oline__meta mono">{t(lang, 'order.qty', { n: l.qty })}</span>}
                   {offerOf(l) && <span class="oline__offer mono">{t(lang, 'stamp.offer')} · {offerOf(l)!.name} · −{money(offerOf(l)!.saving, lang)}</span>}
                   {l.kind === 'bundle' && !cancelled && <span class="oline__meta oline__next">{t(lang, 'order.bundle.dates')}</span>}
+                  {l.session_cancelled && !cancelled && <span class="oline__slot">{t(lang, 'order.slot.cancelled')}</span>}
                 </li>
               ))}
             </ul>
@@ -239,7 +251,7 @@ const orderPath = path('order', lang, { code: code || 'DV-0000' });
               <div class="plan__grid">
                 <ol class="plan__list">
                   {plan.map((p, i) => (
-                    <li class="plan__item">
+                    <li class:list={['plan__item', p.gone && 'plan__item--gone']}>
                       <span class="plan__n mono">{planNo(i)}</span>
                       <span class="plan__when mono">{formatDate(p.date, lang, 'weekday')}, {formatDate(p.date, lang, 'day-month')}{p.time && ` · ${p.time}`}</span>
                       <span class="plan__title">{p.title}</span>
@@ -271,8 +283,9 @@ const orderPath = path('order', lang, { code: code || 'DV-0000' });
               <div><dt>{t(lang, 'order.pay.title')}</dt><dd>{methodLabel}</dd></div>
               <div><dt>{t(lang, 'order.placed')}</dt><dd>{when(v.created_at)?.date}, {when(v.created_at)?.time}</dd></div>
             </dl>
-            {holdText && v.payment_status !== 'paid' && !cancelled && <p class="ord-card__hold">{holdText}</p>}
-            {v.payment.pay_url && (
+            {slotGone && <p class="ord-card__hold ord-card__hold--slot">{t(lang, 'order.slot.cancelled.status')}{v.payment.pay_url && ` ${t(lang, 'order.slot.cancelled.pay')}`}</p>}
+            {holdText && v.payment_status !== 'paid' && !cancelled && !slotGone && <p class="ord-card__hold">{holdText}</p>}
+            {v.payment.pay_url && !slotGone && (
               <a class="pill pill--primary pill--block" href={v.payment.pay_url}><span class="pill__main">{t(lang, isTest ? 'order.payNow.test' : 'order.payNow')}</span></a>
             )}
             {method === 'hotel' && !cancelled && v.payment_status !== 'paid' && <p class="ord-card__note">{t(lang, 'order.hotel.note')}</p>}
@@ -306,7 +319,7 @@ const orderPath = path('order', lang, { code: code || 'DV-0000' });
         </aside>
       </div>
 
-      <RecommendRail lang={lang} id="porosia-rek" index="07.1" title={t(lang, 'order.rec')} lead={t(lang, 'order.rec.lead')} exclude={slugs} limit={4} prefs={false} class="ord-rec" />
+      <RecommendRail lang={lang} id="porosia-rek" index="04.4.1" title={t(lang, 'order.rec')} lead={t(lang, 'order.rec.lead')} exclude={slugs} limit={4} prefs={false} class="ord-rec" />
     </>
   )}
 </Base>
@@ -318,7 +331,6 @@ const orderPath = path('order', lang, { code: code || 'DV-0000' });
 
 <style>
   .locked, .ord-head { padding-block-start: clamp(12px, 2vw, 24px); display: grid; gap: 16px; }
-  .locked :global(.section-head--poster), .ord-head :global(.section-head--poster) { --poster-max: clamp(6rem, 20vh, 12rem); }
   .locked__body { display: grid; gap: 12px; max-inline-size: 36rem; margin-block-start: 12px; }
   .locked__form { display: grid; gap: 8px; justify-items: start; margin-block-start: 8px; }
   .f__label { font-size: var(--step--2); color: var(--muted); }
@@ -329,8 +341,10 @@ const orderPath = path('order', lang, { code: code || 'DV-0000' });
   .ord-head__stamps { display: inline-flex; gap: 8px; }
   .ord-head__lead { max-inline-size: 40ch; }
   .ord-head__test { font-size: var(--step--2); color: var(--pouch-text); max-inline-size: 60ch; text-transform: none; letter-spacing: .02em; }
-  .banner { padding: 12px 16px; border: 1px solid var(--ink); border-inline-start: 4px solid var(--ink); max-inline-size: 60ch; }
-  .banner--err { border-inline-start-color: var(--pouch); }
+  /* notices are logbook slips (as the toast): a 1 px ink rule above and below, no side bar; an error
+     keeps its pouch as an underline on the message */
+  .banner { padding-block: 12px; border-block: 1px solid var(--ink); max-inline-size: 60ch; }
+  .banner--err { color: var(--pouch-text); text-decoration: underline; text-decoration-color: var(--pouch); text-decoration-thickness: 2px; text-underline-offset: 4px; }
   .ord { display: grid; gap: clamp(24px, 4vw, 56px); margin-block-start: clamp(24px, 3vw, 40px); align-items: start; }
   @media (min-width: 1024px) {
     .ord { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
@@ -360,6 +374,11 @@ const orderPath = path('order', lang, { code: code || 'DV-0000' });
   .oline__meta { grid-column: 1 / -1; font-size: var(--step--2); color: var(--muted); }
   .oline__offer { grid-column: 1 / -1; font-size: var(--step--2); color: var(--pouch-text); }
   .oline__next { font-size: var(--step--1); color: var(--ink); }
+  /* a time slot the hotel cancelled: an error, so the pouch underlines the words (no side bar) */
+  .oline__slot, .ord-card__hold--slot { color: var(--pouch-text); text-decoration: underline; text-decoration-color: var(--pouch); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  .oline__slot { grid-column: 1 / -1; font-size: var(--step--1); }
+  .plan__item--gone .plan__title, .plan__item--gone .plan__when { text-decoration: line-through; text-decoration-thickness: 1px; }
+  .plan__item--gone .plan__sub { color: var(--pouch-text); }
   .plan__lead { margin-block-end: 18px; max-inline-size: 52ch; }
   .plan__grid { display: grid; gap: 24px; }
   @media (min-width: 760px) { .plan__grid { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); align-items: start; } }
@@ -378,7 +397,7 @@ const orderPath = path('order', lang, { code: code || 'DV-0000' });
   .ord-card__dl div { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 10px; }
   .ord-card__dl dt { color: var(--muted); }
   .ord-card__dl dd { margin: 0; }
-  .ord-card__hold { padding: 12px 14px; border-inline-start: 3px solid var(--pouch); background: var(--salt-2); font-size: var(--step--1); }
+  .ord-card__hold { padding-block: 12px; border-block: 1px solid var(--ink); font-size: var(--step--1); }
   .ord-card__note { font-size: var(--step--1); color: var(--muted); }
   .bank { display: grid; gap: 10px; }
   .bank__h { font-size: var(--step--2); padding-block-end: 6px; border-block-end: 1px solid var(--ink); }

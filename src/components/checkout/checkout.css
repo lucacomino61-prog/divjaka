@@ -16,7 +16,7 @@
 html:has([data-checkout-root], [data-cartpage], .ord-card) .assistant-pill { display: none; }
 
 /* the order this tab placed last (scripts/checkout.ts paintLastOrder): a ruled log line, not a panel */
-.lastorder { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; padding-block: 14px; margin-block: 18px 6px; border-block: 1px solid var(--ink); border-inline-start: 4px solid var(--pouch); padding-inline: 14px; }
+.lastorder { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; padding-block: 14px; margin-block: 18px 6px; border-block: 1px solid var(--ink); }
 .lastorder[hidden] { display: none; }
 .lastorder__text { font-weight: 650; font-stretch: 88%; overflow-wrap: anywhere; }
 .lastorder__links { display: flex; flex-wrap: wrap; gap: 8px; }

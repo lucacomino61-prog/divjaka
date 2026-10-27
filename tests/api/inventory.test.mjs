@@ -28,7 +28,13 @@ after(async () => {
   for (const p of [room, lastRoom, goods, exp]) if (p) await a.del(`/api/admin/products/${p.id}`);
 });
 
-const left = async (slug) => (await call('GET', `/api/availability/room/${slug}?from=${from}&to=${to}`)).data.left;
+// Rooms left, from the admin grid: the public availability API leaves the counts out while the
+// seeded room types are demo values (roomsVerified() false).
+const left = async (slug) => {
+  const g = await a.get(`/api/admin/bookings?from=${from}&to=${to}`);
+  const row = g.data.rooms.find((x) => x.slug === slug);
+  return Math.min(...row.nights.map((n) => n.left));
+};
 
 test('availability decreases after a checkout and the admin grid shows it; cancel releases it', async () => {
   assert.equal(await left(room.slug), 3);

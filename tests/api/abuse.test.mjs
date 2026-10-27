@@ -67,8 +67,8 @@ test('unconfirmed orders hold at most half of a room type per night; staff confi
   assert.equal(blocked.data.error.code, 'hold_cap');
   assert.ok(blocked.data.error.message_sq && blocked.data.error.message_en);
   // Still 2 free: the cap only limits unconfirmed holds, it never hides rooms.
-  const av = await call('GET', `/api/availability/room/${room.slug}?from=${from}&to=${to}`);
-  assert.equal(av.data.left, 2);
+  const grid = await a.get(`/api/admin/bookings?from=${from}&to=${to}`);
+  assert.equal(Math.min(...grid.data.rooms.find((x) => x.slug === room.slug).nights.map((n) => n.left)), 2);
   const conf = await a.patch(`/api/admin/orders/${firstId}`, { status: 'confirmed' });
   assert.equal(conf.status, 200);
   assert.equal(conf.data.order.staff_hold, 1);

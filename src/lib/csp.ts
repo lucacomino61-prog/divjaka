@@ -12,28 +12,13 @@
  * data- attributes instead). Violations are reported to /api/csp-report and logged.
  */
 import crypto from 'node:crypto';
+import { countInlineTags, inlineBodies } from './csp-scan';
 
 const sources = import.meta.glob('/src/**/*.astro', { query: '?raw', import: 'default' }) as Record<string, () => Promise<string>>;
 
-const INLINE_RE = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
-
 const sha = (s: string) => `'sha256-${crypto.createHash('sha256').update(s, 'utf8').digest('base64')}'`;
 
-/** Executable inline script bodies in one .astro source. */
-export function inlineBodies(source: string): { body: string; dynamic: boolean }[] {
-  const out: { body: string; dynamic: boolean }[] = [];
-  INLINE_RE.lastIndex = 0;
-  let m: RegExpExecArray | null;
-  while ((m = INLINE_RE.exec(source))) {
-    const attrs = m[1];
-    if (!/\bis:inline\b/.test(attrs)) continue; // processed scripts become /_astro files
-    if (/\bsrc\s*=/.test(attrs)) continue;
-    const type = /\btype\s*=\s*["']?([^"'\s>]+)/i.exec(attrs)?.[1]?.toLowerCase();
-    if (type && !['module', 'text/javascript', 'application/javascript'].includes(type)) continue;
-    out.push({ body: m[2], dynamic: /define:vars/.test(attrs) });
-  }
-  return out;
-}
+export { inlineBodies };
 
 let cached: Promise<string[]> | null = null;
 
@@ -44,7 +29,12 @@ export function scriptHashes(): Promise<string[]> {
     for (const [file, load] of Object.entries(sources)) {
       let src = '';
       try { src = await load(); } catch { continue; }
-      for (const { body, dynamic } of inlineBodies(src)) {
+      const bodies = inlineBodies(src);
+      // An inline script the scanner missed would ship unhashed and be blocked in production.
+      if (bodies.length !== countInlineTags(src)) {
+        console.error(`[csp] ${file}: found ${countInlineTags(src)} <script is:inline> tags but hashed ${bodies.length}; check csp-scan.ts.`);
+      }
+      for (const { body, dynamic } of bodies) {
         if (dynamic) {
           console.warn(`[csp] ${file}: an inline script uses define:vars and cannot be hashed; it will be blocked in production.`);
           continue;

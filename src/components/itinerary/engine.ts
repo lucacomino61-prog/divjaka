@@ -278,7 +278,22 @@ function product(slug?: string): Product | null {
 }
 
 
-export function buildPlan(input: PlanInput, today = tirane().date): Plan {
+/**
+ * The plan for a request, with today handled: an arrival of today plans only what still starts
+ * after the current time (plus LATE_MARGIN); when nothing is left today the plan starts tomorrow
+ * and the problem 'date_today_late' says so.
+ */
+export function planFor(input: PlanInput, today = tirane().date, nowTime = tirane().time): { input: PlanInput; plan: Plan; problem: string | null } {
+  const plan = buildPlan(input, today, nowTime);
+  if (input.arrival !== today || plan.days[0]?.stops.length) return { input, plan, problem: null };
+  const next: PlanInput = { ...input, arrival: addDays(today, 1) };
+  return { input: next, plan: buildPlan(next, today, nowTime), problem: 'date_today_late' };
+}
+
+/** minutes after "now" a stop planned for today may start at the earliest (getting ready, the way there) */
+const LATE_MARGIN = 20;
+
+export function buildPlan(input: PlanInput, today = tirane().date, nowTime = tirane().time): Plan {
   productCache.clear();
   const used = new Set<string>();
   const factIds: string[] = [];
@@ -316,11 +331,15 @@ export function buildPlan(input: PlanInput, today = tirane().date): Plan {
     const golden = sun ? toMin(sun.golden_start) : 1020;
     const sunset = sun ? toMin(sun.sunset) : 1080;
     const dusk = sun ? toMin(sun.civil_dusk) : 1110;
+    // today: nothing that starts before now (+ the margin) — a plan made at 22:00 has no dawn walk
+    const notBefore = date === today ? toMin(nowTime) + LATE_MARGIN : -Infinity;
     /**
-     * Does a stop fit at [b, e]? No overlap, and the travel from the stop before (hotel for the
-     * first) and to the stop after both fit in the gaps, plus GAP minutes.
+     * Does a stop fit at [b, e]? Not before now on today's date; no overlap, and the travel from
+     * the stop before (hotel for the first) and to the stop after both fit in the gaps, plus GAP
+     * minutes.
      */
     const fits = (a: Activity, b: number, e: number) => {
+      if (b < notBefore) return false;
       if (stops.some((s) => b < toMin(s.end) && e > toMin(s.start))) return false;
       const before = stops.filter((s) => toMin(s.start) < b).sort((x, y) => toMin(y.end) - toMin(x.end))[0];
       const after = stops.filter((s) => toMin(s.start) >= b).sort((x, y) => toMin(x.start) - toMin(y.start))[0];
@@ -352,7 +371,7 @@ export function buildPlan(input: PlanInput, today = tirane().date): Plan {
       const again = (a: Activity) => a.hours === 'open' && !dayUsed.has(a.id)
         && (((uses.get(a.id) ?? 0) < 2 && !prevDay.has(a.id)) || (a.id === 'beach' && input.interests.includes('beach') && [6, 7, 8, 9].includes(month)));
       const cands = ACTIVITIES.filter((a) =>
-        a.slots.includes(slot) && a.months.includes(month) && (!used.has(a.id) || again(a)) && !clash(a.id, used) && !clashDay(a.id, dayUsed)
+        !a.unconfirmed && a.slots.includes(slot) && a.months.includes(month) && (!used.has(a.id) || again(a)) && !clash(a.id, used) && !clashDay(a.id, dayUsed)
         && (!input.kids || a.kids) && reachable(a, input.transport)
         && (!a.product || product(a.product))
         && !(a.fullDay && (slot !== 'morning' || !slots.includes('morning')))

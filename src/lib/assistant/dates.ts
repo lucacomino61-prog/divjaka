@@ -17,6 +17,8 @@ export interface ParsedDates {
   from: string | null; to: string | null; nights: number | null; guests: number | null; explicit: boolean; problem: 'invalid' | 'order' | 'past' | null;
   /** the text gave a stay, not just a day: an end date, a number of nights, "sonte" or a weekend */
   range: boolean;
+  /** problem 'invalid' because a day the month does not have was written (30 shkurt): that day */
+  bad?: { d: number; m: number } | null;
 }
 
 const MONTHS: [string, number][] = [
@@ -38,7 +40,10 @@ const NUM_WORDS: Record<string, number> = {
   one: 1, a: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
   nje: 1, dy: 2, tre: 3, tri: 3, kater: 4, pese: 5, gjashte: 6, shtate: 7, tete: 8, nente: 9, dhjete: 10,
 };
-const num = (s: string): number | null => (/^\d+$/.test(s) ? Number(s) : NUM_WORDS[s] ?? null);
+const num = (s: string): number | null => (/^\d+$/.test(s) ? Number(s) : s === 'an' ? 1 : NUM_WORDS[s] ?? null);
+/** a count of people: digits or a number word (sq + en, folded) */
+const NUM_ALT = '\\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|nje|dy|tre|tri|kater|pese|gjashte|shtate|tete|nente|dhjete';
+const NUMW = `(${NUM_ALT})`;
 
 // Indefinite and definite forms, with or without the article: "e premte", "të premten",
 // "nga e premtja", "e shtuna", "të dielën", "e hëna" (folded: hena) … plus English.
@@ -84,16 +89,24 @@ export function parseDates(text: string, today: string): ParsedDates {
   let invalid = false;
   let order = false;
   let m: RegExpExecArray | null;
+  /** the first day/month written that no calendar has (30 shkurt), for the reply */
+  let bad = null as ParsedDates['bad'];
+  const noDay = (mo: number, d: number) => { if (!bad && mo >= 1 && mo <= 12 && d >= 1) bad = { d, m: mo }; };
   /** resolve(), remembering a date that was clearly meant but does not exist. */
   const res = (base: string, mo: number, d: number, y?: number): string | null => {
     const r = resolve(base, mo, d, y);
-    if (!r) invalid = true;
+    if (!r) {
+      invalid = true;
+      // a day the month does not have (not an absurd year): name it in the reply
+      const year = y ? (y < 100 ? 2000 + y : y) : Number(base.slice(0, 4));
+      if (yearOk(year, base) && !mkDate(year, mo, d) && !mkDate(year + 1, mo, d)) noDay(mo, d);
+    }
     return r;
   };
   /** Second day of a same-month range ("12-14 korrik"): same year as the start, must be after it. */
   const sameMonthEnd = (start: string, mo: number, d: number): string | null => {
     const r = mkDate(Number(start.slice(0, 4)), mo, d);
-    if (!r) { invalid = true; return null; }
+    if (!r) { invalid = true; noDay(mo, d); return null; }
     if (r <= start) { order = true; return null; }
     return r;
   };
@@ -101,7 +114,13 @@ export function parseDates(text: string, today: string): ParsedDates {
   // ISO dates (any ISO-shaped token that is not a real date, or has an absurd year, is a problem)
   const isoAll = [...t.matchAll(/(\d{4}-\d{2}-\d{2})/g)].map((x) => x[1]);
   const iso = isoAll.filter((s) => isDate(s) && yearOk(Number(s.slice(0, 4)), today));
-  if (iso.length !== isoAll.length) invalid = true;
+  if (iso.length !== isoAll.length) {
+    invalid = true;
+    for (const s of isoAll) {
+      const [y, mo, d] = s.split('-').map(Number);
+      if (!isDate(s) && yearOk(y, today)) noDay(mo, d);
+    }
+  }
   if (iso.length) {
     from = iso[0]; to = iso[1] ?? null;
     if (to && to <= from) { order = true; to = null; }
@@ -190,20 +209,32 @@ export function parseDates(text: string, today: string): ParsedDates {
   if ((m = /\b(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|nje|dy|tre|tri|kater|pese|gjashte|shtate|tete|nente|dhjete)\s*(?:net|nete|nate|nata|naten|night|nights)\b/.exec(t))) nights = num(m[1]);
   else if (/\b(nje jave|a week|one week|1 week|1 jave)\b/.test(t)) nights = 7;
   else if (/\b(sonte|tonight)\b/.test(t)) nights = 1;
+  // Guests = adults (or people) + children: "2 të rritur dhe 2 fëmijë" = 4, "two adults and three
+  // children" = 5; "family of 4" / "familje me 4" / "jemi 4" give the whole party. Children alone
+  // ("me 2 fëmijë") give no party size: the adults are unknown, so no room is sized on them.
   let guests: number | null = null;
-  if ((m = /\b(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|nje|dy|tre|tri|kater|pese|gjashte|shtate|tete|nente|dhjete)\s*(?:persona|person|personat|vete|veta|njerez|njeri|people|persons|guests|guest|adults|adult|te rritur|pax)\b/.exec(t))) guests = num(m[1]);
+  let adults: number | null = null;
+  if ((m = new RegExp(`\\b${NUMW}\\s*(?:persona|person|personat|vete|veta|njerez|njeri|people|persons|guests|guest|adults|adult|te rritur|pax)\\b`).exec(t))) adults = num(m[1]);
   // "7-9 nëntor për 2", "room 12-14 july for 3": a bare number after për/for is people, unless a
-  // unit or a month follows (nights, days, hours, km, %, "për 2 korrik")
-  else if ((m = /\b(?:per|for)\s+(\d{1,2}|dy|tre|tri|kater|pese|two|three|four|five|six)\b(?!\s*(?:net|nat|night|dit|day|jav|week|or|hour|min|km|%|[./-]\d))/.exec(t))) {
+  // unit, a month or a child word follows (nights, days, hours, km, %, "për 2 korrik", "for 2 kids")
+  else if ((m = /\b(?:per|for)\s+(\d{1,2}|dy|tre|tri|kater|pese|two|three|four|five|six)\b(?!\s*(?:net|nat|night|dit|day|jav|week|or|hour|min|km|%|[./-]\d|femij|kid|child|bebe|baby))/.exec(t))) {
     const after = t.slice(m.index + m[0].length).trim().split(' ')[0] ?? '';
-    if (!after || !monthOf(after)) guests = num(m[1]);
+    if (!after || !monthOf(after)) adults = num(m[1]);
   }
+  let children = 0;
+  for (const x of t.matchAll(new RegExp(`\\b(${NUM_ALT}|a|an)\\s*(?:femije|femijet|femij|kids|kid|children|child|bebe|baby|babies)\\b`, 'g'))) children += num(x[1]) ?? 0;
+  const family = new RegExp(`\\b(?:family of|a family of|familje (?:me|prej|nga)|familja (?:me|prej|nga)|we are|we[’']?re|there are|jemi gjithsej|jemi)\\s+${NUMW}\\b(?!\\s*(?:net|nat|night|dit|day|jav|week|or|hour|min|km|%|[./-]\\d|femij|kid|child|te rritur|adult))`).exec(t);
+  if (family) {
+    const after = t.slice(family.index + family[0].length).trim().split(' ')[0] ?? '';
+    if (!after || !monthOf(after)) guests = num(family[1]);
+  }
+  if (guests == null && adults != null) guests = adults + children;
 
   if (from && to && to <= from) { order = true; to = null; }
   if (from && from < today) past = true;
   const problem = invalid ? 'invalid' : order ? 'order' : past ? 'past' : null;
   const range = !!to || nights != null || weekend;
-  if (problem) return { from: problem === 'past' ? from : null, to: null, nights: null, guests, explicit: true, problem, range };
+  if (problem) return { from: problem === 'past' ? from : null, to: null, nights: null, guests, explicit: true, problem, range, ...(problem === 'invalid' ? { bad } : {}) };
   if (from && !to) {
     const n = nights ?? (weekend ? 2 : 1);
     to = addDays(from, n);

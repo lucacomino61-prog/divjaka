@@ -123,7 +123,7 @@ if (/^[a-z0-9][a-z0-9-]{0,79}$/.test(shto)) {
     </aside>
   </div>
 
-  <RecommendRail lang={lang} id="shporta-rek" index="05.1" title={t(lang, 'cartpage.rec')} lead={t(lang, 'cartpage.rec.lead')} limit={4} />
+  <RecommendRail lang={lang} id="shporta-rek" index="04.2.1" title={t(lang, 'cartpage.rec')} lead={t(lang, 'cartpage.rec.lead')} limit={4} />
 </Base>
 
 <script>
@@ -133,7 +133,6 @@ if (/^[a-z0-9][a-z0-9-]{0,79}$/.test(shto)) {
 
 <style>
   .cart-head { padding-block-start: clamp(12px, 2vw, 24px); display: grid; gap: 14px; }
-  .cart-head :global(.section-head--poster) { --poster-max: clamp(8rem, 24vh, 14rem); }
   .cart-head__count { font-size: var(--step--2); display: inline-block; min-block-size: 1lh; min-inline-size: 10ch; text-align: end; white-space: nowrap; }
   .cart-head__lead { max-inline-size: 58ch; color: var(--muted); }
   .cart { display: grid; gap: clamp(24px, 4vw, 56px); margin-block-start: clamp(20px, 3vw, 40px); align-items: start; }
@@ -150,7 +149,9 @@ if (/^[a-z0-9][a-z0-9-]{0,79}$/.test(shto)) {
   .cart__retry { display: none; margin-block-end: 14px; }
   .cart[data-state="error"] .cart__retry { display: inline-flex; }
   .cart[data-state="loading"] .clines { opacity: .5; }
-  .cart__problems { margin-block: 14px 0; padding: 12px 14px; border: 1px solid var(--ink); border-inline-start: 3px solid var(--pouch); font-size: var(--step--1); }
+  /* errors are logbook slips (as the toast): a 1 px ink rule above and below and one pouch dot */
+  .cart__problems { margin-block: 14px 0; padding-block: 12px; border-block: 1px solid var(--ink); font-size: var(--step--1); }
+  .cart__problems::before, .cart-giftfix::before { content: ""; display: inline-block; inline-size: 7px; block-size: 7px; border-radius: 99px; background: var(--pouch); margin-inline-end: 10px; vertical-align: 0.1em; }
   .cart__problems[hidden] { display: none; }
   .cart__noscript { padding-block: 20px; }
   .clines { list-style: none; padding: 0; margin: 0; }
@@ -160,7 +161,7 @@ if (/^[a-z0-9][a-z0-9-]{0,79}$/.test(shto)) {
   /* an empty cart known before the script: the empty state, no summary card */
   .cart[data-state="empty"] .cart__side { display: none; }
   .cart[data-state="empty"] .cart__empty { display: grid; }
-  .cart-giftfix { padding: 12px 14px; border: 1px solid var(--ink); border-inline-start: 3px solid var(--pouch); font-size: var(--step--1); text-transform: none; letter-spacing: 0; }
+  .cart-giftfix { padding-block: 12px; border-block: 1px solid var(--ink); font-size: var(--step--1); text-transform: none; letter-spacing: 0; }
   .cart-giftfix a { color: var(--pouch-text); text-underline-offset: 3px; display: inline-flex; min-block-size: 44px; align-items: center; }
   .clines :global(.cline) { display: grid; grid-template-columns: 96px minmax(0, 1fr) 44px; gap: 18px; padding-block: 20px; border-block-end: 1px solid var(--rule); align-items: start; }
   .clines :global(.cline__plate) { display: block; inline-size: 88px; aspect-ratio: 4 / 5; margin: 4px; background: var(--salt-2); outline: 1px solid var(--ink); outline-offset: 3px; overflow: clip; }

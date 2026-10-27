@@ -6,7 +6,7 @@ import Stamp from '../../components/site/Stamp.astro';
 import SeriesChart from '../../components/admin/SeriesChart.astro';
 import RangePicker from '../../components/admin/RangePicker.astro';
 import OrderBadges from '../../components/admin/OrderBadges.astro';
-import { adminLang, tr, lek, num, when, wall, rangeOf, callApi, demoInRange, WARN_LINK, type MeEnv } from '../../components/admin/admin-data';
+import { adminLang, tr, lek, num, when, wall, rangeOf, callApi, demoInRange, WARN_LINK, testHold, holdsOf, cancelledSlotOrders, type MeEnv } from '../../components/admin/admin-data';
 import { stats } from '../../lib/stats';
 import { GET as meGET } from '../api/admin/me';
 import { number, percent, money } from '../../i18n/format';
@@ -46,6 +46,9 @@ const revenueCompact = (v: number) => number(v, lang);
 const figures = [number(k.orders, lang), number(k.aov, lang), number(k.repeat_rate, lang, 1), number(s.occupancy.avg, lang, 1)];
 const kpiChars = Math.max(4, ...figures.map((x) => x.replace(/\s| /g, '').length));
 const eurNote = rate > 0 ? T('admin.approx.eur', { eur: number(Math.round(k.revenue / rate), lang) }) : '';
+const latestIds = (s.latest_orders as { id: number }[]).map((o) => o.id);
+const latestHolds = holdsOf(latestIds);
+const latestSlotGone = cancelledSlotOrders(latestIds);
 ---
 <Admin lang={lang} title={T('admin.dash.title')} section="dashboard" kicker={T('admin.dash.kicker')}>
   {warnings.length > 0 && (
@@ -117,7 +120,7 @@ const eurNote = rate > 0 ? T('admin.approx.eur', { eur: number(Math.round(k.reve
           <li class="ledger__row">
             <span class="ledger__main"><a href={`/admin/porosite/${o.code}/`} class="mono mono-lc">{o.code}</a> · {o.name || '—'}</span>
             <span class="ledger__side mono">{lek(o.total, lang)}</span>
-            <span class="ledger__sub"><span>{when(o.created_at, lang)}</span><span>{T(`admin.pay.method.${o.payment_method}`)}</span><OrderBadges lang={lang} status={o.status} payment_status={o.payment_status} test={o.test} compact /></span>
+            <span class="ledger__sub"><span>{when(o.created_at, lang)}</span><span>{T(`admin.pay.method.${o.payment_method}`)}</span><OrderBadges lang={lang} status={o.status} payment_status={o.payment_status} test={o.test} testHold={testHold({ ...o, ...latestHolds.get(o.id) })} slotCancelled={latestSlotGone.has(o.id)} compact /></span>
           </li>
         ))}
       </ul>

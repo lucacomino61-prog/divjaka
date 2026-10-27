@@ -50,7 +50,7 @@ const phoneMethods = [cfg.hotel && t(lang, 'pay.phrase.hotel'), cfg.bank.enabled
 const phoneNote = phoneMethods.length ? t(lang, 'field.phone.required', { methods: phoneMethods.join(` ${t(lang, 'pay.phrase.or')} `) }) : t(lang, 'field.optional');
 ---
 <Base lang={lang} title={t(lang, 'page.checkout.title')} description={t(lang, 'page.checkout.description')} routeKey="checkout" noindex clientKeys={['cartpage.', 'promo.', 'checkout.', 'field.', 'err.', 'pay.', 'hold.', 'review.', 'order.promo', 'order.qty', 'product.amount']}>
-  <script type="application/json" data-checkout-cfg set:html={JSON.stringify(clientCfg)} />
+  <script type="application/json" data-checkout-cfg set:html={JSON.stringify(clientCfg).replace(/</g, '\\u003c')} />
 
   <section class="wrap co-head" data-checkout-root data-state="loading">
     <SectionHead as="h1" index={t(lang, 'checkout.index')} kicker={t(lang, 'checkout.kicker')} title={t(lang, 'checkout.title')} size="poster" />
@@ -66,7 +66,7 @@ const phoneNote = phoneMethods.length ? t(lang, 'field.phone.required', { method
   </section>
 
   <script is:inline>(function(){try{var c=JSON.parse(localStorage.getItem("dv-cart")||"null");var n=c&&c.v===1&&Array.isArray(c.items)?c.items.length:0;var r=document.querySelector("[data-checkout-root]");if(r)r.setAttribute("data-state",n?"ready":"empty");document.documentElement.style.setProperty("--co-n",String(Math.min(n,12)));}catch(e){}})();</script>
-  <noscript><p class="wrap co-noscript">{t(lang, 'checkout.noscript')}</p></noscript>
+  <noscript><p class="wrap co-noscript">{t(lang, 'checkout.noscript')} <a href={path('contact', lang)}>{t(lang, 'nav.contact')}</a></p></noscript>
 
   <div class="wrap"><div class="lastorder" role="status" data-last-order hidden></div></div>
 
@@ -221,7 +221,6 @@ const phoneNote = phoneMethods.length ? t(lang, 'field.phone.required', { method
 
 <style>
   .co-head { padding-block-start: clamp(12px, 2vw, 24px); display: grid; gap: 18px; scroll-margin-block-start: calc(var(--header-h) + var(--ticker-h) + 8px); }
-  .co-head :global(.section-head--poster) { --poster-max: clamp(7rem, 20vh, 12rem); }
   .steps ol { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--rule); }
   .steps__a { display: flex; align-items: baseline; gap: 10px; min-block-size: 52px; padding: 14px 12px 12px 0; text-decoration: none; border-block-start: 3px solid transparent; margin-block-start: -1px; color: var(--muted); }
   .steps__a[data-state="current"] { color: var(--ink); border-block-start-color: var(--ink); }
@@ -237,6 +236,7 @@ const phoneNote = phoneMethods.length ? t(lang, 'field.phone.required', { method
   }
   @media (max-width: 339px) { .steps__l { font-size: 13px; letter-spacing: -0.01em; } }
   .co-noscript { padding-block: 24px; }
+  .co-noscript a { display: inline-flex; align-items: center; min-block-size: 44px; text-underline-offset: 3px; }
   :global(html:not(.js)) .co, :global(html:not(.js)) .steps { display: none; }
   .co-empty { display: none; gap: 14px; justify-items: start; padding-block: 32px; }
   :global(html:has([data-checkout-root][data-state="empty"])) .co-empty { display: grid; }
@@ -291,16 +291,20 @@ const phoneNote = phoneMethods.length ? t(lang, 'field.phone.required', { method
   .method__body { display: grid; gap: 4px; min-inline-size: 0; }
   .method__title { font-weight: 700; font-stretch: 85%; font-size: var(--step-1); }
   .method__sub { color: var(--muted); font-size: var(--step--1); }
-  .hold { font-size: var(--step--2); padding: 12px 14px; border-inline-start: 3px solid var(--ink); background: var(--salt-2); text-transform: none; letter-spacing: 0.02em; line-height: 1.5; }
+  /* notices are logbook slips (as the toast): a 1 px ink rule above and below, no side bar */
+  .hold { font-size: var(--step--2); padding-block: 12px; border-block: 1px solid var(--ink); text-transform: none; letter-spacing: 0.02em; line-height: 1.5; }
   .hold[hidden] { display: none; }
 
-  .co-errors { padding: 16px 18px; border: 1px solid var(--ink); border-inline-start: 4px solid var(--pouch); background: var(--salt); display: grid; gap: 8px; margin-block-end: 18px; outline: none; }
+  .co-errors { padding-block: 14px 16px; border-block: 1px solid var(--ink); display: grid; gap: 8px; margin-block-end: 18px; outline: none; }
+  .co-errors:focus-visible { outline: 2px solid var(--pouch); outline-offset: 4px; }
   .co-errors[hidden] { display: none; }
-  .co-errors :global(.co-errors__title) { font-weight: 650; }
+  /* the error keeps its pouch as an underline on the message, never as a side bar */
+  .co-errors :global(.co-errors__title) { font-weight: 650; color: var(--pouch-text); text-decoration: underline; text-decoration-color: var(--pouch); text-decoration-thickness: 2px; text-underline-offset: 4px; justify-self: start; }
   .co-errors :global(.co-errors__list) { margin: 0; padding-inline-start: 18px; }
   .co-errors :global(.co-errors__list a) { color: var(--pouch-text); text-underline-offset: 3px; }
   .co-errors :global(.co-errors__contact) { font-size: var(--step--2); justify-self: start; min-block-size: 44px; display: inline-flex; align-items: center; }
-  .co-cartbanner { padding: 12px 14px; border: 1px solid var(--ink); border-inline-start: 3px solid var(--pouch); font-size: var(--step--1); margin-block-end: 18px; text-transform: none; letter-spacing: 0; }
+  .co-cartbanner { padding-block: 12px; border-block: 1px solid var(--ink); font-size: var(--step--1); margin-block-end: 18px; text-transform: none; letter-spacing: 0; }
+  .co-cartbanner::before { content: ""; display: inline-block; inline-size: 7px; block-size: 7px; border-radius: 99px; background: var(--pouch); margin-inline-end: 10px; vertical-align: 0.1em; }
   .co-cartbanner[hidden] { display: none; }
 
   .rv-note { font-size: var(--step--2); color: var(--muted); text-transform: none; letter-spacing: 0.02em; }

@@ -6,8 +6,8 @@
 export default {
   sq: {
     'heritage.index': '06',
-    'heritage.kicker': 'Trashëgimia natyrore dhe kulturore',
-    'heritage.poster': 'Trashëgimia',
+    'heritage.kicker': 'Natyra dhe historia',
+    'heritage.poster': 'Trashëgimia e Divjakës',
     'heritage.verse': 'Këtu deti dhe laguna ndahen nga një brez rëre me [[pine-forest-light|pisha]], [[pelicans-karavasta|pelikanët kaçurrelë]] folezojnë në një ishull me kallamishte dhe [[flamingos-wading|flamingot]] ecin nëpër ujërat e cekëta.',
     'heritage.lead': 'Tetë fletë për lagunën, zogjtë, pyllin, parkun dhe historinë e zonës. Çdo shifër ka burimin e vet; kur burimet nuk pajtohen, e themi.',
     'heritage.list.title': 'Fletët',
@@ -78,8 +78,8 @@ export default {
   },
   en: {
     'heritage.index': '06',
-    'heritage.kicker': 'Natural and cultural heritage',
-    'heritage.poster': 'Heritage',
+    'heritage.kicker': 'Nature and history',
+    'heritage.poster': 'Heritage of Divjakë',
     'heritage.verse': 'Here a strip of sand and [[pine-forest-light|pines]] divides the sea from the lagoon, [[pelicans-karavasta|Dalmatian pelicans]] nest on an island of reeds and [[flamingos-wading|flamingos]] wade through the shallows.',
     'heritage.lead': 'Eight sheets on the lagoon, the birds, the forest, the park and the history of the area. Every figure has its source; where sources disagree, we say so.',
     'heritage.list.title': 'The sheets',

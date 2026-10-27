@@ -2,7 +2,7 @@
 slug: parku-kombetar
 lang: en
 title: The national park
-description: How Divjakë-Karavasta has been protected from 1966 to today: the decisions, the Ramsar status, the 2022 boundary change and the rules you need to know as a visitor.
+description: How Divjakë-Karavasta has been protected from 1966 to today: the decisions, Ramsar status, the 2022 boundary change and the rules for visitors.
 updated: 2026-10-23
 order: 6
 topic: park

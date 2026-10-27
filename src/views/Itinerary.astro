@@ -14,7 +14,7 @@ import SourceList from '../components/site/SourceList.astro';
 import Chart from '../components/chart/Chart.astro';
 import PlannerForm from '../components/itinerary/PlannerForm.astro';
 import PlanDay from '../components/itinerary/PlanDay.astro';
-import { buildPlan, horizonDays, parseInput, toQuery } from '../components/itinerary/engine';
+import { horizonDays, parseInput, planFor, toQuery } from '../components/itinerary/engine';
 import { SHEET_CROP } from '../components/chart/geo';
 import { siteOriginOf } from '../components/site/site-data';
 import { t } from '../i18n/ui';
@@ -22,8 +22,13 @@ import { path, type Lang } from '../i18n/routes';
 
 interface Props { lang: Lang; params?: Record<string, string>; data?: unknown }
 const { lang } = Astro.props;
-const { input, submitted, problems } = parseInput(Astro.url.searchParams);
-const plan = submitted ? buildPlan(input) : null;
+const parsed = parseInput(Astro.url.searchParams);
+const { submitted } = parsed;
+// an arrival of today plans only what is still ahead; with nothing left it starts tomorrow (planFor)
+const planned = submitted ? planFor(parsed.input) : null;
+const input = planned?.input ?? parsed.input;
+const plan = planned?.plan ?? null;
+const problems = planned?.problem ? [...parsed.problems, planned.problem] : parsed.problems;
 const self = path('itinerary', lang);
 const shareUrl = plan ? `${self}?${toQuery(input)}` : self;
 const origin = await siteOriginOf(Astro.url, Astro.site);
@@ -111,7 +116,7 @@ const jsonld = {
 
 <style>
   .it__head { padding-block-start: clamp(16px, 2vw, 28px); }
-  .it__grid { display: grid; gap: clamp(28px, 4vw, 56px); margin-block-start: clamp(8px, 1vw, 16px); padding-block-end: var(--section-gap); }
+  .it__grid { display: grid; gap: clamp(28px, 4vw, 56px); margin-block-start: clamp(8px, 1vw, 16px); padding-block-end: 0; }
   @media (min-width: 1000px) { .it__grid { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); align-items: start; } }
   .it__main { min-inline-size: 0; display: grid; gap: 24px; align-content: start; }
   .it__lead { font-size: var(--step-1); line-height: 1.4; max-inline-size: 44ch; }

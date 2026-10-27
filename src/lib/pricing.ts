@@ -26,6 +26,7 @@ import { getSession, type Session } from './db/repo/sessions';
 import { autoOfferApplies, inScope, inWindow, offerName, saving } from './offers';
 import { productUrl, type Lang } from './urls';
 import { addDays, daysBetween, isDate, today } from './time';
+import { number } from '../i18n/format';
 
 export const MAX_NIGHTS = 30;
 
@@ -106,7 +107,7 @@ const M = {
   seats: { sq: 'Kanë mbetur vetëm {n} vende.', en: 'Only {n} places left.' },
   stock: { sq: 'Kanë mbetur vetëm {n} copë.', en: 'Only {n} left in stock.' },
   out_of_stock: { sq: 'Ka mbaruar.', en: 'Out of stock.' },
-  amount: { sq: 'Vlera e kartës duhet të jetë nga {min} deri në {max} lekë.', en: 'Card value must be between {min} and {max} lek.' },
+  amount: { sq: 'Vlera e kartës duhet të jetë nga {min} deri në {max} lekë, me hapa prej {step} lekësh.', en: 'Card value must be between {min} and {max} lek, in steps of {step} lek.' },
   // One message for every failed code: telling "does not exist" apart from "inactive / used up /
   // not for this cart" would let a guesser find real codes.
   promo_invalid: { sq: 'Ky kod nuk vlen për këtë porosi.', en: 'This code is not valid for this order.' },
@@ -187,7 +188,7 @@ function priceLine(item: QuoteItem, lang: Lang): PricedLine {
     const step = Math.max(1, Number(p.options.amount_step ?? 100));
     if (item.amount < min || item.amount > max || item.amount % step !== 0) {
       line.unit_price = item.amount; line.line_total = 0;
-      line.problem = problem('amount', lang, { min, max });
+      line.problem = problem('amount', lang, { min: number(min, lang), max: number(max, lang), step: number(step, lang) });
       return out;
     }
     unit = item.amount;

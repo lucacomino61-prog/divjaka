@@ -64,7 +64,14 @@ export interface SunInfo {
 }
 
 export interface LivePayload {
-  updated_at: string; stale: boolean;
+  /** when the weather was last checked with MET (null: nothing fetched since the server started) */
+  updated_at: string | null; stale: boolean;
+  /**
+   * true while the first weather download of this server is still on its way (no reading yet, no
+   * failure yet): pages show "loading" and ask again shortly, never the stale copy. The stale copy
+   * is for a source that really failed (an error, or no answer within FETCH_TIMEOUT).
+   */
+  loading: boolean;
   weather: LiveWeather | null;
   marine: { sea_temp: number | null; wave_m: number | null; sea_date: string | null } | null;
   air: { aqi: number | null; pm25: number | null } | null;
@@ -270,7 +277,16 @@ export function seasonItems(month: number): LivePayload['season_now']['items'] {
 
 /* ------------------------------------------------------------------ fetching */
 
-const API_TIMEOUT = 4000;
+/**
+ * A provider may take its time (MET and ERDDAP sometimes answer in 4–10 s): the background
+ * download runs up to FETCH_TIMEOUT. Only a page request's wait is short (FIRST_WAIT); a request
+ * that does not get the reading in time renders "loading" and the page asks again.
+ */
+const FETCH_TIMEOUT = 15_000;
+const FIRST_WAIT = 2500;
+/** after a failure: a timeout is retried soon (the provider was only slow), an error after a minute */
+const RETRY_AFTER_TIMEOUT = 15_000;
+const RETRY_AFTER_ERROR = 60_000;
 const MET_MIN_TTL = 10 * 60 * 1000;   // never more often than every 10 minutes
 const MET_MAX_TTL = 60 * 60 * 1000;   // the next try when MET sends no Expires header
 const SEA_TTL = 6 * 3600 * 1000;      // MUR is a daily analysis
@@ -316,7 +332,7 @@ function userAgent(): string {
 }
 
 async function fetchJson(url: string, headers: Record<string, string> = {}): Promise<{ status: number; data: any; headers: Headers }> {
-  const res = await fetch(url, { signal: AbortSignal.timeout(API_TIMEOUT), headers: { 'User-Agent': userAgent(), Accept: 'application/json', ...headers } });
+  const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT), headers: { 'User-Agent': userAgent(), Accept: 'application/json', ...headers } });
   if (res.status === 304) return { status: 304, data: null, headers: res.headers };
   if (!res.ok) throw new Error(`HTTP ${res.status} ${url.split('?')[0]}`);
   return { status: res.status, data: await res.json(), headers: res.headers };
@@ -326,10 +342,11 @@ interface Weather { at: number; checkedAt: number; expires: number; lastModified
 interface Sea { at: number; temp: number; date: string }
 interface OmExtra { at: number; aqi: number | null; pm25: number | null; wave_m: number | null; uv: number | null; sea_temp: number | null }
 
-const G = globalThis as unknown as { __dvLive2?: { today?: LiveDay; origin?: string; metRaw?: unknown; met?: Weather; sea?: Sea; om?: OmExtra; parsed?: { key: string; p: ReturnType<typeof parseMet> }; inflight?: Record<string, Promise<unknown> | undefined>; failedAt?: Record<string, number> } };
+const G = globalThis as unknown as { __dvLive2?: { today?: LiveDay; origin?: string; metRaw?: unknown; met?: Weather; sea?: Sea; om?: OmExtra; parsed?: { key: string; p: ReturnType<typeof parseMet> }; inflight?: Record<string, Promise<unknown> | undefined>; failedAt?: Record<string, number>; retryAt?: Record<string, number> } };
 const state = G.__dvLive2 ?? (G.__dvLive2 = {});
 state.inflight ??= {};
 state.failedAt ??= {};
+state.retryAt ??= {};
 
 const localDate = (iso: string) => tirane(new Date(iso)).date;
 const localTime = (iso: string) => tirane(new Date(iso)).time;
@@ -470,16 +487,28 @@ async function refreshOm(): Promise<void> {
   state.om = { at: Date.now(), aqi: ri(a.european_aqi), pm25: r1(a.pm2_5), wave_m: r1(m.wave_height), sea_temp: r1(m.sea_surface_temperature), uv: r1(f.uv_index) };
 }
 
-/** Run a refresh once at a time; after a failure, wait a minute before the next try. */
+/**
+ * Run a refresh once at a time, in the background (a page request only waits FIRST_WAIT for it).
+ * After a failure the next try waits RETRY_AFTER_TIMEOUT (no answer in FETCH_TIMEOUT) or
+ * RETRY_AFTER_ERROR (an HTTP or parse error).
+ */
 function kick(name: string, due: boolean, fn: () => Promise<void>): Promise<unknown> | undefined {
   const inflight = state.inflight!;
   const failed = state.failedAt!;
+  const retryAt = state.retryAt!;
   if (!due) return inflight[name];
-  if (failed[name] && Date.now() - failed[name] < 60_000) return inflight[name];
+  if (retryAt[name] && Date.now() < retryAt[name]) return inflight[name];
   if (!inflight[name]) {
     inflight[name] = fn()
-      .then(() => { delete failed[name]; })
-      .catch((e) => { console.warn(`[live] ${name}:`, (e as Error)?.message ?? e); failed[name] = Date.now(); })
+      .then(() => { delete failed[name]; delete retryAt[name]; })
+      .catch((e) => {
+        const err = e as Error & { cause?: { name?: string; code?: string } };
+        const timedOut = err?.name === 'TimeoutError' || err?.name === 'AbortError'
+          || err?.cause?.name === 'ConnectTimeoutError' || /TIMEOUT/.test(err?.cause?.code ?? '');
+        console.warn(`[live] ${name}:`, err?.message ?? e);
+        failed[name] = Date.now();
+        retryAt[name] = Date.now() + (timedOut ? RETRY_AFTER_TIMEOUT : RETRY_AFTER_ERROR);
+      })
       .finally(() => { inflight[name] = undefined; });
   }
   return inflight[name];
@@ -530,9 +559,10 @@ export async function getLive(opts: { origin?: string } = {}): Promise<LivePaylo
     } catch { /* not a URL */ }
   }
   const pending = refreshAll();
-  // Only the very first request after a start waits (for at most the timeout); later ones get the
-  // cached copy at once while the refresh runs in the background.
-  if (!state.met && pending.length) await Promise.race([Promise.allSettled(pending), new Promise((r) => setTimeout(r, API_TIMEOUT + 200))]);
+  // Only a request with no weather yet waits, and only briefly (FIRST_WAIT); the download itself
+  // carries on in the background up to FETCH_TIMEOUT. Later requests get the cached copy at once,
+  // and so does every request while MET is known to be failing (no page waits on a retry).
+  if (!state.met && pending.length && !state.failedAt!.met) await Promise.race([Promise.allSettled(pending), new Promise((r) => setTimeout(r, FIRST_WAIT))]);
   const now = Date.now();
   // re-derive "now" from the cached series so the current hour advances between downloads
   // (parsed once per clock hour and download, not on every request: /api/live has no rate limit)
@@ -567,9 +597,13 @@ export async function getLive(opts: { origin?: string } = {}): Promise<LivePaylo
   if (sea) sources.push(SEA_SRC);
   if (om) sources.push(AIR_SRC);
   sources.push(SUN_SRC);
+  // the first download is still on its way and nothing has failed yet: "loading", not "stale"
+  // (also after a long quiet spell: an old copy is being replaced by a download that has not failed)
+  const loading = !fresh && !!state.inflight!.met && !state.failedAt!.met;
   return {
-    updated_at: new Date(met?.checkedAt ?? now).toISOString(),
+    updated_at: met ? new Date(met.checkedAt).toISOString() : null,
     stale: !fresh,
+    loading,
     weather,
     marine: seaTemp != null || om?.wave_m != null ? { sea_temp: seaTemp, wave_m: om?.wave_m ?? null, sea_date: sea?.date ?? null } : null,
     air: om && (om.aqi != null || om.pm25 != null) ? { aqi: om.aqi, pm25: om.pm25 } : null,
@@ -590,6 +624,7 @@ export function resetLiveCache(): void {
   state.sea = undefined;
   state.om = undefined;
   state.failedAt = {};
+  state.retryAt = {};
   state.metRaw = undefined;
   state.parsed = undefined;
   state.today = undefined;

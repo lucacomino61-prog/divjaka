@@ -1,7 +1,7 @@
 /** Credits page (T3): photos, map, weather data, typefaces, software, research sources. */
 export default {
   sq: {
-    'credits.poster': 'Burimet',
+    'credits.poster': 'Burimet e sajtit',
     'credits.kicker': 'Autorët dhe licencat',
     'credits.lead': 'Çdo foto, hartë dhe shifër në këtë sajt ka një autor dhe një licencë. Ja ku i gjeni.',
     'credits.toc': 'Në këtë faqe',
@@ -22,7 +22,7 @@ export default {
     'credits.map.odbl': 'Open Database License (ODbL 1.0)',
     'credits.map.note': 'Pozicioni i Ishullit të Pelikanit është i përafërt (vetëm Wikipedia jep koordinata); harta e shënon si zonë të mbyllur.',
     'credits.weather.title': 'Të dhënat e motit',
-    'credits.weather.body': 'Leximet e motit, të detit dhe të ajrit në këtë sajt vijnë nga disa shërbime të jashtme të dhënash. Këtu janë emrat dhe licencat e tyre. Në ditarin e ballinës dhe te faqja „Tani“ burimi shkruhet pranë leximeve. Temperatura e detit është analizë satelitore me datën e saj, rreth një ditë më e vjetër se leximet e tjera.',
+    'credits.weather.body': 'Leximet e motit, të detit dhe të ajrit në këtë sajt vijnë nga disa shërbime të jashtme të dhënash. Këtu janë emrat dhe licencat e tyre. Në ditarin e ballinës dhe te faqja «Tani» burimi shkruhet pranë leximeve. Temperatura e detit është analizë satelitore me datën e saj, rreth një ditë më e vjetër se leximet e tjera.',
     'credits.weather.provider': 'Ofruesit aktualë',
     'credits.weather.pd': 'domen publik',
     'credits.weather.license': 'licenca',
@@ -45,7 +45,7 @@ export default {
     'credits.research.heritage': 'Lexo fletët e trashëgimisë',
   },
   en: {
-    'credits.poster': 'Credits',
+    'credits.poster': 'Site credits',
     'credits.kicker': 'Sources and authors',
     'credits.lead': 'Every photo, map and figure on this site has an author and a licence. This is where to find them.',
     'credits.toc': 'On this page',

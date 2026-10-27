@@ -111,7 +111,7 @@ const when = (iso: string) => {
   .xs__next { display: grid; gap: 2px; margin: 0; font-size: var(--step--2); color: var(--muted); }
   .xs__seats { color: var(--fg); }
   .xs__hint { display: flex; align-items: center; gap: 8px; margin: 0; font-size: var(--step--2); color: var(--fg); padding-block-start: 8px; border-block-start: 1px dashed var(--rule); }
-  .xs__hint-dot { inline-size: 6px; block-size: 6px; border-radius: var(--radius-pill); background: var(--pouch); flex: none; }
+  .xs__hint-dot { inline-size: 6px; block-size: 6px; border-radius: var(--radius-pill); background: var(--fg); flex: none; }
   @media (hover: hover) and (pointer: fine) { .xs:hover .xs__nm { transform: translateX(6px); } }
   .xs:has(.xs__a:active) { transform: scale(0.99); transition: transform 120ms var(--ease-out); }
   .xs--end { inline-size: clamp(250px, 20vw, 300px); }

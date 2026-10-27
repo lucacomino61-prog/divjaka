@@ -208,7 +208,7 @@ const jsonld = {
   /* first screen (DESIGN §6): the poster and the hotel's own facts on the left, the search card
      beside them from the top on desktop — dates, guests and "Shiko dhomat e lira" visible at rest.
      Phones: the card lives in the sheet opened by the sticky pill (BookingSheet). */
-  .stay-hero { display: grid; gap: clamp(28px, 4vw, 56px); align-items: start; padding-block: clamp(10px, 1.6vw, 20px) var(--section-gap); }
+  .stay-hero { display: grid; gap: clamp(28px, 4vw, 56px); align-items: start; padding-block: clamp(10px, 1.6vw, 20px) 0; }
   .stay-hero__main { display: grid; gap: clamp(14px, 2vw, 24px); min-inline-size: 0; }
   .stay-hero :global(.stay-hero__crumbs) { margin-block-end: -4px; }
   .stay-hero__coords { color: var(--muted); font-size: var(--step--2); }
@@ -231,7 +231,6 @@ const jsonld = {
     .stay-hero { grid-template-columns: minmax(0, 1fr) minmax(380px, 440px); }
     .stay-hero__card { padding: 0 6px 6px 0; margin-block-start: 44px; }
   }
-  @media (max-width: 999px) { .stay { padding-block-end: 84px; } }
   .stay-bar { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; margin-block: 16px 28px; }
   .stay-bar .stay-sub { margin: 0; }
   .viewsw { display: inline-flex; gap: 4px; font-size: var(--step--2); }
